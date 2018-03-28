@@ -1,0 +1,2 @@
+TESTER_TYPE:=enVision
+BIN_OUTDIR:=Debug

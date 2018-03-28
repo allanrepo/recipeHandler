@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- CurrentSiteConfiguration is set to the StieConfiguration to use. -->
+<!-- Multiple SiteConfigurations can exist in a single file. -->
+<!-- SiteConfiguration consist of the following settings: -->
+<!-- RemoteLocation - that is the path to where the download package can be found. -->
+<!-- LocalLocation - That is the path to where to download package will be copied to. -->
+<!-- ProgLocation - That is the path to where to untar the package and tester load program. -->
+<!-- PackageType - Type of package to be downloded.-->
+<!-- tar - expect a tar file at the RemoteLocation to be downloaded -->
+<!--       to the LocalLocation and then be un-tar'd. -->
+
+<RECIPEHANDLER_CONF>
+    <CurrentSiteConfiguration ConfigurationName="Singapore"/>
+
+    <SiteConfiguration ConfigurationName="Singapore">
+        <argParameter RemoteLocation="/u/ycai/Launch_Folder"/>
+        <argParameter LocalLocation="/u/ycai/Launch_Folder/local_load"/>
+        <argParameter ProgLocation="/u/ycai/Launch_Folder/prog_load"/>	
+        <argParameter PackageType="tar"/>
+    </SiteConfiguration>
+
+    <SiteConfiguration ConfigurationName="LTXC_JIM">
+        <argParameter RemoteLocation="/u/jpanopul/RELEASE/ST_SECS_GEM/launch"/>
+        <argParameter LocalLocation="/u/jpanopul/RELEASE/ST_SECS_GEM/locallib"/>
+        <argParameter ProgLocation="/u/jpanopul/RELEASE/ST_SECS_GEM/test-program"/>
+        <argParameter PackageType="tar"/>
+    </SiteConfiguration>
+
+    <SiteConfiguration ConfigurationName="LTXC-SG">
+        <argParameter RemoteLocation="/home/nfs_local/fusion-mx"/>
+        <argParameter LocalLocation="/home/stm/locallib"/>
+        <argParameter ProgLocation="/home/stm/test-program"/>
+        <argParameter PackageType="tar"/>
+    </SiteConfiguration>
+
+</RECIPEHANDLER_CONF>

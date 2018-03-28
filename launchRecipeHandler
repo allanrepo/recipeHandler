@@ -1,0 +1,6 @@
+#!/bin/bash
+cd /home/localuser/Desktop/ST_GEM_software/recipeHandler/Debug/
+sleep 1
+./make -f /opt/ateTools/curi/CURI/dev/makeTemplates/makefile.curi
+sleep 1
+./recipeHandler -t localuser_default_EX_FX1_sim -c -d

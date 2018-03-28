@@ -1,0 +1,1040 @@
+! File: optool.uic
+! Standard user interface configuration file for optool.
+!------------------------------------------------------------------------------
+! Revision History
+!------------------------------------------------------------------------------
+!
+!   OS        date
+!  rev.    (yy-mm-dd)  engineer comments
+! R15.2.0   08-06-26   dc       Fix SPR submit link menu
+! R15.2.0   08-02-28   dc       115250    : Add Tools -> Debug menu
+! FX1_PMOS  05-05-07   mem      95700     : Removed C++ due to the port to the unified
+!                                           test tool
+! PMOS      03-11-04   ken      77806       Enabled EnVision tools at Cadence breakpoint
+! VX4C      02-20-11   phan     LTXun21525: added Archie's dig_ck to Digital Checkers
+!                                           moved diagnostics checkers to utilities
+! DSP_II    02-10-18   ming     LTXun23479: Taken back th_connect_ck.
+! DSP       02-09-25   rer      LTXun20012: Removed rfmp_modulation_chk
+! DSP       02-08-29   ming     LTXun23118: Restored changes made for LTXun19857.
+!                                       This file got messed up during a rebase/merge.
+! VX4C      02-11-06   gjr      LTXun24331: Made modifications for analogclock_ck
+! VX4       02-10-16   ming     LTXun23941: Added PPMU cal/chkrs for VX4.
+! R10.9.0   02-10-07   rer      LTXun20012: Removed rfmp_modulation_chk
+! VX4       02-08-14   ming     LTXun22846: Added VX4 menu.
+! R10.9.0   02-06-07   ming     LTXun21806: Took out dig_trignt_ck.
+! R10.9.1   02-05-28   sherryl  LTXun21176: move SPR and Crash Report to Help
+!                                 menu and added Send Tester Archive Data.
+! R10.9.0   01-11-21   ming     LTXun18614: diagAllMenu re-organized.
+! R10.9.0   01-11-21   ming     LTXun19138: dig_tver_ck removed from menus.
+! R10.9.0   01-11-20   ming     LTXun17353: default dataviewer tool added.
+! R10.9.0   01-09-19   ming     LTXun18319: digital cal/checkers
+!                                 (VX125/VX250/VX3) updated.
+! R10.9.0   01-06-27   jme      Unofficial additions for the CX tester
+! R10.9.0   01-07-16   shu      Remove photoTool
+! R10.9.0   01-05-14   lee      Added dvm_cal & dvm_ck to menus
+! R10.9.0   01-05-10   ming     LTXun16863: dig_tver_ck removed from menus.
+! R10.9.0   01-04-13   ming     LTXun16359: "execute" state added for util checkers.
+! R10.9.0   01-03-11   ming     LTXun15579: VX3 checkers order; Digital checkers
+!                                           re-grouping.
+! R10.9.0   01-02-26   ming     LTXun15774: dig_pogo_ck.dcv added.
+! R10.8.0   01-01-10   lee      Added power_test to utilities diag panel
+! R10.8.0   01-01-09   gjr      Added rfmp to diag panel
+! R10.8.0   01-01-05   ming     LTXun15032: dig_testbay_ck removed.
+! R10.8.0   01-01-03   ming     LTXun13208: analogclock_ck moved to DIGITAL grp.
+! R10.8.0   00-12-18   ming     LTXun14804: digital checkers changed.
+! R10.7.0   00-08-16   pal      Added Options menu
+! R10.6.0   00-04-25   yux      LTXun10704:
+!                                 The current groups are quite messy, added
+!                                 "envision" and "evx" to handle the situation
+!                                 when the program is running
+! R10.5.0   00-02-16   stp      LTXun09256:
+!                                 Grayed th_connect_ck for HF test head.
+! R10.3.3   00-02-03   zim      LTXun09035:
+!                                 Added rfp_ck to diagnostics.
+! R10.3.3   00-01-21   zim      LTXun08895:
+!                                 Added rfp_std_cal and rfp_cal_test to
+!                                 diagnostics.
+! R10.4.0   99-11-01   alam     LTXun04527:
+!                                 Disabled illegal buttons while at Cadence
+!                                 break point.
+! R10.3.1   99-10-28   dc       LTXun07345:
+!                                 Removed sync_port_ck from diagnostics panel.
+! R10.4     99-09-15   jhj      LTXun04604:
+!                                 Preparations for adding Enhanced Test Tool.
+! R10.2     99-03-26   jhj      LTXun02934:
+!                                 Changed SPR menu option to bring up the LTX
+!                                 external SPR web page.
+! R10.1     99-02-10   jhj      LTXun02261:
+!                                 Removed extra "Help" on the front of the help
+!                                 menu items.
+! R10.1     99-02-05   jhj      LTXun02430:
+!                                 Changed "Help On Operator Tool" to bring up
+!                                 the operator tool pdf document.
+
+#ifdef LTX_CXTESTER
+#include $LTXHOME$/extm/ovi/uic/cx_optool.uic
+#endif
+#ifdef LTX_CXTOOLS
+#include $LTXHOME$/extm/ovi/uic/cx_optool_tools.uic
+#endif
+MenuBar MainMenuBar -title ""
+    {
+    "File"        _F  f.menu FileMenu
+    "Edit"        _i  f.menu EditMenu
+    "Setup"       _S  f.menu SetupMenu
+    "Tester"      _T  f.menu TesterMenu
+    "Tools"       _l  -tearoff f.menu ToolsMenu
+    "Diagnostics" _D  -group diagGroup -group noDiagRun f.menu diagOptionsMenu
+    "Options"     _O  f.menu OptionsMenu
+    "Help"        _H  f.menu HelpMenu
+    }
+
+Menu FileMenu -title "File"
+    {
+    "New"             _N -group engr, no_prog, tester, load_btn f.syntax "show_new_test_program_box"
+    "Load..."         _L -group no_prog, tester, load_btn       f.syntax "show_load_test_program_box gem operator_tp"
+    "Abort Load"      _A -group abrtload_btn                    f.syntax "abort_program_load"
+    "Overlay File..." _O -group engr, prog_loaded, prog_notrun  f.syntax "show_overlay_file_box"
+    "Rename..."       _R -group engr, prog_loaded, notsaving, cad_bkpt, prog_notrun    f.syntax "show_rename_prog_box"
+    "Save"            _S -group engr, prog_loaded, prog_notrun, save_btn  f.syntax "save_test_program"
+    "Save As..."      _a -group engr, prog_loaded, prog_notrun, save_btn  f.syntax "show_save_as_tp_box"
+    "Abort Save"      _A -group abrtsave_btn                    f.syntax "abort_program_save"
+    "Unload"          _U -group prog_loaded, prog_notrun, notsaving, lot_user  f.syntax "unload_test_program"
+    "Exit"            _E                                        f.syntax "exit_optool"
+    }
+
+Menu EditMenu -title "Edit"
+    {
+    "Comments..."     _C -group engr, prog_loaded, cad_bkpt f.syntax "show_comments_box"
+    "Counters..."     _o -group engr, prog_loaded, cad_bkpt, prog_notrun f.syntax "show_counters_box"
+    "Lot Info..."     _L -group prog_loaded, cad_bkpt, prog_notrun       f.syntax "show_lot_info_box"
+    "Performance..."  _P -group prog_loaded, cad_bkpt, prog_notrun       f.syntax "show_performance_box"
+    }
+
+Menu SetupMenu -title "Setup"
+    {
+    "Active Object"     _A -group prog_loaded, prog_notrun, cad_bkpt  f.menu   ActiveObjectMenu
+    "Datalog..."       _D -group engr, prog_loaded, prog_notrun, evx, evx_dlog , cad_bkpt  f.syntax "show_datalog_box"
+    "EIM..."            _E -group prog_loaded , cad_bkpt, prog_notrun       f.syntax "show_eim_box"
+    "I/O Streams..."    _I -group tester                           f.syntax "show_io_streams_box"
+    "Operator Variables..." _V -group prog_loaded, cad_bkpt         f.syntax "show_variables_box"
+    "Summary..."        _S -group prod_prg_loaded, cad_bkpt     f.syntax "show_summary_box"
+    ""                                               f.separator
+    "Diagnostics Panel" _D -group diag_panel_btn, tester      f.syntax "show_diag_panel"
+    "Engineer Mode..."  _g -group prod_engr_btn, tester       f.syntax "show_engr_mode_box"
+    "Engineer Mode"     _g -group engr_engr_btn, tester       f.syntax "set_engr_mode"
+    "Production Mode"   _P -group prod_btn, tester            f.syntax "set_prod_mode"
+    "Production Panel"  _P -group prod_panel_btn, tester -group noDiagRun f.syntax "show_prod_panel"
+    }
+
+Menu ActiveObjectMenu -title ""
+    {
+    "Adapter Board..." _A -group prog_loaded       f.syntax "show_adapter_board_box"
+    "Bin Map..."       _B -group prog_loaded       f.syntax "show_bin_map_box"
+    "Flow..."          _F -group engr, prog_loaded      f.syntax "show_flow_box"
+    "Trigger..."       _T -group engr, prog_loaded      f.syntax "show_trigger_box"
+    "Wafer..."         _W -group prog_loaded      f.syntax "show_wafer_box"
+    "Pattern Map..."   _W -group prog_loaded      f.syntax "show_pattern_map_box"
+    }
+
+Menu TesterMenu -title "Tester"
+    {
+    "Control"         _C           -group engr f.menu   ControlMenu
+    "Program"         _P -tearoff              f.menu   ProgramMenu
+    "Gem"             _G -group gem_grp, gem_btn_grp  f.menu   GemMenu
+    }
+
+Menu ControlMenu -title ""
+    {
+    "Kill..."                 _K -group engr, kill_sim, tester f.syntax "show_kill_tester_box"
+    "ReRun Focus Calibration" _F -group engr, prog_loaded, cad_bkpt, prog_notrun  f.syntax "recalibrate"
+    "Restart..."              _s -group engr                   f.syntax "show_restart_tester_box"
+    "DIGITAL Override Pattern Load..." _O -group engr, tester, prog_loaded            f.syntax "show_pattern_override_box"
+    "DIGITAL Pattern Reload..."        _P -group engr, tester, prog_loaded, cad_bkpt  f.syntax "show_pattern_reload_box"
+    "DIGITAL Reset..."                 _V -group engr, tester, prog_loaded f.syntax "show_vx250reset_box"
+    }
+
+Menu GemMenu -title ""
+    {
+    "GEM States"                        _G         f.syntax "show_gem_control_box"
+    "Process Program Management"        _P         f.syntax "show_gem_pp_management_box"
+    "Terminal Services"                 _T         f.syntax "show_gem_term_srv_box"
+    }
+
+Menu ProgramMenu -title ""
+    {
+    "Loop Control..."      _L -group prod_prg_loaded, remote_ctrl  f.syntax "show_loop_control_box"
+    "Reset"                _R -group prog_loaded, reset_btn f.syntax "reset_program"
+    }
+
+Menu ToolsMenu -title "Tools"
+    {
+    Bin               _B -group prog_loaded     f.syntax "invoke_tool 1"  ! binTool
+    Configuration     _C -group prog_loaded, cad_bkpt, prog_notrun f.syntax "invoke_tool 2"  ! configurationTool
+    "Default DataViewer" _V -group tester f.syntax "invoke_tool dataviewer"                  ! dataviewer
+    Log               _L -group prog_loaded, cad_bkpt f.syntax "invoke_tool 10" !logTool"
+    "Wafer Map"       _W -group prog_loaded, cad_bkpt f.syntax "invoke_tool 26" ! wafermapTool
+    Xterm             _X                    f.syntax "invoke_tool xterm" ! xterm
+    Characterization  _C -group engr  -tearoff f.menu   CharacterizationMenu
+    Debug             _g -group engr, prog_loaded  -tearoff f.menu   DebugMenu
+    Development       _D -group engr, prog_loaded  -tearoff f.menu   DevelopmentMenu
+    Flow              _F -group engr, prog_loaded  -tearoff f.menu   FlowMenu
+    "Recipe Handler"	-group tester f.syntax "invoke_tool /usr/bin/xterm -geometry 80x30+0+0 -e /home/localuser/Desktop/ST_GEM_software/recipeHandler/launchRecipeHandler"
+    }
+
+Menu DebugMenu -title ""
+    {
+    "GraphicalDebug"  _G -group prog_loaded	          f.syntax "invoke_tool 38" !graphicalDebugTool
+    "Hardware"        _H -group prog_loaded           f.syntax "invoke_tool 8"  !hardwareTool
+    "PatternDebug"    _P -group prog_loaded           f.syntax "invoke_tool 37" !patternDebugTool
+    "WaveFormCapture" _W -group prog_loaded           f.syntax "invoke_tool 25" !waveformTool
+    }
+
+Menu CharacterizationMenu -title ""
+    {
+    "Axis"            _A -group prog_loaded           f.syntax "invoke_tool 0"  !axisTool
+    "Bitmap"          _i -group prog_loaded           f.syntax "invoke_tool 34" ! bitmapTool
+    "BreakPoint"      _B -group prog_loaded           f.syntax "invoke_tool 32" !breakPointTool
+    "Expression"      _E -group prog_loaded           f.syntax "invoke_tool 6"  !expressionTool
+    "Examinator"      _x                              f.syntax "start_examinator"
+    "Margin"          _M -group prog_loaded           f.syntax "invoke_tool 30" !marginTool"
+    "PlotData"        _o -group prog_loaded           f.syntax "invoke_tool 18" !plotDataTool
+    "PlotView"        _V -group prog_loaded           f.syntax "invoke_tool 19" !plotViewTool
+    }
+
+Menu DevelopmentMenu -title ""
+    {
+    "CadenceDebugger" _C -group prog_loaded, diag_panel_btn f.syntax "raise_cadence_debugger"
+    "Levels"          _L -group prog_loaded           f.syntax "invoke_tool 9"  !levelsTool
+    "Memory"          _e -group prog_loaded           f.syntax "invoke_tool 33" !memoryTool
+    "Method"          _M -group prog_loaded           f.syntax "invoke_tool 11" !methodTool
+    "Package"         _P -group prog_loaded           f.syntax "invoke_tool 4"  !packageTool (used to be deviceTool)
+    "Pattern"         _a -group prog_loaded           f.syntax "invoke_tool 15" !patternTool
+    "PatternSequence" _q -group prog_loaded           f.syntax "invoke_tool 20" !PatternSequenceTool
+    "PatternSetup" _t -group prog_loaded  f.syntax "invoke_tool 39" !PatternSeupTool
+    "Spec"            _S -group prog_loaded           f.syntax "invoke_tool 21" !specTool
+    "WaveForm"        _W -group prog_loaded           f.syntax "invoke_tool 27" !waveformTool
+    "WaveFormCell"    _v -group prog_loaded           f.syntax "invoke_tool 28" !wfcellTool
+    }
+
+Menu FlowMenu -title ""
+    {
+    "ExpressionContext" _E -group prog_loaded           f.syntax "invoke_tool 31" !exprContextTool"
+    "Flow"              _F -group prog_loaded           f.syntax "invoke_tool 7"  !flowTool
+    "MicroFlow"         _M -group prog_loaded           f.syntax "invoke_tool 12" !MicroFlowTool
+    "ObjectManager"     _O -group prog_loaded           f.syntax "invoke_tool 13" !objectManagerTool
+    "PinState"          _P -group prog_loaded           f.syntax "invoke_tool 29" !pinStateTool
+    "Test"              _T -group prog_loaded           f.syntax "invoke_tool 35" !TestTool
+    "Trigger"           _r -group prog_loaded           f.syntax "invoke_tool 23" !triggerTool
+    }
+
+Menu OptionsMenu -title "Options"
+    {
+    "Save Geometry"  _G f.syntax "save_geometries"
+	"Diagnostics: Max Lines Displayed"     _F -group diagGroup -group noDiagRun       f.syntax "show_dataviewer_max_line_box"
+	"Diagnostics: Print Max Fails"         _P -group diagGroup -group noDiagRun       f.syntax "show_dataviewer_fail_limit_box"
+    }
+
+Menu HelpMenu -title "Help"
+    {
+!    "About enVision"             _e f.syntax "about_evx"
+    "About This Tester"             _T f.syntax "about_this_tester"
+    "Check Config"                  _C f.syntax "check_tester_config"
+    ""                                 f.separator
+    "Contents"                      _C f.syntax "invoke_tool acroread $LTXHOME$/../common/doc/fusion_doc.pdf"
+    "On Operator Tool"              _O f.syntax "invoke_tool acroread $LTXHOME$/../common/doc/Tools/OperatorTool.pdf"
+!   "Index..."                      _I f.syntax "show_help_index_box"
+    ""                                 f.separator
+    "Submit SPR..."                 _S f.syntax "invoke_tool show_url http://ww-ghd.ltx.com/spr/login.pl"
+    "Report Crash..."               _R f.syntax "invoke_tool reportCrashTool" ! reportCrashTool
+    "Send Tester Archive Data Now"  _A f.syntax "send_now"
+    }
+
+
+Panel prodPanel -title ""
+    {
+    "Program..."    -group no_prog f.syntax  "show_load_test_program_box gem operator_tp -nobrowse -leaf"
+    Program         f.status
+    "Execute Mode:" f.label ""
+    ExecuteMode     f.status
+
+    ""              f.row ""
+    "Pathname:"     f.label ""
+    Pathname        f.status
+
+    ""              f.row -separator -sizeAdjustible -group gem_grp
+    "GEM State:"    f.label ""
+    GemState        f.status
+    "Spool State:"  f.label ""
+    SpoolState      f.status
+
+    ""              f.row "" -sizeAdjustible -group gem_grp
+    "Comm State"    -group gem_grp, gem_btn_grp f.menu comm_state_menu
+    CommState       f.status
+    "Control State" -group gem_grp, gem_btn_grp f.menu ctrl_state_menu
+    CtrlState       f.status
+
+    ""              f.row -separator
+    "Operator:"     f.label ""
+    Operator        f.status
+    "Flow:"         f.label ""
+    Flow            f.status
+
+    ""              f.row
+    "Lot ID:"       f.label ""
+    LotID           f.status
+    "Bin Map:"      f.label ""
+    BinMap          f.status
+
+    ""              f.row
+    "Sublot ID:"    f.label ""
+    SublotID        f.status
+    "Wafer:"        f.label ""
+    Wafer           f.status
+
+    ""              f.row
+    "Device:"       f.label ""
+    DeviceNumber    f.status
+    "Adapter:"      f.label ""
+    AdapterBoard    f.status
+
+    ""              f.row -separator
+    "Datalog..."     -group prog_loaded, prog_notrun f.menu Dlog_menu
+    Datalog_Status   f.status
+    "Summary..."     -group engr, prog_loaded, prog_not_run,cad_bkpt f.menu Summary_menu
+    Summary_Status   f.status
+
+    ""              f.row -separator
+    Break:     -group prog_loaded, prog_notrun, cad_bkpt, evx f.specialOption Break
+    Trace:     -group prog_loaded, prog_notrun, cad_bkpt, evx f.specialOption Trace
+    "Flow Policy:" -group prog_loaded, prog_notrun, cad_bkpt, evx f.specialOption Flow_Policy
+
+    ""              f.row -separator
+
+    Start      -group prog_loaded, prog_notrun, no_recalibrate, cad_bkpt, exec_pause f.syntax "start_program"
+    Reset      -group prog_loaded, reset_btn f.syntax "reset_program"
+    Restart    -group prog_loaded, cad_bkpt, prog_notrun, exec_pause f.syntax "restart_program"
+    "Operator Variables..."  -group prog_loaded, cad_bkpt   f.syntax "show_variables_box"
+    }
+
+
+Menu comm_state_menu -title "Gem Comm State: "
+    {
+    "  Enable"          f.syntax "enable_gem_comm"
+    "  Disable"         f.syntax "disable_gem_comm"
+    ""                  f.separator
+    "Setup..."          f.syntax "show_gem_control_box"
+    }
+
+
+Menu ctrl_state_menu -title "Gem Control State: "
+    {
+    "  Offline"           f.syntax "set_gem_control_offline"
+    "  Online: Local"     f.syntax "set_gem_control_online_local"
+    "  Online: Remote"    f.syntax "set_gem_control_online_remote"
+    ""                  f.separator
+    "Setup..."          f.syntax "show_gem_control_box"
+    }
+
+Menu Dlog_menu -title "Default Enable Expression: "
+    {
+    "  On"                 f.syntax "set_datalog_on"
+    "  Fails Only"         f.syntax "set_datalog_fail"
+    "  Off"                f.syntax "set_datalog_off"
+    ""                     f.separator
+    "Setup..."       -group engr, evx, evx_dlog, cad_bkpt  f.syntax "show_datalog_box"
+    }
+
+Menu Summary_menu -title ""
+    {
+    "Output"         f.syntax "output_summary"
+    "Clear"  -group envision f.syntax "clear_summary"
+    "Setup..."       f.syntax "show_summary_box"
+    }
+
+Menu binary_dlog -title ""
+    {
+    "On"               f.syntax "show_datalog_box"
+    "Off"              f.syntax "show_datalog_box"
+    "Edit..."          f.syntax "show_datalog_box"
+    }
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!  Diagnostics panel and subordinates
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!  NOTE
+!  Do not change the name of this panel
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+MultiPanel diagPanel -title ""
+    {
+    "UpperPanel"      f.panel diagUpperPanel
+    "middle"          f.specialPanel Queue
+    "LowerPanel"      f.panel diagLowerPanel
+    }
+
+
+Panel diagUpperPanel -title ""
+    {
+    "All"               -group noDiagRun f.menu   diagAllMenu
+    "Installed Options" -group noDiagRun f.menu   tmMenu
+    "Levels"            -group noDiagRun f.menu   diagLevelMenu
+    "Remove"            -group noDiagRun -group noProg -group undo f.menu  diagRemoveMenu
+    }
+
+
+!!!   NOTE
+!Special panels need to be declared, eventhough they are not created by UIC.
+!!!
+SpecialPanel Queue
+
+
+Panel  diagLowerPanel  -title ""
+    {
+    "Dlog:"             f.specialOption Diag_dlog
+    "Dlist:"            f.specialOption Diag_dlist
+    "Run Mode:"         f.specialOption  Diag_run_mode
+    ""                  f.row   -sizeAdjustible
+    "Results:"          f.specialOption  Diag_output
+    "Checker:"          f.specialOption  Diag_checker
+    "On Fail:"          f.specialOption  Diag_stop_fail
+    ""                  f.row   -sizeAdjustible
+    "Program"           -group oneProg f.menu  diagProgMenu
+    "Start"             -group noProg -group startCont f.syntax  "diag_start"
+    "Stop"              -group stop -group noProg f.syntax  "diag_stop"
+    "Continue"          -group noProg -group continue -group startCont -format "diag_continue %s" f.popup continueList
+    "Reset"             -group prog_loaded, reset_btn f.syntax "diag_halt"
+    "Summary"           f.menu  diagSummaryMenu
+    }
+
+
+!!!!!!!!!!!!!!!!!!!!
+! diagProgMenu
+!!!!!!!!!!!!!!!!!!
+
+Menu  diagProgMenu -title "Program"
+    {
+    "Load"              -group no_prog f.syntax "diag_load"
+    "Unload"            -group prog_loaded f.syntax "diag_unload"
+!    "Troubleshooting"   -group prog_loaded f.syntax "popup_ts_dialog"
+    }
+
+
+!!!!!!!!!!!!!!!!
+! diagAllMenu
+!!!!!!!!!!!!!!!!
+Menu diagAllMenu -title ""
+    {
+    a..c            -tearoff f.menu  acMenu
+    d..e            -tearoff f.menu  deMenu
+    f..p            -tearoff f.menu  fpMenu
+    q..z            -tearoff f.menu  qzMenu
+    }
+
+!!
+!! NOTE: Enabling Cals/Checkers in the diagnostics panel
+!!
+!!   This file contains a superset of all menu items for all possible tester
+!!   types. If the menu item uses "f.group_syntax", the checker will only
+!!   be enabled if the current tester inventory supports it (as defined in 
+!!   /ltx/diagnostics/all_diags). A checker must have an entry in the all_diags
+!!   file if the "f.group_syntax" is used. If the group syntax is not used,
+!!   the checker button must be grouped by all possible tester types.
+!!
+!!   Example: Enable dig_memory_ck in the digitalMenu for VX250/VX3, but 
+!!            in the utilitiesMenu for VX4,VX5,VX6.
+!!
+!!      all_diags (grouped for VX4+ tester types):
+!!          dig_memory_ck     -t VX4,VX5,VX6
+!!
+!!      digitalMenu (button appears for pre-VX4 tester types):
+!!          "dig_memory_ck"   -group VX250,VX3 f.syntax "add dig_memory_ck"
+!!
+!!      utilitiesMenu (uses all_diags grouping, button appears for VX4,VX5,VX6):
+!!          "dig_memory_ck"   f.group_syntax "add dig_memory_ck"
+!!
+
+Menu acMenu -title ""
+    {
+    action_bus_ck   f.group_syntax "add action_bus_ck"
+    analogclock_ck  f.group_syntax "add analogclock_ck"
+    ap_cal          f.group_syntax "add ap_cal"
+    ap_ck           f.group_syntax "add ap_ck"
+    ap_dvm_cal      f.group_syntax "add ap_dvm_cal"
+    aws_ck          f.group_syntax "add aws_ck"
+    }
+
+Menu deMenu -title ""
+    {
+    dig_ac_ck	    f.group_syntax "add dig_ac_ck"
+    dig_ck	    f.group_syntax "add dig_ck"
+    dig_ctmu_cal    f.group_syntax "add dig_ctmu_cal"
+    dig_ctmu_ck     -group dig_ctmu_ck_hf f.syntax "add dig_ctmu_ck"
+    dig_ctmu_ck     f.group_syntax "add dig_ctmu_ck"
+    dig_farm_ck     f.group_syntax "add dig_farm_ck"
+    dig_levels_cal  f.group_syntax "add dig_levels_cal"
+    dig_levels_ck   -group dig_levels_ck_hf f.syntax "add dig_levels_ck"
+    dig_levels_ck   f.group_syntax "add dig_levels_ck"
+    dig_memory_ck   f.group_syntax "add dig_memory_ck"
+    dig_pati_ck     f.group_syntax "add dig_pati_ck"
+    dig_pec_ck      f.group_syntax "add dig_pec_ck"
+    dig_peic_ck	    f.group_syntax "add dig_peic_ck"
+    dig_pogo_ck     -group dig_pogo_ck_hf f.syntax "add dig_pogo_ck"
+    dig_pogo_ck     f.group_syntax "add dig_pogo_ck"
+    dig_ppmu_cal    f.group_syntax "add dig_ppmu_cal"
+    dig_ppmu_ck     -group dig_ppmu_ck_hf f.syntax "add dig_ppmu_ck"
+    dig_ppmu_ck     f.group_syntax "add dig_ppmu_ck"
+    dig_quick_ck    f.group_syntax "add dig_quick_ck"
+    dig_register_ck f.group_syntax "add dig_register_ck"
+    dig_tg_ck       f.group_syntax "add dig_tg_ck"
+    dig_timing_cal  f.group_syntax "add dig_timing_cal"
+    dig_trignt_ck   f.group_syntax "add dig_trignt_ck"
+    dig_tsi_ck      f.group_syntax "add dig_tsi_ck"
+!   dig_tver_ck     f.group_syntax "add dig_tver_ck"
+    dpro4_ck        -group DPRO4 f.syntax "add dpro4_ck"
+    dps_cal         f.group_syntax "add dps_cal"
+    dps_ck          f.group_syntax "add dps_ck"
+    dps_dvm_cal     f.group_syntax "add dps_dvm_cal"
+    dsp_rcv_ck      f.group_syntax "add dsp_rcv_ck"
+    dvm_cal         f.group_syntax "add dvm_cal"
+    dvm_ck          f.group_syntax "add dvm_ck"
+    ee_test         f.group_syntax "add ee_test"
+    ee_test_config  f.group_syntax "add ee_test_config"
+    }
+
+Menu fpMenu -title ""
+    {
+    freq_std_cal    f.group_syntax "add freq_std_cal"
+    gpib_uhib_ck    f.group_syntax "add gpib_uhib_ck"
+    gto_m_cal       f.group_syntax "add gto_m_cal"
+    gto_m_ck        f.group_syntax "add gto_m_ck"
+    hss_ck          f.group_syntax "add hss_ck"
+    hss_init        f.group_syntax "add hss_init"
+    pm_ck           f.group_syntax "add pm_ck"
+    pmclock_ck      f.group_syntax "add pmclock_ck"
+    pmdist_ck       f.group_syntax "add pmdist_ck"
+    power_test      f.group_syntax "add power_test"
+    pps_cps_cal     f.group_syntax "add pps_cps_cal"
+    pps_cps_ck      f.group_syntax "add pps_cps_ck"
+    pps_cps_std_cal f.group_syntax "add pps_cps_std_cal"
+    }
+
+Menu qzMenu -title ""
+    {
+    rfp_cal_test    f.group_syntax "add rfp_cal_test"
+    rfp_ck          f.group_syntax "add rfp_ck"
+    rfp_std_cal     f.group_syntax "add rfp_std_cal"
+    rfmp_ck         f.group_syntax "add rfmp_ck"
+    rfmp_std_cal    f.group_syntax "add rfmp_std_cal"
+    scm_ck          f.group_syntax "add scm_ck"
+    sia_cal         f.group_syntax "add sia_cal"
+    sia_ck          f.group_syntax "add sia_ck"
+    sms_cal         f.group_syntax "add sms_cal"
+    sms_ck          f.group_syntax "add sms_ck"
+    sms_dvm_cal     f.group_syntax "add sms_dvm_cal"
+    status_ck       f.group_syntax "add status_ck"
+    vx_gto_fe_cal   f.group_syntax "add vx_gto_fe_cal"
+    vx_gto_ck       f.group_syntax "add vx_gto_ck"
+    }
+
+!!!!!!!!!!!!
+! tmMenu
+!!!!!!!!!!!!
+
+Menu  tmMenu -title ""
+    {
+    analogclock -group analogclock_ck -tearoff f.menu  analogclockMenu
+    ap          -group AP       -tearoff f.menu  apMenu
+    aws         -group AWS      f.syntax "add aws_ck"
+    dps         -group DPS      -tearoff f.menu  dpsMenu
+    dvm         -group DVM      -tearoff f.menu  dvmMenu
+    gto_m       -group GTO_M    -tearoff f.menu  gtomMenu
+    pm          -group PM       -tearoff f.menu  pmMenu
+    pps_cps     -group PPS,CPS  -tearoff f.menu  pps_cpsMenu
+    rfp         -group RFP      -tearoff f.menu  rfpMenu
+    rfmp        -group RFMP     -tearoff f.menu  rfmpMenu
+    sia         -group SIA      -tearoff f.menu  siaMenu
+    sms         -group SMS      -tearoff f.menu  smsMenu
+    trignt      -group TRIGNT   -tearoff f.menu trigntMenu
+    vx250       -group VX250    -tearoff f.menu  DigDiagMenu
+    vx3         -group VX3      -tearoff f.menu  DigDiagVx3Menu
+    vx4         -group VX4      -tearoff f.menu  DigDiagVx4Menu
+    vx5         -group VX5      -tearoff f.menu  DigDiagVx5Menu
+    vx6         -group VX6      -tearoff f.menu  DigDiagVx6Menu
+    vx_gto      -group VX_GTO   -tearoff f.menu  vxgtoMenu
+    }
+
+Menu analogclockMenu -title "analogclock"
+    {
+    analogclock_ck        f.group_syntax "add analogclock_ck"
+    }
+
+Menu apMenu -title "ap"
+    {
+    All             f.allbutton
+    ap_cal          f.group_syntax "add ap_cal"
+    ap_ck           f.group_syntax "add ap_ck"
+    ap_dvm_cal      f.group_syntax "add ap_dvm_cal"
+    scm_ck          f.group_syntax "add scm_ck"
+    }
+
+Menu vxgtoMenu -title "vx_gto"
+    {
+    All             f.allbutton        
+    vx_gto_fe_cal   f.group_syntax "add vx_gto_fe_cal"
+    vx_gto_ck       f.group_syntax "add vx_gto_ck"
+    }
+
+Menu gtomMenu -title "gto_m"
+    {
+    All              f.allbutton
+    gto_m_cal        f.group_syntax "add gto_m_cal"
+    gto_m_ck         f.group_syntax "add gto_m_ck"
+    }
+
+Menu dpsMenu -title "dps"
+    {
+    All             f.allbutton        
+    dps_cal         f.group_syntax "add dps_cal"
+    dps_ck          f.group_syntax "add dps_ck"
+    dps_dvm_cal     f.group_syntax "add dps_dvm_cal"
+    scm_ck          f.group_syntax "add scm_ck"
+    }
+
+Menu dvmMenu -title "dvm"
+    {
+    All             f.allbutton        
+    dvm_cal         f.group_syntax "add dvm_cal"
+    dvm_ck          f.group_syntax "add dvm_ck"
+    }
+
+Menu pmMenu -title "pm"
+    {
+    All             f.allbutton
+    pm_ck           f.group_syntax "add pm_ck"
+    pmclock_ck      f.group_syntax "add pmclock_ck"
+    pmdist_ck       f.group_syntax "add pmdist_ck"
+    }
+
+Menu pps_cpsMenu -title "pps_cps"
+    {
+    All             f.allbutton
+    pps_cps_cal     f.group_syntax "add pps_cps_cal"
+    pps_cps_ck      f.group_syntax "add pps_cps_ck"
+    pps_cps_std_cal f.group_syntax "add pps_cps_std_cal"
+    scm_ck          f.group_syntax "add scm_ck"
+    }
+
+Menu pviMenu -title "pvi"
+    {
+    All             f.allbutton        
+    pvi_cal         f.group_syntax "add pvi_cal"
+    pvi_ck          f.group_syntax "add pvi_ck"
+    pvi_connect_ck  f.group_syntax "add pvi_connect_ck"
+    pvi_std_cal     f.group_syntax "add pvi_std_cal"
+    }
+
+Menu rfcsMenu -title "rfcs"
+    {
+    All             f.allbutton        
+    rfcs_ck         f.group_syntax "add rfcs_ck"
+    rfcs_std_cal    f.group_syntax "add rfcs_std_cal"
+    }
+
+Menu rf3gMenu -title "rf3g"
+    {
+    All             f.allbutton        
+    rf3g_ck         f.group_syntax "add rf3g_ck"
+    rf3g_std_cal    f.group_syntax "add rf3g_std_cal"
+    }
+
+Menu rfpMenu -title "rfp"
+    {
+    All             f.allbutton        
+    rfp_cal_test    f.group_syntax "add rfp_cal_test"
+    rfp_ck          f.group_syntax "add rfp_ck"
+    rfp_std_cal     f.group_syntax "add rfp_std_cal"
+    }
+
+Menu rfmpMenu -title "rfmp"
+    {
+    All             f.allbutton        
+    rfmp_ck         f.group_syntax "add rfmp_ck"
+    rfmp_std_cal    f.group_syntax "add rfmp_std_cal"
+    }
+
+Menu siaMenu -title "sia"
+    {
+    All           f.allbutton
+    sia_cal       f.group_syntax "add sia_cal"
+    sia_ck        f.group_syntax "add sia_ck"
+    }
+
+Menu smsMenu -title "sms"
+    {
+    All             f.allbutton        
+    sms_cal         f.group_syntax "add sms_cal"
+    sms_ck          f.group_syntax "add sms_ck"
+    sms_dvm_cal     f.group_syntax "add sms_dvm_cal"
+    scm_ck          f.group_syntax "add scm_ck"
+    }
+
+Menu trigntMenu -title "trignt"
+    {
+    All             f.allbutton        
+    action_bus_ck   f.group_syntax "add action_bus_ck"
+    dig_trignt_ck   f.group_syntax "add dig_trignt_ck"
+    }
+
+Menu DigDiagVx6Menu -title "vx6"
+    {
+    All             f.allbutton
+    }
+Menu DigDiagVx5Menu -title "vx5"
+    {
+    All             f.allbutton
+    dig_ck	    f.group_syntax "add dig_ck"
+    dig_ctmu_cal    f.group_syntax "add dig_ctmu_cal"
+    dig_ctmu_ck     f.group_syntax "add dig_ctmu_ck"
+    dig_levels_cal  f.group_syntax "add dig_levels_cal"
+    dig_levels_ck   f.group_syntax "add dig_levels_ck"
+    dig_memory_ck   f.group_syntax "add dig_memory_ck"
+    dig_pati_ck     f.group_syntax "add dig_pati_ck"
+    dig_peic_ck     f.group_syntax "add dig_peic_ck"
+    dig_pogo_ck     f.group_syntax "add dig_pogo_ck"
+    dig_ppmu_cal    f.group_syntax "add dig_ppmu_cal"
+    dig_ppmu_ck     f.group_syntax "add dig_ppmu_ck"
+    dig_quick_ck    f.group_syntax "add dig_quick_ck"
+    dig_register_ck f.group_syntax "add dig_register_ck"
+    dig_tg_ck       f.group_syntax "add dig_tg_ck"
+    dig_timing_cal  f.group_syntax "add dig_timing_cal"
+!    dig_tver_ck     f.group_syntax "add dig_tver_ck"
+    }
+
+Menu DigDiagVx4Menu -title "vx4"
+    {
+    All             f.allbutton        
+    dig_ck	    f.group_syntax "add dig_ck"
+    dig_ctmu_cal    f.group_syntax "add dig_ctmu_cal"
+    dig_ctmu_ck     f.group_syntax "add dig_ctmu_ck"
+    dig_levels_cal  f.group_syntax "add dig_levels_cal"
+    dig_levels_ck   f.group_syntax "add dig_levels_ck"
+    dig_memory_ck   f.group_syntax "add dig_memory_ck"
+    dig_pati_ck     f.group_syntax "add dig_pati_ck"
+    dig_peic_ck	    f.group_syntax "add dig_peic_ck"
+    dig_pogo_ck     f.group_syntax "add dig_pogo_ck"
+    dig_ppmu_cal    f.group_syntax "add dig_ppmu_cal"
+    dig_ppmu_ck     f.group_syntax "add dig_ppmu_ck"
+    dig_quick_ck    f.group_syntax "add dig_quick_ck"
+    dig_register_ck f.group_syntax "add dig_register_ck"
+    dig_tg_ck       f.group_syntax "add dig_tg_ck"
+    dig_timing_cal  f.group_syntax "add dig_timing_cal"
+!    dig_tver_ck     f.group_syntax "add dig_tver_ck"
+!    dpro4_ck        -group DPRO4 f.syntax "add dpro4_ck"
+    dpro4_ck        f.group_syntax "add dpro4_ck"
+    }
+
+Menu DigDiagVx3Menu -title "vx3"
+    {
+    All             f.allbutton        
+    action_bus_ck   f.group_syntax "add action_bus_ck"
+    dig_ctmu_cal    f.group_syntax "add dig_ctmu_cal"
+    dig_ctmu_ck     -group dig_ctmu_ck_hf f.syntax "add dig_ctmu_ck"
+    dig_farm_ck     f.group_syntax "add dig_farm_ck"
+    dig_levels_cal  f.group_syntax "add dig_levels_cal"
+    dig_levels_ck   -group dig_levels_ck_hf f.syntax "add dig_levels_ck"
+    dig_pec_ck      f.group_syntax "add dig_pec_ck"
+    dig_pogo_ck     -group dig_pogo_ck_hf f.syntax "add dig_pogo_ck"
+    dig_ppmu_cal    f.group_syntax "add dig_ppmu_cal"
+    dig_ppmu_ck     -group dig_ppmu_ck_hf f.syntax "add dig_ppmu_ck"
+    dig_quick_ck    f.group_syntax "add dig_quick_ck"
+!   dig_testbay_ck  f.group_syntax "add dig_testbay_ck"
+    dig_timing_cal  f.group_syntax "add dig_timing_cal"
+    dig_trignt_ck   f.group_syntax "add dig_trignt_ck"
+    dig_tsi_ck      f.group_syntax "add dig_tsi_ck"
+!   dig_tver_ck     f.group_syntax "add dig_tver_ck"
+    dsp_rcv_ck      f.group_syntax "add dsp_rcv_ck"
+    }
+
+Menu DigDiagMenu -title "vx250"
+    {
+    All             f.allbutton        
+    action_bus_ck   f.group_syntax "add action_bus_ck"
+    dig_ctmu_cal    f.group_syntax "add dig_ctmu_cal"
+    dig_ctmu_ck     -group dig_ctmu_ck_hf f.syntax "add dig_ctmu_ck"
+    dig_ctmu_ck     f.group_syntax "add dig_ctmu_ck"
+    dig_farm_ck     f.group_syntax "add dig_farm_ck"
+    dig_levels_cal  f.group_syntax "add dig_levels_cal"
+    dig_levels_ck   -group dig_levels_ck_hf f.syntax "add dig_levels_ck"
+    dig_pec_ck      f.group_syntax "add dig_pec_ck"
+    dig_pogo_ck     -group dig_pogo_ck_hf f.syntax "add dig_pogo_ck"
+    dig_pogo_ck     f.group_syntax "add dig_pogo_ck"
+    dig_ppmu_cal    f.group_syntax "add dig_ppmu_cal"
+    dig_ppmu_ck     -group dig_ppmu_ck_hf f.syntax "add dig_ppmu_ck"
+    dig_ppmu_ck     f.group_syntax "add dig_ppmu_ck"
+    dig_quick_ck    f.group_syntax "add dig_quick_ck"
+!   dig_testbay_ck  f.group_syntax "add dig_testbay_ck"
+    dig_timing_cal  f.group_syntax "add dig_timing_cal"
+    dig_trignt_ck   f.group_syntax "add dig_trignt_ck"
+    dig_tsi_ck      f.group_syntax "add dig_tsi_ck"
+!   dig_tver_ck     f.group_syntax "add dig_tver_ck"
+    dsp_rcv_ck      f.group_syntax "add dsp_rcv_ck"
+   }
+
+Menu wbsMenu -title "wbs"
+    {
+    All             f.allbutton        
+    wbs_cal         f.group_syntax "add wbs_cal"
+    wbs_ck          f.group_syntax "add wbs_ck"
+    }
+
+!!!!!!!!!!!!!!!!!
+! diagLevelMenu
+!!!!!!!!!!!!!!!!
+
+Menu diagLevelMenu -title ""
+    {
+    "Quick Check"                f.syntax "quick_chk"
+   ! "All Checkers"              f.syntax "add_all_checkers"
+    "PM Checkers"                f.syntax "add_all_checkers"
+    "Extended Checkers"          f.syntax "add_all_extended_checkers"
+   ! "All Cals and Checkers"     f.syntax "add_all_cals_and_checkers"
+    "PM Checkers and Cals "      f.syntax "add_all_cals_and_checkers"
+    "Extended Checkers and Cals" f.syntax "add_extended_cals_and_checkers"
+    ""                      f.separator
+    "Analog Checkers"       -tearoff f.menu checkersMenu
+    "Digital Checkers"      -tearoff f.menu digitalMenu
+    "Interconnect Checks"   -tearoff f.menu interconnectMenu
+    "Self Calibrations"     -tearoff f.menu selfCalMenu
+    "Standard Calibrations" -tearoff f.menu standardMenu
+    "Utilities"             -tearoff f.menu utilitiesMenu
+    }
+
+! This menu should contain analog checkers only.
+Menu  checkersMenu  -title ""
+    {
+    All                   f.allbutton
+    "ap_ck"               f.group_syntax "add ap_ck"
+    "aws_ck"              f.group_syntax "add aws_ck"
+    "dps_ck"              f.group_syntax "add dps_ck"
+    "dvm_ck"              f.group_syntax "add dvm_ck"
+    "gto_m_ck"            f.group_syntax "add gto_m_ck"
+    "pm_ck"               f.group_syntax "add pm_ck"
+    "pmclock_ck"          f.group_syntax "add pmclock_ck"
+    "pmdist_ck"           f.group_syntax "add pmdist_ck"
+    "pps_cps_ck"          f.group_syntax "add pps_cps_ck"
+    "rfp_cal_test"        f.group_syntax "add rfp_cal_test"
+    "rfp_ck"              f.group_syntax "add rfp_ck"
+    "rfmp_ck"             f.group_syntax "add rfmp_ck"
+    "sia_ck"              f.group_syntax "add sia_ck"
+    "sms_ck"              f.group_syntax "add sms_ck"
+    "vx_gto_ck"           f.group_syntax "add vx_gto_ck"
+    }
+
+! This menu should contain digital checkers only.
+Menu  digitalMenu -title ""
+    {
+    "Digital PM"        -tearoff f.menu pmdigitalMenu
+    "Digital Extended"  -tearoff f.menu extendeddigitalMenu
+    }
+! This menu should contain PM digital checkers only.
+Menu  pmdigitalMenu -title ""
+    {
+    All                   f.allbutton
+    "action_bus_ck"       f.group_syntax "add action_bus_ck"
+    "analogclock_ck"      f.group_syntax "add analogclock_ck"
+    "dig_ck"	          f.group_syntax "add dig_ck"
+    "dig_ctmu_ck"         -group dig_ctmu_ck_hf f.syntax "add dig_ctmu_ck"
+    "dig_farm_ck"         f.group_syntax "add dig_farm_ck"
+    "dig_levels_ck"       -group dig_levels_ck_hf f.syntax "add dig_levels_ck"
+    "dig_levels_ck"       f.group_syntax "add dig_levels_ck"
+    "dig_memory_ck"       f.group_syntax "add dig_memory_ck"
+    "dig_pati_ck"         f.group_syntax "add dig_pati_ck"
+    "dig_pec_ck"          f.group_syntax "add dig_pec_ck"
+    "dig_peic_ck"         f.group_syntax "add dig_peic_ck"
+    "dig_pogo_ck"         -group dig_pogo_ck_hf f.syntax "add dig_pogo_ck"
+    "dig_ppmu_ck"         -group dig_ppmu_ck_hf f.syntax "add dig_ppmu_ck"
+    "dig_ppmu_ck"         f.group_syntax "add dig_ppmu_ck"
+    "dig_pogo_ck"         f.group_syntax "add dig_pogo_ck"
+    "dig_register_ck"     f.group_syntax "add dig_register_ck"
+    "dig_tg_ck"           f.group_syntax "add dig_tg_ck"
+    "dig_trignt_ck"       f.group_syntax "add dig_trignt_ck"
+    "dig_tsi_ck"          f.group_syntax "add dig_tsi_ck"
+    "dsp_rcv_ck"          f.group_syntax "add dsp_rcv_ck"
+    "dpro4_ck"            -group DPRO4 f.syntax "add dpro4_ck"
+    "dig_ctmu_ck"         f.group_syntax "add dig_ctmu_ck"
+    "dig_quick_ck"        f.group_syntax "add dig_quick_ck"
+    }
+! This menu should contain extended digital checkers only.
+Menu  extendeddigitalMenu -title ""
+    {
+    All                   f.allbutton
+    "action_bus_ck"       f.group_syntax "add action_bus_ck"
+    "analogclock_ck"      f.group_syntax "add analogclock_ck"
+    "dig_ck"	          f.group_syntax "add dig_ck"
+    "dig_ctmu_ck"         -group dig_ctmu_ck_hf f.syntax "add dig_ctmu_ck"
+    "dig_farm_ext_ck"     f.group_syntax "add dig_farm_ext_ck"
+    "dig_levels_ck"       -group dig_levels_ck_hf f.syntax "add dig_levels_ck"
+    "dig_levels_ck"       f.group_syntax "add dig_levels_ck"
+    "dig_memory_ck"       f.group_syntax "add dig_memory_ck"
+    "dig_memory_ext_ck"   f.group_syntax "add dig_memory_ext_ck"
+    "dig_pati_ext_ck"     f.group_syntax "add dig_pati_ext_ck"
+    "dig_pec_ck"          f.group_syntax "add dig_pec_ck"
+    "dig_peic_ck"         f.group_syntax "add dig_peic_ck"
+    "dig_pogo_ck"         -group dig_pogo_ck_hf f.syntax "add dig_pogo_ck"
+    "dig_ppmu_ck"         -group dig_ppmu_ck_hf f.syntax "add dig_ppmu_ck"
+    "dig_ppmu_ck"         f.group_syntax "add dig_ppmu_ck"
+    "dig_pogo_ck"         f.group_syntax "add dig_pogo_ck"
+    "dig_register_ck"     f.group_syntax "add dig_register_ck"
+    "dig_register_ext_ck" f.group_syntax "add dig_register_ext_ck"
+    "dig_tg_ext_ck"       f.group_syntax "add dig_tg_ext_ck"
+    "dig_trignt_ck"       f.group_syntax "add dig_trignt_ck"
+    "dig_tsi_ext_ck"      f.group_syntax "add dig_tsi_ext_ck"
+    "dsp_rcv_ck"          f.group_syntax "add dsp_rcv_ck"
+    "dpro4_ck"            -group DPRO4 f.syntax "add dpro4_ck"
+    "dig_ctmu_ck"         f.group_syntax "add dig_ctmu_ck"
+    "dig_quick_ck"        f.group_syntax "add dig_quick_ck"
+    }
+! This menu should contain interconnect and SCM related checkers only.
+Menu  interconnectMenu  -title ""
+    {
+    "scm_ck"          f.group_syntax "add scm_ck"
+    }
+
+Menu  selfCalMenu   -title ""
+    {
+    All               f.allbutton
+    "ap_cal"          f.group_syntax "add ap_cal"
+    "dig_ctmu_cal"    f.group_syntax "add dig_ctmu_cal"
+    "dig_levels_cal"  f.group_syntax "add dig_levels_cal"
+    "dig_ppmu_cal"    f.group_syntax "add dig_ppmu_cal"
+    "dig_timing_cal"  f.group_syntax "add dig_timing_cal"
+    "dps_cal"         f.group_syntax "add dps_cal"
+    "gto_m_cal"       f.group_syntax "add gto_m_cal"
+    "pps_cps_cal"     f.group_syntax "add pps_cps_cal"
+    "sia_cal"         f.group_syntax "add sia_cal"
+    "sms_cal"         f.group_syntax "add sms_cal"
+    "vx_gto_fe_cal"   f.group_syntax "add vx_gto_fe_cal"
+    }
+
+Menu  standardMenu  -title ""
+    {
+    All               f.allbutton
+    "ap_dvm_cal"      f.group_syntax "add ap_dvm_cal"
+    "dps_dvm_cal"     f.group_syntax "add dps_dvm_cal"
+    "dvm_cal"         f.group_syntax "add dvm_cal"
+    "freq_std_cal"    f.group_syntax "add freq_std_cal"
+    "pps_cps_std_cal" f.group_syntax "add pps_cps_std_cal"
+    "rfp_std_cal"     f.group_syntax "add rfp_std_cal"
+    "rfmp_std_cal"    f.group_syntax "add rfmp_std_cal"
+    "sms_dvm_cal"     f.group_syntax "add sms_dvm_cal"
+    }
+
+Menu  utilitiesMenu  -title ""
+    {
+!   "dig_tver_ck"     f.group_syntax "add dig_tver_ck"
+    "ee_test"         f.group_syntax "add ee_test"
+    "ee_test_config"  f.group_syntax "add ee_test_config"
+    "gpib_uhib_ck"    f.group_syntax "add gpib_uhib_ck"
+    "hss_ck"          f.group_syntax "add hss_ck"
+    "hss_init"        f.group_syntax "add hss_init"
+    "power_test"      f.group_syntax "add power_test"
+    "status_ck"       f.group_syntax "add status_ck"
+    }
+
+
+!!!!!!!!!!!!!!!
+!! diagRemoveMenu
+!!!!!!!!!!!!!!!!!
+
+Menu diagRemoveMenu  -title  "Remove"
+    {
+    "All"           -group grayOnUndo f.syntax "remove all"
+    "Selected"      -group grayOnUndo f.syntax "remove selected"
+    "Unselected"    -group grayOnUndo f.syntax "remove unselected"
+    "Failed"        -group grayOnUndo f.syntax "remove failed"
+!    "Marginal"      -group grayOnUndo f.syntax "remove marginal"
+!    "Non-Marginal"  -group grayOnUndo f.syntax "remove nonmarginal"
+    "Passed"        -group grayOnUndo f.syntax "remove passed"
+    "Executed"      -group grayOnUndo f.syntax "remove executed"
+    "Up To Date"    -group grayOnUndo f.syntax "remove up_to_date"
+    "Out Of Date"   -group grayOnUndo f.syntax "remove out_of_date"
+    "Halted"        -group grayOnUndo f.syntax "remove halted"
+    "UnHalted"      -group grayOnUndo f.syntax "remove unhalted"
+    "_cal"          -group grayOnUndo f.syntax "remove cals"
+    "_ck"           -group grayOnUndo f.syntax "remove cks"
+    "undo"          -group undo       f.syntax "remove undo"
+    }
+
+
+!!!!!!!!!!!!!!!!!
+!! diagSummaryMenu
+!!!!!!!!!!!!!!!!!!
+
+Menu diagSummaryMenu -title "Diagnostics Summary"
+    {
+    "To DataViewer"         f.syntax "diag_summary optool"
+    "To File"               f.dialog summaryFile
+    "To printer"            f.syntax "diag_summary printer"
+    "Clear Summary"         f.syntax "diag_summary clear"
+    }
+
+Dialog summaryFile -title "Print summary to file"
+    {
+    "File name:"       -format "diag_summary file %s" f.pathname
+    }
+
+
+!!! dlist / dlog stuff followed...
+
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!  diagOptionsMenu and subordinates
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+Menu diagOptionsMenu -title "Diagnostics Selection Options"
+    {
+    "Columns"       f.menu columnMenu
+    "Select"        f.menu selectMenu
+    "View"          f.menu viewMenu
+    "Menus"         f.menu showMenu
+    }
+
+Menu columnMenu -title "Column Menu"
+    {
+    1     f.syntax "column 1"
+    2     f.syntax "column 2"
+    3     f.syntax "column 3"
+    4     f.syntax "column 4"
+    5     f.syntax "column 5"
+    6     f.syntax "column 6"
+    Auto  f.syntax "column auto"
+    }
+
+Menu viewMenu -title "View Menu"
+    {
+    All              f.syntax "view all"
+    Date             f.syntax "view date"
+    Time             f.syntax "view time"
+    Result           f.syntax "view result"
+    "Date & Time"    f.syntax "view date_time"
+    "Date & Result"  f.syntax "view date_result"
+    "Time & Result"  f.syntax "view time_result"
+    "Name Only"      f.syntax "view name"
+    }
+
+Menu selectMenu -title "Select Menu"
+    {
+    All            f.syntax "select all"
+    "Fail Only"    f.syntax "select fail_only"
+!    "Marginal Only" f.syntax "select marginal_only"
+    "Halt Only"    f.syntax "select halt_only"
+    "Out of date"  f.syntax "select out_date"
+    "Pass Only"    f.syntax "select pass_only"
+    "Execute Only" f.syntax "select execute_only"
+    }
+
+Menu showMenu -title "Show Menu"
+    {
+    "Hide inactive items"    f.syntax "show_diags active"
+    "Show inactive items"    f.syntax "show_diags all"
+    }

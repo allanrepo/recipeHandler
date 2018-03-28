@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testerRecipe xmlns="urn:st-com:xsd.XTRF.V0162.Generic">
+<!-- Test program section -->
+<testPrgmIdentifier>
+<testPrgm idx="0">
+<testPrgmLoader testPrgmURI="BinChecker/Program/BinChecker.una" downloadStrategy="attempt" reloadStrategy="attempt" backToIdleStrategy="unload" />
+</testPrgm>
+</testPrgmIdentifier>
+<!-- STDF section -->
+<STDF>
+<STDFrecord recordName="MIR">
+<STDFfields>
+<STDFfield fieldName="CMOD_COD" required="strict">T</STDFfield>
+<STDFfield fieldName="LOT_ID" required="strict">FS737037</STDFfield>
+<STDFfield fieldName="PART_TYP" required="strict">SUAI0DZF</STDFfield>
+<STDFfield fieldName="OPER_NAM" required="strict">4477140</STDFfield>
+<STDFfield fieldName="USER_TXT" required="strict"></STDFfield>
+<STDFfield fieldName="FAMLY_ID" required="strict"></STDFfield>
+<STDFfield fieldName="FACIL_ID" required="strict">SGPEWS</STDFfield>
+<STDFfield fieldName="FLOOR_ID" required="strict">APEE</STDFfield>
+<STDFfield fieldName="PROC_ID" required="strict">EWS</STDFfield>
+<STDFfield fieldName="OPER_FRQ" required="strict">1000</STDFfield>
+<STDFfield fieldName="FLOW_ID" required="strict">EWS1</STDFfield>
+<STDFfield fieldName="SETUP_ID" required="strict" override="onEmpty">1SUAI0DZF-F3NFB1</STDFfield>
+<STDFfield fieldName="DSGN_REV" required="strict">SUAI0DZF-FS</STDFfield>
+<STDFfield fieldName="ENG_ID" required="strict">FS737037</STDFfield>
+<STDFfield fieldName="PKG_TYP" required="strict">DICE</STDFfield>
+<STDFfield fieldName="TSTR_TYP" required="strict">DBG_TSTR_TYP</STDFfield>
+</STDFfields>
+</STDFrecord>
+<STDFrecord recordName="SDR">
+<STDFfields>
+<STDFfield fieldName="CARD_ID" required="strict">0025072-c5</STDFfield>
+<STDFfield fieldName="CARD_TYP" required="strict">EPOXY</STDFfield>
+<STDFfield fieldName="DIB_ID" required="strict">0025072-c5</STDFfield>
+<STDFfield fieldName="HAND_ID" required="strict">EWPSB056</STDFfield>
+<STDFfield fieldName="HAND_TYP" required="strict">OPUS3</STDFfield>
+</STDFfields>
+</STDFrecord>
+</STDF>
+</testerRecipe>
