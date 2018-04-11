@@ -80,16 +80,16 @@ bool CRecipeConfig::printConfigParams()
 ///////////////////////////////////////////////////////
 // CTestProgArgs
 
-CTestProgArgs::CTestProgArgs() : ReloadStrategy(),DownloadStrategy(),TPName(),TPPath(),TPFile(),RcpFileSupport(),
+CTestProgArgs::CTestProgArgs() : ReloadStrategy(),DownloadStrategy(), BackToIdleStrategy(), TPName(),TPPath(),TPFile(),RcpFileSupport(),
 				 Flow(),Salestype(),Temperature(),Product(),Parallelism(),
 				 DieCode(),CmodCode(),LotId(),FlowId(),GrossDie(),ActiveController(),
 				 CurrentProgName(),FullTPName(),EndWaferEnable(),StartLotEnable(),
 				 StartWaferEnable()
-{
+{  
 }
 
-CTestProgArgs::CTestProgArgs(const CTestProgArgs& ot) : ReloadStrategy(ot.ReloadStrategy), 
-	       DownloadStrategy(ot.DownloadStrategy),TPName(ot.TPName),TPPath(ot.TPPath),TPFile(ot.TPFile),RcpFileSupport(ot.RcpFileSupport),
+CTestProgArgs::CTestProgArgs(const CTestProgArgs& ot) : ReloadStrategy(ot.ReloadStrategy), DownloadStrategy(ot.DownloadStrategy), 
+		BackToIdleStrategy(ot.BackToIdleStrategy), TPName(ot.TPName),TPPath(ot.TPPath),TPFile(ot.TPFile),RcpFileSupport(ot.RcpFileSupport),
 	       Flow(ot.Flow), Salestype(ot.Salestype),Temperature(ot.Temperature),Product(ot.Product), 
                Parallelism(ot.Parallelism),DieCode(ot.DieCode),CmodCode(ot.CmodCode),LotId(ot.LotId), 
                FlowId(ot.FlowId),GrossDie(ot.GrossDie),ActiveController(ot.ActiveController),
@@ -102,6 +102,7 @@ CTestProgArgs& CTestProgArgs::operator=(const CTestProgArgs& ot)
 {
     ReloadStrategy = ot.ReloadStrategy;
     DownloadStrategy = ot.DownloadStrategy;
+    BackToIdleStrategy = ot.BackToIdleStrategy;
     TPName = ot.TPName; 
     TPPath = ot.TPPath; 
     TPFile = ot.TPFile; 
@@ -133,6 +134,7 @@ bool CTestProgArgs::clearParams()
 {
     ReloadStrategy.clear();
     DownloadStrategy.clear();
+    BackToIdleStrategy.clear();
     TPName.clear();
     TPPath.clear();
     TPFile.clear();
@@ -165,7 +167,7 @@ bool CTestProgArgs::clearParams()
 CMIRArgs::CMIRArgs() : LotId(),CmodCod(),FlowId(),DsgnRev(),DateCod(),OperFrq(),OperNam(),NodeNam(),
 	  PartTyp(),EngId(),TestTmp(),FacilId(),FloorId(),StatNum(),ProcId(),ModCod(),
 	  FamilyId(),PkgTyp(),SblotId(),JobNam(),SetupId(),JobRev(),ExecTyp(),ExecVer(),AuxFile(),
-	  RtstCod(),TestCod(),UserText(),RomCod(),SerlNum(),SpecNam(),TstrTyp(),SuprNam(),SpecVer()
+	  RtstCod(),TestCod(),UserText(),RomCod(),SerlNum(),SpecNam(),TstrTyp(),SuprNam(),SpecVer(), ProtCod()
 {
 }
 
@@ -176,7 +178,8 @@ CMIRArgs::CMIRArgs(const CMIRArgs& ot) : LotId(ot.LotId),CmodCod(ot.CmodCod),Flo
 	  FamilyId(ot.FamilyId),PkgTyp(ot.PkgTyp),SblotId(ot.SblotId),
 	  JobNam(ot.JobNam),SetupId(ot.SetupId),JobRev(ot.JobRev),ExecTyp(ot.ExecTyp),
 	  ExecVer(ot.ExecVer),AuxFile(ot.AuxFile),RtstCod(ot.RtstCod),TestCod(ot.TestCod),
-	  UserText(ot.UserText),RomCod(ot.RomCod),SerlNum(ot.SerlNum),SpecNam(ot.SpecNam),TstrTyp(ot.TstrTyp),SuprNam(ot.SuprNam),SpecVer(ot.SpecVer)	
+	  UserText(ot.UserText),RomCod(ot.RomCod),SerlNum(ot.SerlNum),SpecNam(ot.SpecNam),TstrTyp(ot.TstrTyp),
+	  SuprNam(ot.SuprNam),SpecVer(ot.SpecVer), ProtCod(ot.ProtCod)	
 {
 }
 
@@ -216,6 +219,7 @@ CMIRArgs& CMIRArgs::operator=(const CMIRArgs& ot)
     TstrTyp = ot.TstrTyp;
     SuprNam = ot.SuprNam;
     SpecVer = ot.SpecVer;
+    ProtCod = ot.ProtCod;
 
     return *this;
 }
@@ -259,6 +263,7 @@ bool CMIRArgs::clearParams()
    TstrTyp.clear();
    SuprNam.clear();
    SpecVer.clear();
+   ProtCod.clear();
 
     return true;
 }

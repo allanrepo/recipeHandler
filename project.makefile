@@ -14,7 +14,9 @@ PROJECT_SOURCES =	recipeHandler.cpp \
 			argSwitches.cpp \
 			evxaTester.cpp \
 			recipeSupport.cpp \
-			xmlInterface.cpp
+			xmlInterface.cpp \
+			tinyxml2.cpp \
+			xtrf.cpp
 
 
 PROJECT_HEADERS   =	cmdLineSwitches.h \
@@ -22,7 +24,9 @@ PROJECT_HEADERS   =	cmdLineSwitches.h \
 			argSwitches.h \
 			userInterface.h \
 			recipeSupport.h \
-			xmlInterface.h
+			xmlInterface.h \
+			tinyxml2.h \
+			xtrf.h
 
 
 # Even though this is not a CURI project, there are some headers in there that make life simple.
@@ -39,3 +43,4 @@ endif
 ifeq ("$(CFG)", "Debug")
 # LDFLAGS:=-Wl,-rpath,'$$ORIGIN'
 endif
+

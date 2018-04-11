@@ -23,6 +23,7 @@ bool isFileExist(const char* pFileNamePath, int nAttempt, int nDelaySecond)
 	return false;
 }
 
+
 struct CMutexLock
 {
     CMutexLock(pthread_mutex_t & mutex) : m_mutex(mutex)
@@ -249,10 +250,10 @@ void CuserEvxaInterface::objectChange(const XClientMessageEvent xmsg)
     if (debug()) std::cout << "CuserEvxaInterface::objectChange" << std::endl;
 }
 
+// temporarily comment out logs to quiet it down. return them later
 void CuserEvxaInterface::programChange(const EVX_PROGRAM_STATE state, const char *text_msg)
 {
-    if (debug()) std::cout << "CuserEvxaInterface::programChange (state = " << state 
-              << ", Message = \"" << text_msg << "\")" << std::endl;
+    //allan// if (debug()) std::cout << "CuserEvxaInterface::programChange (state = " << state << ", Message = \"" << text_msg << "\")" << std::endl;
 
     ProgramControl *pgm = PgmCtrl();
 
@@ -303,7 +304,8 @@ void CuserEvxaInterface::programChange(const EVX_PROGRAM_STATE state, const char
 	if (debug()) std::cout << "programChange: EVX_PROGRAM_READY" << std::endl;
 	break;
     default:
-	if (debug()) std::cout << "programChange: Not Handled" << state << std::endl;
+	// allan //if (debug()) std::cout << "programChange: Not Handled" << state << std::endl;
+	break;
     }
 
     // tell the recipe thread we got the notification.
@@ -429,8 +431,12 @@ void CuserEvxaInterface::lotChange(const EVX_LOT_STATE lot_state, const char *lo
     if (debug()) std::cout << "CuserEvxaInterface::lotChange ( state = " << lot_state
               << ", Lot ID = \"" << lot_id << "\")" << std::endl;
 
+
     // tell the recipe thread we got the notification.
-    sendNotificationComplete(EVX_LOT_CHANGE, lot_state);	    
+    sendNotificationComplete(EVX_LOT_CHANGE, lot_state);
+
+	//handleBackToIdleStrategy();
+	    
 
 }
 
@@ -642,7 +648,7 @@ bool CuserEvxaInterface::parseTestPrgmIdentifier(XML_Node *testPrgmIdentifier)
 		    break; 
 	    }
 	    else {
-		fprintf(stdout, "testPrgmIdentifier unkown child: %s, Not Parsed\n", ptag.c_str());
+		fprintf(stdout, "testPrgmIdentifier unknown child: %s, Not Parsed\n", ptag.c_str());
 	    }
 	}
 	else
@@ -695,12 +701,21 @@ bool CuserEvxaInterface::parseTestPrgmLoader(XML_Node *testPrgmLoader)
 {
 	if (debug()) std::cout << "[DEBUG] Executing CuserEvxaInterface::parseTestPrgmLoader()" << std::endl;
     	bool result = true;
-    	if (debug()){fprintf(stdout, "Found %d attributes with %d values in %s tag\n", testPrgmLoader->numAttr(), testPrgmLoader->numVals(), testPrgmLoader->fetchTag().c_str());}
+    	if (debug()){fprintf(stdout, "[DEBUG] <testPrgmLoader> Found %d attributes with %d values in %s tag\n", testPrgmLoader->numAttr(), testPrgmLoader->numVals(), testPrgmLoader->fetchTag().c_str());}
 
     	for (int ii=0; ii<testPrgmLoader->numAttr(); ii++) 
 	{
-		if (debug()){ fprintf(stdout, "testPrgmLoader Attr %s: %s\n", testPrgmLoader->fetchAttr(ii).c_str(), testPrgmLoader->fetchVal(ii).c_str()); }		
-		if (testPrgmLoader->fetchAttr(ii).compare("testPrgmURI") == 0) m_TPArgs.TPName = testPrgmLoader->fetchVal(ii);
+		if (debug()){ fprintf(stdout, "[DEBUG] <testPrgmLoader> Attr %s: %s\n", testPrgmLoader->fetchAttr(ii).c_str(), testPrgmLoader->fetchVal(ii).c_str()); }	
+		if (testPrgmLoader->fetchAttr(ii).compare("reloadStrategy") == 0) m_TPArgs.ReloadStrategy = testPrgmLoader->fetchVal(ii);
+		if (testPrgmLoader->fetchAttr(ii).compare("downloadStrategy") == 0) m_TPArgs.DownloadStrategy = testPrgmLoader->fetchVal(ii);
+		if (testPrgmLoader->fetchAttr(ii).compare("backToIdleStrategy") == 0) m_TPArgs.BackToIdleStrategy = testPrgmLoader->fetchVal(ii);  
+		if (testPrgmLoader->fetchAttr(ii).compare("testPrgmURI") == 0) 
+		{
+			m_TPArgs.TPName = testPrgmLoader->fetchVal(ii);
+			unsigned found = m_TPArgs.TPName.find_first_of("/");
+			if (found != std::string::npos){ m_TPArgs.TPPath = m_TPArgs.TPName.substr(0, found); }
+			else { m_TPArgs.TPPath = ""; }			
+		}
     	}
 
     	return result;
@@ -723,9 +738,10 @@ bool CuserEvxaInterface::_parseTestPrgmLoader(XML_Node *testPrgmLoader)
     	for (int ii=0; ii<testPrgmLoader->numAttr(); ii++) 
 	{
 		if (debug()){ fprintf(stdout, "testPrgmLoader Attr %s: %s\n", testPrgmLoader->fetchAttr(ii).c_str(), testPrgmLoader->fetchVal(ii).c_str()); }
-
+		if (testPrgmLoader->fetchAttr(ii).compare("testPrgmURI") == 0) m_TPArgs.TPName = testPrgmLoader->fetchVal(ii);
 		if (testPrgmLoader->fetchAttr(ii).compare("reloadStrategy") == 0) m_TPArgs.ReloadStrategy = testPrgmLoader->fetchVal(ii);
 		if (testPrgmLoader->fetchAttr(ii).compare("downStrategy") == 0) m_TPArgs.DownloadStrategy = testPrgmLoader->fetchVal(ii);
+		if (testPrgmLoader->fetchAttr(ii).compare("backToIdleStrategy") == 0) m_TPArgs.BackToIdleStrategy = testPrgmLoader->fetchVal(ii);
     	}
 
     	int numChildren = testPrgmLoader->numChildren();
@@ -912,8 +928,11 @@ bool CuserEvxaInterface::parseSTDFRecord(XML_Node *STDFRecord)
     else if (rname.compare("SDR") == 0) {
 	result = parseSDR(STDFRecord);
     }
+    else if (rname.compare("GDR") == 0) {
+	result = parseGDR(STDFRecord);
+    }
     else {
-	fprintf(stdout, "parseSTDFRecord unkown recordName: %s\n", rname.c_str());
+	fprintf(stdout, "[ERROR] parseSTDFRecord unknown recordName: %s\n", rname.c_str());
     }
 
     return result;
@@ -1002,6 +1021,8 @@ bool CuserEvxaInterface::parseMIR(XML_Node *MIRRecord)
 		m_MIRArgs.SuprNam = result;
 	    else if (temp.compare("SPEC_VER") == 0)
 		m_MIRArgs.SpecVer = result;
+	    else if (temp.compare("PROT_COD") == 0)
+		m_MIRArgs.ProtCod = result;
 
 	    else
 		fprintf(stdout, "parseMIR unkown field: %s\n", temp.c_str());
@@ -1062,6 +1083,43 @@ bool CuserEvxaInterface::parseSDR(XML_Node *SDRRecord)
 	}
     }
     return result;
+}
+
+/*---------------------------------------------------------------------------------
+parse GDR
+---------------------------------------------------------------------------------*/
+bool CuserEvxaInterface::parseGDR(XML_Node *GDRRecord)
+{
+	if (debug()) std::cout << "[DEBUG] Executing CuserEvxaInterface::parseGDR()" << std::endl;
+     	bool result = true;
+
+	tinyxtrf::Xtrf* xtrf(tinyxtrf::Xtrf::instance());
+	xtrf->clear();
+	tinyxtrf::GdrRecord gdrs;
+
+    	XML_Node *STDFfields = GDRRecord->fetchChild("STDFfields");
+    	int nfields = STDFfields->numChildren();
+    	for(int jj=0; jj<nfields; jj++) 
+	{
+		XML_Node *STDFfield = STDFfields->fetchChild(jj);
+		if (STDFfield) 
+		{
+	    		std::string temp = STDFfield->fetchVal(0);
+	    		std::string result = STDFfield->fetchText();
+	    		if (debug()) fprintf(stdout, "[DEBUG] GDR found: %s %s\n", temp.c_str(), result.c_str());				
+	    		if (temp.compare("GEN_DATA") == 0)
+			{
+				gdrs.push_back(tinyxtrf::GdrField( temp.c_str(), "C*n", result.c_str()));
+			}	
+	    		else fprintf(stdout, "[ERROR] parseGDR unknown field: %s\n", temp.c_str());
+		}
+    	}
+
+	gdrs.insert(gdrs.begin(), 1, tinyxtrf::GdrField("FIELD_CNT", "U*2", num2stdstring(gdrs.size())));
+	xtrf->addGdr(gdrs);
+	xtrf->dumpGdrs("/tmp/gdr.xtrf");
+
+    	return result;
 }
 
 //--------------------------------------------------------------------
@@ -1133,6 +1191,7 @@ bool CuserEvxaInterface::sendMIRParams()
 	    fprintf(stdout, "Error sendMIRParams EVX_LotLotID: status:%d %s\n", status, pgm->getStatusBuffer());
 	    result = false;
 	}
+	fprintf(stdout, "MIR.LotLotID: %s\n", pgm->getLotInformation(EVX_LotLotID));
     }
     if (!m_MIRArgs.CmodCod.empty()) {
 	if (status == EVXA::OK) status = pgm->setLotInformation(EVX_LotCommandMode, m_MIRArgs.CmodCod.c_str());
@@ -1370,7 +1429,14 @@ bool CuserEvxaInterface::sendMIRParams()
 	}
                        fprintf(stdout, "MIR.SpecVer: %s\n", pgm->getLotInformation(EVX_LotTestSpecRev));
     }
-
+    if (!m_MIRArgs.ProtCod.empty()) {
+	if (status == EVXA::OK) status = pgm->setLotInformation(EVX_LotProtectionCode, m_MIRArgs.ProtCod.c_str());
+	if (status != EVXA::OK) {
+	    fprintf(stdout, "[ERROR] sendMIRParams EVX_LotProtectionCode: status:%d %s\n", status, pgm->getStatusBuffer());
+	    result = false;
+	}
+        fprintf(stdout, "MIR.ProtCod: %s\n", pgm->getLotInformation(EVX_LotProtectionCode));
+    }
     
     return true;
 }
@@ -1397,6 +1463,7 @@ bool CuserEvxaInterface::sendSDRParams()
 	    fprintf(stdout, "Error sendSDRParams set handler: %s\n", pgm->getStatusBuffer());
 	    result = false;
 	}
+        fprintf(stdout, "SDR.HandTyp: %s\n", pgm->getLotInformation(EVX_LotHandlerType));
     }
 
 
@@ -1511,6 +1578,7 @@ bool CuserEvxaInterface::sendSDRParams()
 	    fprintf(stdout, "[ERROR] sendSDRParams set LotIfCableType: %s\n", pgm->getStatusBuffer());
 	    result = false;
 	}
+        fprintf(stdout, "SDR.CableTyp: %s\n", pgm->getLotInformation(EVX_LotIfCableType));
     }
 
 
@@ -1747,6 +1815,7 @@ bool CuserEvxaInterface::updateTestProgramData()
     if (m_recipeParseResult == false) result = false;
     if (result == true) result = sendStartOfWafer();
 */
+
     if (m_recipeParseResult == false) result = false;
     if (result == true) result = sendTPParams();
 
@@ -1757,6 +1826,7 @@ bool CuserEvxaInterface::updateTestProgramData()
     if (result == true) result = sendSDRParams();
 
     if (m_recipeParseResult == false) result = false;
+
     return result;
 }
 
@@ -1862,772 +1932,474 @@ bool CuserEvxaInterface::executeRecipeReload()
     	ProgramControl *pgm = PgmCtrl();
     	if (NULL == pgm) 
 	{
-		fprintf(stdout, "Error executeRecipeReload: no ProgramControl\n");
+		fprintf(stdout, "[ERROR] executeRecipeReload: no ProgramControl\n");
 		return false;
     	}
     	
 	bool pgmLoaded = pgm->isProgramLoaded();
     	if (EVXA::OK != status) 
 	{
-		fprintf(stdout, "Error executeRecipeReload: Error isProgramLoaded: %s\n", pgm->getStatusBuffer());
+		fprintf(stdout, "[ERROR] error on call to isProgramLoaded(): %s\n", pgm->getStatusBuffer());
 		return false;
     	}
     	
 	if (pgmLoaded == true) 
 	{
 		std::string temp = pgm->getProgramPath();
-		unsigned found = temp.find_last_of("/");
-		if (found != std::string::npos) m_TPArgs.CurrentProgName = temp.substr(found+1);
-		else m_TPArgs.CurrentProgName = temp;
-		fprintf(stdout, "CurrentProgName: %s\n", m_TPArgs.CurrentProgName.c_str());
+		std::cout << "[OK] Test program already loaded with full path name: " << temp << std::endl;
+		m_TPArgs.CurrentProgName = temp;
+		//unsigned found = temp.find_last_of("/");
+		//if (found != std::string::npos) m_TPArgs.CurrentProgName = temp.substr(found+1);
+		//else m_TPArgs.CurrentProgName = temp;
+		//fprintf(stdout, "Test Program already loaded with Name: %s\n", m_TPArgs.CurrentProgName.c_str());
     	}
 
-	result = loadProgramURI();
-    
+	std::string dload(m_TPArgs.DownloadStrategy);
+	std::string rload(m_TPArgs.ReloadStrategy);
+	if(debug()) std::cout << "[DEBUG] download strategy: " << dload.c_str() << std::endl;
+	if(debug()) std::cout << "[DEBUG] reload strategy: " << rload.c_str() << std::endl;
+
+	// download = force, reload = doesn't matter
+	// look for TP in remote folder and download it, move to program folder, and unpack
+	// unload any program loaded in tester and load this new one
+	if((dload.compare("Force") == 0) || (dload.compare("force") == 0)){ result = forceDownloadAndLoad(); }
+
+	// download = never
+	else if ((dload.compare("Never") == 0) || (dload.compare("never") == 0)) 
+	{
+		// reload = force
+		// if TP available in local folder, reload it. 
+		// else, if TP available remotely, download it. unpack. unload current program if any. load new one
+		if ((rload.compare("Force") == 0) || (rload.compare("force") == 0)) result = neverDownloadForceLoad();
+
+		// reload = never
+		else if ((rload.compare("Never") == 0) || (rload.compare("never") == 0)) result = neverDownloadNeverLoad();
+
+		// reload = attempt		
+		else  result = neverDownloadAttemptLoad();
+	}
+	// indifferent, attempt download are the same
+	else 
+	{  
+		if ((rload.compare("Force") == 0) || (rload.compare("force") == 0)) result = attemptDownloadForceLoad();
+		// attempt, indifferent, never reload are the same.
+		else result = attemptDownloadAttemptLoad();
+	}    
     	return result;    
 }
 
-//--------------------------------------------------------------------
-//--------------------------------------------------------------------
-bool CuserEvxaInterface::loadProgramURI()
+/*---------------------------------------------------------------------------------
+handle back to idle strategy
+---------------------------------------------------------------------------------*/
+bool CuserEvxaInterface::handleBackToIdleStrategy()
 {
-  	if (debug()) std::cout << "[DEBUG] Executing CuserEvxaInterface::loadProgramURI()" << std::endl;
-  	bool result = true;	
-	
-	// check if program referenced by XTRF exist, bail out if no
-	if (!checkLocalProgramURIExists()) return false;
+	// if backtoidle = retain
+	// keep program loaded and TP files test folder untouched
 
-	// if there's test program loaded, unload it
-    	EVXAStatus status = EVXA::OK;
-
-    	ProgramControl *pgm = PgmCtrl();
-    	if (!pgm){ fprintf(stdout, "[ERROR] Failed to access ProgramControl object.\n"); return false;}
-
-	// If there's a program loaded then unload it.
-	if (m_TPArgs.CurrentProgName.empty() == false) 
-	{
-	    	EVX_PROGRAM_STATE states[] = { EVX_PROGRAM_UNLOADED, MAX_EVX_PROGRAM_STATE };
-	    	setupProgramNotification(states);
-	    	status = pgm->unload(EVXA::NO_WAIT);  
-	    	if (EVXA::OK != status) 
-		{
-			fprintf(stdout, "[ERROR] Something went wrong in unloading program: %s\n", pgm->getStatusBuffer());
-			return false;
-	    	}
-	    	waitForNotification();
-	    	if (m_recipeParseResult == false){return m_recipeParseResult;}
+	// backtoidle = unloadAndRetain
+	// unload TP but keep TP files in and test folder untouched
+	if((m_TPArgs.BackToIdleStrategy.compare("unloadAndRetain") == 0) || (m_TPArgs.BackToIdleStrategy.compare("UnloadAndRetain") == 0))
+	{ 
+		if (! unloadProgram(m_TPArgs.FullTPName, false)) return false;
+		else return true;		
 	}
 
+	// backtoidle = unloadAndDelete
+	// unload TP and delete TP files in test folder
+	if((m_TPArgs.BackToIdleStrategy.compare("unloadAndDelete") == 0) || (m_TPArgs.BackToIdleStrategy.compare("UnloadAndDelete") == 0))
+	{ 
+		if (! unloadProgram(m_TPArgs.FullTPName, false)) return false;
+				
+		// SAFELY delete TP files in test folder. make sure this string is not empty before proceeding
+		if (!m_ConfigArgs.ProgLocation.empty()) 
+		{
+		    std::stringstream rmCmd;
+		    rmCmd << "/bin/rm -rf " << m_ConfigArgs.ProgLocation << "/*";
+		    if(debug()) fprintf(stdout, "clean localdir cmd:%s\n", rmCmd.str().c_str());
+		    system(rmCmd.str().c_str());
+		    if(debug()) fprintf(stdout, "clean localdir done\n");
+		}
+	}
+
+	// backtoidle = unload
+	// same as unloadAndRetain
+	if((m_TPArgs.BackToIdleStrategy.compare("unload") == 0) || (m_TPArgs.BackToIdleStrategy.compare("Unload") == 0))
+	{ 
+		if (! unloadProgram(m_TPArgs.FullTPName, false)) return false;
+		else return true;		
+	}
+
+	// backtoidle = indifferent
+	// same behavior as unload
+	if((m_TPArgs.BackToIdleStrategy.compare("indifferent") == 0) || (m_TPArgs.BackToIdleStrategy.compare("Indifferent") == 0))
+	{ 
+		if (! unloadProgram(m_TPArgs.FullTPName, false)) return false;
+		else return true;		
+	}
+
+	return true;
+//sendRecipeResultStatus(result);  // parsing failed so just send the result back to cgem.
+}
+
+
+/*---------------------------------------------------------------------------------
+load program
+---------------------------------------------------------------------------------*/
+bool CuserEvxaInterface::loadProgram(const std::string &szProgFullPath)
+{
+ 	if (debug()) std::cout << "[DEBUG] Executing CuserEvxaInterface::loadProgram()" << std::endl;
+
+	EVXAStatus status = EVXA::OK;
+     	if (!PgmCtrl()){ std::cout << "[ERROR] Failed to access ProgramControl object." << std::endl; return false;}
 
 	// load our program from XTRF
-	fprintf(stdout, "Loading test program %s...\n", m_TPArgs.FullTPName.c_str());
+	if(debug()) std::cout << "[DEBUG] loading test program " <<  szProgFullPath << "..." << std::endl;
 	EVX_PROGRAM_STATE states[] = { EVX_PROGRAM_LOADED, EVX_PROGRAM_LOAD_FAILED, EVX_PROGRAM_UNLOADED, MAX_EVX_PROGRAM_STATE };
 	setupProgramNotification(states);
-	status = pgm->load(m_TPArgs.FullTPName.c_str(), EVXA::NO_WAIT, EVXA::NO_DISPLAY);
-	
-	if (EVXA::OK == status){ waitForNotification(); }
+	status = PgmCtrl()->load(szProgFullPath.c_str(), EVXA::NO_WAIT, EVXA::NO_DISPLAY);
+
+	if (EVXA::OK == status)
+	{ 
+		waitForNotification(); 
+		std::cout << "[OK] test program " <<  szProgFullPath << " successfully loaded." << std::endl;
+	}
 	else 
 	{
-	    fprintf(stdout, "[ERROR] Something went wrong in loading test program %s : %s\n", m_TPArgs.FullTPName.c_str(),pgm->getStatusBuffer());
-	    result = false;
+	    std::cout << "[ERROR] Something went wrong in loading test program " << szProgFullPath.c_str() << ": " << PgmCtrl()->getStatusBuffer() << std::endl;
+	    return false;
 	}
-
-	return result;
+		
+	return true;
 }
 
-//--------------------------------------------------------------------
-//--------------------------------------------------------------------
-bool CuserEvxaInterface::checkLocalProgramURIExists()
+/*---------------------------------------------------------------------------------
+unload program
+---------------------------------------------------------------------------------*/
+bool CuserEvxaInterface::unloadProgram(const std::string &szProgFullPath, bool notify)
 {
-  	if (debug()) std::cout << "[DEBUG] Executing CuserEvxaInterface::checkLocalProgramURIExists()" << std::endl;
-    	bool result = false;
-    
-	std::stringstream fullProgName;
-	fullProgName << m_ConfigArgs.ProgLocation << "/" << m_TPArgs.TPName;
- 	m_TPArgs.FullTPName = fullProgName.str();
+ 	if (debug()) std::cout << "[DEBUG] Executing CuserEvxaInterface::unloadProgram()" << std::endl;
 
-    	// Check for the file at that location.
-    	if(debug()) fprintf(stdout, " Checking if test %s exists...\n", m_TPArgs.FullTPName.c_str());
-    
-	if (access(m_TPArgs.FullTPName.c_str(), F_OK) > -1){ result = true;}
-    	else { fprintf(stderr, "[ERROR] %s does not exist!\n", m_TPArgs.FullTPName.c_str()); return false;}
-
-    	return result;	
-}
-
-
-
-
-//--------------------------------------------------------------------
-/* If requested TP is available remotely
-     download & reload
-   else 
-     error
-*/ 
-bool CuserEvxaInterface::forceDownloadAndLoad()
-{
-    if(debug()) fprintf(stdout, "forceDownloadAndRecipeLoad\n");
-    bool result = true;	
-    EVXAStatus status = EVXA::OK;
-
-    ProgramControl *pgm = PgmCtrl();
-    if (NULL == pgm) {
-	fprintf(stdout, "Error forceDownloadAndLoad: no ProgramControl\n");
-	return false;
-    }
-
-    // check if program is available remotely
-    result = downloadProgram();
-
-    // Load the given program
-    // After program load the rest of the recipe can be updated.
-    if (result == true) {
+	EVXAStatus status = EVXA::OK;
+     	if (!PgmCtrl()){ std::cout << "[ERROR] Failed to access ProgramControl object." << std::endl; return false;}
+	
 	// If there's a program loaded then unload it.
-	if (m_TPArgs.CurrentProgName.empty() == false) {
-	    EVX_PROGRAM_STATE states1[] = { EVX_PROGRAM_UNLOADED, 
-					   MAX_EVX_PROGRAM_STATE };
-	    setupProgramNotification(states1);
-	    status = pgm->unload(EVXA::NO_WAIT);  // wait for unload to finish
-	    if (EVXA::OK != status) {
-		fprintf(stdout, "Error forceDownloadAndLoad: Error unloading program: %s\n", pgm->getStatusBuffer());
-		result = false;
-		return result;
-	    }
-	    waitForNotification();
-	    if (m_recipeParseResult == false) {
-		return m_recipeParseResult;
-	    }
-	}
-
-	fprintf(stdout, "PROGRAM NAME: %s\n", m_TPArgs.FullTPName.c_str());
-	EVX_PROGRAM_STATE states[] = { EVX_PROGRAM_LOADED, 
-				       EVX_PROGRAM_LOAD_FAILED, 
-				       EVX_PROGRAM_UNLOADED, 
-				       MAX_EVX_PROGRAM_STATE };
-	setupProgramNotification(states);
-	status = pgm->load(m_TPArgs.FullTPName.c_str(), EVXA::NO_WAIT, EVXA::NO_DISPLAY);
-	
-	if (EVXA::OK == status) {
-	    waitForNotification();
-	}
-	else {
-	    fprintf(stdout, "Error forceDownloadAndLoad: %s\n", pgm->getStatusBuffer());
-	    result = false;
-	}
-    }	
-    else {
-	fprintf(stdout, "Error forceDownloadAndLoad Program Not Available %s\n", m_TPArgs.FullTPName.c_str());
-	result = false;
-    }
-    
-    return result;
-}
-
-//--------------------------------------------------------------------
-/* If requested TP is available remotely
-      download & reload.
-   else 
-      if requested TP is available locally
-         reload
-      else
-         error
-*/ 
-bool CuserEvxaInterface::attemptDownloadForceLoad()
-{
-    if(debug()) fprintf(stdout, "attemptDownloadForceLoad\n");
-    bool result = true;	
-    EVXAStatus status = EVXA::OK;
-
-    ProgramControl *pgm = PgmCtrl();
-    if (NULL == pgm) {
-	fprintf(stdout, "Error attemptDownloadForceLoad: no ProgramControl\n");
-	return false;
-    }
-
-    // check if program is available remotely 
-    result = downloadProgram();
-
-    // check if program is available locally.
-    if (result == false)
-	result = checkLocalServerProgramExists();
-
-    // If we have a local program now then load it.
-    if (result == true) {
-	// Check if there's a program to unload
-	if (m_TPArgs.CurrentProgName.empty() == false) {
-	    EVX_PROGRAM_STATE states1[] = { EVX_PROGRAM_UNLOADED, 
-					   MAX_EVX_PROGRAM_STATE };
-	    setupProgramNotification(states1);
-	    status = pgm->unload(EVXA::NO_WAIT);  // wait for unload to finish
-	    if (EVXA::OK != status) {
-		fprintf(stdout, "Error attemptDownloadForceLoad: Error unloading program: %s\n", pgm->getStatusBuffer());
-		result = false;
-		return result;
-	    }
-	    waitForNotification();
-	    if (m_recipeParseResult == false) {
-		return m_recipeParseResult;
-	    }
-	}
-
-	// After program load the rest of the recipe can be updated.
-	fprintf(stdout, "PROGRAM NAME: %s\n", m_TPArgs.FullTPName.c_str());
-	EVX_PROGRAM_STATE states[] = { EVX_PROGRAM_LOADED, 
-				       EVX_PROGRAM_LOAD_FAILED, 
-				       EVX_PROGRAM_UNLOADED,
-				       MAX_EVX_PROGRAM_STATE };
-	setupProgramNotification(states);
-	status = pgm->load(m_TPArgs.FullTPName.c_str(), EVXA::NO_WAIT, EVXA::NO_DISPLAY);
-	
-	if (EVXA::OK == status) {
-	    waitForNotification();
-	}
-	else {
-	    fprintf(stdout, "Error attemptDownloadForceLoad: %s\n", pgm->getStatusBuffer());
-	    result = false;
-	}
-    }
-    else {
-	fprintf(stdout, "Error attemptDownloadForceLoad Program Not Available %s\n", m_TPArgs.FullTPName.c_str());
-	result = false;
-    }
-	    
-    return result;
-}
-
-//--------------------------------------------------------------------
-/* If requested TP is available remotely
-      download & reload.
-   else 
-     if requested TP is available locally
-        reload
-     else
-        If requested TP is currently loaded
-          use currently loaded TP.
-     else
-          error
-*/ 
-bool CuserEvxaInterface::attemptDownloadAttemptLoad()
-{
-    if(debug()) fprintf(stdout, "attemptRecipeLoad\n");
-    bool result = true;;
-    EVXAStatus status = EVXA::OK;
-
-    ProgramControl *pgm = PgmCtrl();
-    if (NULL == pgm) {
-	fprintf(stdout, "Error attemptDownloadAttemptLoad: no ProgramControl\n");
-	return false;
-    }
-
-    // Check if program is available remotely 
-    result = downloadProgram();
-
-    // Check if program is available locally
-    if (result == false)
-	result = checkLocalServerProgramExists();
-
-    // If we have a local program now then load it.
-    if (result == true) {
-	// Check if there's a program to unload
-	if (m_TPArgs.CurrentProgName.empty() == false) {
-	    EVX_PROGRAM_STATE states1[] = { EVX_PROGRAM_UNLOADED, 
-					   MAX_EVX_PROGRAM_STATE };
-	    setupProgramNotification(states1);
-	    status = pgm->unload(EVXA::NO_WAIT);  // wait for unload to finish
-	    if (EVXA::OK != status) {
-		fprintf(stdout, "Error attemptDownloadAttemptLoad: Error unloading program: %s\n", pgm->getStatusBuffer());
-		result = false;
-		return result;
-	    }
-	    waitForNotification();
-	    if (m_recipeParseResult == false) {
-		return m_recipeParseResult;
-	    }
-	}
-	
-	// After program load the rest of the recipe can be updated.
-	fprintf(stdout, "PROGRAM NAME: %s\n", m_TPArgs.FullTPName.c_str());
-	EVX_PROGRAM_STATE states[] = { EVX_PROGRAM_LOADED, 
-				       EVX_PROGRAM_LOAD_FAILED, 
-				       EVX_PROGRAM_UNLOADED,
-				       MAX_EVX_PROGRAM_STATE };
-	setupProgramNotification(states);
-	status = pgm->load(m_TPArgs.FullTPName.c_str(), EVXA::NO_WAIT, EVXA::NO_DISPLAY);
-	
-	if (EVXA::OK == status) {
-	    waitForNotification();
-	}
-	else {
-	    fprintf(stdout, "Error attemptDownloadAttemptLoad: %s\n", pgm->getStatusBuffer());
-	    result = false;
-	}
-    }
-    else {
-	if (m_TPArgs.TPName.compare(m_TPArgs.CurrentProgName) == 0) {
-	    result = true;  // use curently loaded program.
-	}
-	else {
-	    fprintf(stdout, "Error attemptDownloadAttemptLoad Program Not Available %s\n", m_TPArgs.FullTPName.c_str());
-	    result = false;
-	}
-    }
-	    
-    return result;
-}
-
-//--------------------------------------------------------------------
-/* If requested TP is available locally
-      reload
-   else 
-      if requested TP is available remotely
-        download & reload
-      else
-        error
-*/ 
-bool CuserEvxaInterface::neverDownloadForceLoad()
-{
-    if(debug()) fprintf(stdout, "neverDownloadForceLoad\n");
-    bool result = true;	
-    EVXAStatus status = EVXA::OK;
-
-    ProgramControl *pgm = PgmCtrl();
-    if (NULL == pgm) {
-	fprintf(stdout, "Error neverDownloadForceLoad: no ProgramControl\n");
-	return false;
-    }
-
-    // check if progam is available locally
-    result = checkLocalServerProgramExists();
-
-    if (result == false) {
-	// check if program is available remotely
-	result = downloadProgram();
-    }
-    // If we have a local program now then load it.
-    if (result == true) {
-	// Check if there's a program to unload
-	if (m_TPArgs.CurrentProgName.empty() == false) {
-	    EVX_PROGRAM_STATE states1[] = { EVX_PROGRAM_UNLOADED, 
-					   MAX_EVX_PROGRAM_STATE };
-	    setupProgramNotification(states1);
-	    status = pgm->unload(EVXA::NO_WAIT);  // wait for unload to finish
-	    if (EVXA::OK != status) {
-		fprintf(stdout, "Error neverDownloadForceLoad: Error unloading program: %s\n", pgm->getStatusBuffer());
-		result = false;
-		return result;
-	    }
-	    waitForNotification();
-	    if (m_recipeParseResult == false) {
-		return m_recipeParseResult;
-	    }
-	}
-
-	// After program load the rest of the recipe can be updated.
-	fprintf(stdout, "PROGRAM NAME: %s\n", m_TPArgs.FullTPName.c_str());
-	EVX_PROGRAM_STATE states[] = { EVX_PROGRAM_LOADED, 
-				       EVX_PROGRAM_LOAD_FAILED, 
-				       EVX_PROGRAM_UNLOADED, 
-				       MAX_EVX_PROGRAM_STATE };
-	setupProgramNotification(states);
-	status = pgm->load(m_TPArgs.FullTPName.c_str(), EVXA::NO_WAIT, EVXA::NO_DISPLAY);
-	
-	if (EVXA::OK == status) {
-	    waitForNotification();
-	}
-	else {
-	    fprintf(stdout, "Error neverDownloadForceLoad: %s\n", pgm->getStatusBuffer());
-	    result = false;
-	}
-    }
-    else {
-	fprintf(stdout, "Error neverDownloadForceLoad Program Not Available %s\n", m_TPArgs.FullTPName.c_str());
-	result = false;
-    }
-	    
-    return result;
-}
-
-//--------------------------------------------------------------------
-/* If requested TP is available locally
-      reload
-   else 
-      if requested TP is available remotely
-         download & reload
-      else
-         If requested TP is currently loaded
-            use currently loaded TP.
-         else
-            error
-*/ 
-bool CuserEvxaInterface::neverDownloadAttemptLoad()
-{
-    if(debug()) fprintf(stdout, "neverDownloadAttemptLoad\n");
-    bool result = true;;
-    EVXAStatus status = EVXA::OK;
-
-    ProgramControl *pgm = PgmCtrl();
-    if (NULL == pgm) {
-	fprintf(stdout, "Error neverDownloadAttemptLoad: no ProgramControl\n");
-	return false;
-    }
-
-    // Check if program available locally
-    result = checkLocalServerProgramExists();
-
-    // Check if program available remotely
-    if (result == false)
-	result = downloadProgram();
-
-    // If we have a local program now then load it.
-    if (result == true) {
-	// Check if there's a program to unload
-	if (m_TPArgs.CurrentProgName.empty() == false) {
-	    EVX_PROGRAM_STATE states1[] = { EVX_PROGRAM_UNLOADED, 
-					   MAX_EVX_PROGRAM_STATE };
-	    setupProgramNotification(states1);
-	    status = pgm->unload(EVXA::NO_WAIT);  // wait for unload to finish
-	    if (EVXA::OK != status) {
-		fprintf(stdout, "Error neverDownloadAttemptLoad: Error unloading program: %s\n", pgm->getStatusBuffer());
-		result = false;
-		return result;
-	    }
-	    waitForNotification();
-	    if (m_recipeParseResult == false) {
-		return m_recipeParseResult;
-	    }
+	if (!szProgFullPath.empty()) 
+	{
+		if (debug()) std::cout << "[DEBUG] unloading test program " <<  szProgFullPath << "..." << std::endl;
+	    	EVX_PROGRAM_STATE states[] = { EVX_PROGRAM_UNLOADED, MAX_EVX_PROGRAM_STATE };
+	    	if (notify) setupProgramNotification(states);
+	    	status = PgmCtrl()->unload(EVXA::NO_WAIT);  
+		if (debug()) std::cout << "[DEBUG] Done unloading test program " <<  szProgFullPath << "..." << std::endl;		
+	    	if (EVXA::OK != status) 
+		{
+	    		std::cout << "[ERROR] Something went wrong in unloading test program: " << PgmCtrl()->getStatusBuffer() << std::endl;
+			return false;
+	    	}
+		if (debug()) std::cout << "[DEBUG] Done unloading test program " <<  szProgFullPath << "..." << std::endl;		
+	    	if (notify) waitForNotification();
+		if (debug()) std::cout << "[DEBUG] Done unloading test program " <<  szProgFullPath << "..." << std::endl;		
+	    	if (!m_recipeParseResult){return m_recipeParseResult;}
+		if (debug()) std::cout << "[DEBUG] Done unloading test program " <<  szProgFullPath << "..." << std::endl;		
 	}	
-
-	// After program load the rest of the recipe can be updated.
-	fprintf(stdout, "PROGRAM NAME: %s\n", m_TPArgs.FullTPName.c_str());
-	EVX_PROGRAM_STATE states[] = { EVX_PROGRAM_LOADED, 
-				       EVX_PROGRAM_LOAD_FAILED, 
-				       EVX_PROGRAM_UNLOADED,
-				       MAX_EVX_PROGRAM_STATE };
-	setupProgramNotification(states);
-	status = pgm->load(m_TPArgs.FullTPName.c_str(), EVXA::NO_WAIT, EVXA::NO_DISPLAY);
-	
-	if (EVXA::OK == status) {
-	    waitForNotification();
-	}
-	else {
-	    fprintf(stdout, "Error neverDownloadAttemptLoad: %s\n", pgm->getStatusBuffer());
-	    result = false;
-	}
-    }
-    else {
-	if (m_TPArgs.TPName.compare(m_TPArgs.CurrentProgName) == 0) {
-	    result = true;  // use curently loaded program.
-	}
-	else {
-	    fprintf(stdout, "Error neverDownloadAttemptLoad Program Not Available %s\n", m_TPArgs.FullTPName.c_str());
-	    result = false;
-	}
-    }
-	    
-    return result;
+	return true;
 }
 
-//--------------------------------------------------------------------
-/* If requested TP is currently loaded
-      use currently loaded TP.
-   else 
-      if requested TP is available locally
-         reload
-      else
-         If requested TP is available remotely
-            download & reload
-         else
-            error
-*/ 
-bool CuserEvxaInterface::neverDownloadNeverLoad()
+/*-----------------------------------------------------------------------------------------
+check if file exist
+-----------------------------------------------------------------------------------------*/
+bool CuserEvxaInterface::isFileExist(const std::string& szFile)
 {
-    if(debug()) fprintf(stdout, "neverDownloadNeverLoad\n");
-    bool result = true;
-    EVXAStatus status = EVXA::OK;
+	// check if the program is available remotely
+	if (debug()) std::cout << "[DEBUG] Checking if " << szFile << " exists..." << std::endl;
+     	if (access(szFile.c_str(), F_OK) > -1) { if (debug()) std::cout << "[OK] " << szFile << " exist." << std::endl; return true; }
+   	else { std::cout << "[ERROR] Cannot access " << szFile << ". It does not exist." << std::endl; return false; }
+} 
 
-    if (m_TPArgs.TPName.compare(m_TPArgs.CurrentProgName) != 0) {
-	// check if program is available locally
-	result = checkLocalServerProgramExists();    
-	if (result == false) {
-	    // check if program is available remotely
-	    result = downloadProgram();
-	}
-	if (result == true) {
-	    // load local program
-	    ProgramControl *pgm = PgmCtrl();
-	    if (NULL == pgm) {
-		fprintf(stdout, "Error neverDownloadNeverLoad: no ProgramControl\n");
-		return false;
-	    }
-	    // unload the current program.
-	    // Check if there's a program to unload
-	    if (m_TPArgs.CurrentProgName.empty() == false) {
-		EVX_PROGRAM_STATE states1[] = { EVX_PROGRAM_UNLOADED, 
-						MAX_EVX_PROGRAM_STATE };
-		setupProgramNotification(states1);
-		status = pgm->unload(EVXA::NO_WAIT);  // wait for unload to finish
-		if (EVXA::OK != status) {
-		    fprintf(stdout, "Error neverDownloadAttemptLoad: Error unloading program: %s\n", pgm->getStatusBuffer());
-		    result = false;
-		    return result;
-		}
-		waitForNotification();
-		if (m_recipeParseResult == false) {
-		    return m_recipeParseResult;
-		}
-	    }
-
-
-	    // After program load the rest of the recipe can be updated.
-	    fprintf(stdout, "PROGRAM NAME: %s\n", m_TPArgs.FullTPName.c_str());
-	    EVX_PROGRAM_STATE states[] = { EVX_PROGRAM_LOADED, 
-					   EVX_PROGRAM_LOAD_FAILED, 
-					   EVX_PROGRAM_UNLOADED, 
-					   MAX_EVX_PROGRAM_STATE };
-	    setupProgramNotification(states);
-	    status = pgm->load(m_TPArgs.FullTPName.c_str(), EVXA::NO_WAIT, EVXA::NO_DISPLAY);
-	    if (EVXA::OK == status) {
-		waitForNotification();
-	    }
-	    else {
-		fprintf(stdout, "Error neverDownloadNeverLoad: %s\n", pgm->getStatusBuffer());
-		result = false;
-	    }
-	}
-	else {
-	    fprintf(stdout, "Error neverDownloadNeverLoad Program Not Available %s\n", m_TPArgs.FullTPName.c_str());
-	    result = false;
-	}
-    }
-    else {
-	fprintf(stderr, "neverDownloadNeverLoad: Same program already loaded\n");
-    }
-
-    return result;
-}
-
-//--------------------------------------------------------------------
-// Check to see if the given program name is already local for this tester
-// Need to verify directory structure of where local programs are kept.
-bool CuserEvxaInterface::checkLocalProgramExists()
+/*-----------------------------------------------------------------------------------------
+check if new program we are trying to load is already loaded
+-----------------------------------------------------------------------------------------*/
+bool CuserEvxaInterface::isProgramToLoadAlreadyLoaded()
 {
-    if(debug()) fprintf(stdout, "checkLocalProgramExists\n");
-    bool result = false;
-    std::stringstream fullProgName;
-    std::string ProgDir;
-
-    	// ALLAN modified. this gets the full program path and name [ProgLocation/TPFile(no ext)/TPName]
-    	unsigned found = m_TPArgs.TPFile.find_last_of("."); // removes the ".tar" extension  
-    	ProgDir = m_TPArgs.TPFile.substr(0, found);
-
+	// get the supposed fullpathname of TP we want to load
+    	std::stringstream fullProgName;
 	fullProgName << m_ConfigArgs.ProgLocation << "/" << m_TPArgs.TPName;
-	if (isFileExist(fullProgName.str().c_str(), 5, 1))
-	{ 
-		fprintf( stdout, "Program is found on %s.\n", fullProgName.str().c_str()); 
+			
+	// check if current program loaded (if any) is same as the program we are trying to load
+	if (fullProgName.str().compare(m_TPArgs.CurrentProgName) == 0)
+	{
+		m_TPArgs.FullTPName = fullProgName.str();
+		if (debug()) std::cout << "[OK] Test program <" << fullProgName.str() << "> is already loaded." << std::endl;
+		return true;
 	}
 	else
 	{
-		fprintf( stdout, "Program is NOT found on %s. Attempting to find in another path...\n", fullProgName.str().c_str()); 
-		//fullProgName.clear();
-		fullProgName.str("");
-		fullProgName << m_ConfigArgs.ProgLocation << "/" << ProgDir << "/" << m_TPArgs.TPName; 
-		if (isFileExist(fullProgName.str().c_str(), 5, 1))
-		{ 
-			fprintf( stdout, "Program is found on %s.\n", fullProgName.str().c_str()); 
-		}	
-		else
-		{
-			fprintf( stdout, "Program is NOT found on %s.\n", fullProgName.str().c_str()); 
-		}
-	} 
-/*
-	fprintf(stdout, "ConfigurationName: %s\n", m_ConfigArgs.ConfigurationName.c_str());
-	if (m_ConfigArgs.ConfigurationName.compare("LTXC-MUARLOC") == 0) // specific to ST-Muar
-	{
-		fullProgName << m_ConfigArgs.ProgLocation << "/" << m_TPArgs.TPName; 
+		std::cout << "[ERROR] Test program to load is <" << fullProgName.str() << ">. But current Program loaded is <" << m_TPArgs.CurrentProgName << ">" << std::endl;
+		return false;
 	}
-	else // default .eva path 
-	{
-		fullProgName << m_ConfigArgs.ProgLocation << "/" << ProgDir << "/" << m_TPArgs.TPName; 
-	}
-*/
-    	fprintf(stdout, "TEST PROGRAM FULL PATH and NAME: %s\n", fullProgName.str().c_str());
-	m_TPArgs.FullTPName = fullProgName.str();
-
-    // Check for the file at that location.
-    if(debug()) fprintf(stdout, " checkLocalProgramExists fullProgName:%s\n", m_TPArgs.FullTPName.c_str());
-    if (access(m_TPArgs.FullTPName.c_str(), F_OK) > -1) {
-	result = true;
-    }
-    else {
-	fprintf(stderr, "Error checkLocalProgramExists does not exist %s\n", m_TPArgs.FullTPName.c_str());
-    }
-
-    return result;	
 }
 
-//--------------------------------------------------------------------
-// Check to see if the given program name is already in local server for this tester
-bool CuserEvxaInterface::checkLocalServerProgramExists()
+/*---------------------------------------------------------------------------------
+copy file from to
+from - 	full path and filename with extension of file to be copied
+to - 	folder path to paste the file
+---------------------------------------------------------------------------------*/
+void CuserEvxaInterface::copyFile(const std::string& from, const std::string& to)
 {
-    if(debug()) fprintf(stdout, "checkLocalServerProgramExists\n");
-    bool result = false;
-    std::stringstream fullLocalProgPath;
-   // std::string ProgDir;
-
-    	// ALLAN added. this gets the full local program path [LocalLocation/TPFile]
-	fullLocalProgPath << m_ConfigArgs.LocalLocation << "/" << m_TPArgs.TPFile;
-    	fprintf(stdout, "TEST PROGRAM PACKAGE FULL LOCAL PATH: %s\n", fullLocalProgPath.str().c_str());
-
-    // check if the program is available locally
-    if(debug()) fprintf(stdout, "LocalServerProgram fullProgPath:%s\n", fullLocalProgPath.str().c_str());
-    if (access(fullLocalProgPath.str().c_str(), F_OK) > -1)
-	result = true;
-    else {
-	fprintf(stderr, "ERROR: Cannot access %s\n", fullLocalProgPath.str().c_str());
-    }
-
-    if (result == true) {
-	// Clear out local location
-	// DANGEROUS. Doing rm on system can be BAD.  
-	// At least check Proglocation isn't empty or else we rm /
-	if (m_ConfigArgs.ProgLocation.empty() != false) {
-	    std::stringstream rmCmd;
-	    rmCmd << "/bin/rm -rf " << m_ConfigArgs.ProgLocation << "/*";
-	    if(debug()) fprintf(stdout, "clean localdir cmd:%s\n", rmCmd.str().c_str());
-	    system(rmCmd.str().c_str());
-	    if(debug()) fprintf(stdout, "clean localdir done\n");
-	}
-
-	// copy the file from local server to test-program directory
-	std::stringstream cpCmd;
-	cpCmd << "/bin/cp -rf " << fullLocalProgPath.str() << " " << m_ConfigArgs.ProgLocation;
-	if(debug()) fprintf(stdout, "copy from local server to test-program directory cmd:%s\n", cpCmd.str().c_str());
+	std::stringstream cpCmd; 
+	cpCmd << "/bin/cp -rf " << from << " " << to << "/.";
+	if(debug()) std::cout << "[DEBUG] copying " <<  from << " to " << to << "..." << std::endl;
 	system(cpCmd.str().c_str());
-	if(debug()) fprintf(stdout, "copy from local server to test-program directory\n");
+	if(debug()) std::cout << "[DEBUG] Done copying. " << std::endl;	
+}
 
-	// chmod the file so we are the owner and can execute
-	std::stringstream chmodCmd;
-//	chmodCmd << "/bin/chmod +x " << m_ConfigArgs.LocalLocation << "/" << ProgDir << "." << m_ConfigArgs.PackageType;
-	// ALLAN now using fulllocalprogrampath as reference to our file
-	chmodCmd << "/bin/chmod +x " << fullLocalProgPath.str();
-	if(debug()) fprintf(stdout, "chmod cmd:%s\n", chmodCmd.str().c_str());
-	system(chmodCmd.str().c_str());
-	if(debug()) fprintf(stdout, "chmod done\n");
-
-	// ALLAN this parser expects program file to be a "tar" package but TEST_PROGRAM_FILE now specify fully the package name, 
-	// let's check if it's extension is tar and ignore m_ConfigArgs.PackageType
-	unsigned found = m_TPArgs.TPFile.find_last_of("."); 
-	std::string szTestProgramFileExt = m_TPArgs.TPFile.substr(found+1); 
-	fprintf(stdout, "TEST_PROGRAM_FILE(Extension): %s\n", szTestProgramFileExt.c_str());
-     	if (szTestProgramFileExt.compare("tar") == 0) 
+/*---------------------------------------------------------------------------------
+download program
+---------------------------------------------------------------------------------*/
+bool CuserEvxaInterface::downloadProgramFromServerToLocal()
+{
+  	if (debug()) std::cout << "[DEBUG] Executing CuserEvxaInterface::downloadProgramFromServerToLocal()" << std::endl;
+ 
+	//get the full path-filename-extension of the TP file from remote folder
+   	std::stringstream fullRemoteProgPath;
+    	if (!m_TPArgs.TPPath.empty())
 	{ 
-	    std::stringstream tarCmd;
-	    tarCmd << "/bin/tar -C " << m_ConfigArgs.ProgLocation << " -xvf " << fullLocalProgPath.str();
-	    if(debug()) fprintf(stdout, "tar cmd:%s\n", tarCmd.str().c_str());
-	    system(tarCmd.str().c_str());
-	    if(debug()) fprintf(stdout, "untar done\n");
-	    //program should exist locally now.
-	    result = checkLocalProgramExists();
+		fullRemoteProgPath << m_ConfigArgs.RemoteLocation << "/" << m_TPArgs.TPPath << "." << m_ConfigArgs.PackageType; 
+		std::cout << "[OK] Downloading " << fullRemoteProgPath.str() << "..." << std::endl;
 	}
-        
-	// ALLAN remove this now as we are decompressing test program package file as above
-/*	// untar the package to a different local directory
-	if (m_ConfigArgs.PackageType.compare("tar") == 0) {
-	    std::stringstream tarCmd;
-	    tarCmd << "/bin/tar -C " << m_ConfigArgs.ProgLocation << " -xvf " << m_ConfigArgs.LocalLocation << "/" << ProgDir << "." << m_ConfigArgs.PackageType;
-	    if(debug()) fprintf(stdout, "tar cmd:%s\n", tarCmd.str().c_str());
-	    system(tarCmd.str().c_str());
-	    if(debug()) fprintf(stdout, "untar done\n");
-	    //program should exist locally now.
-	    result = checkLocalProgramExists();
-	}*/
-	else 
-	{
-	    fprintf(stderr, "ERROR in checkLocalServerProgramExists: Expecting tar as PackageType but got %s\n",szTestProgramFileExt.c_str());
-	    result = false;
-	}
+	else { std::cout << "[ERROR] test program file name to download is invalid." << std::endl; return false; }
+ 
+	// check if TP file exist in remote folder. return false if not
+	if (!isFileExist(fullRemoteProgPath.str())) return false;
 
+	// copy TP file from remote folder to local folder. no checking
+	copyFile(fullRemoteProgPath.str(), m_ConfigArgs.LocalLocation );
 
-    }
-    return result;	
+	// unpack TP file from local folder to test folder
+	if (!unpackProgramFromLocalToTest()) return false;
+
+    	return true;
 }
 
-//--------------------------------------------------------------------
-// Download the test program from the remote location.
-// Need to verify directory structure of where local programs are kept.
-bool CuserEvxaInterface::downloadProgram()
+/*---------------------------------------------------------------------------------
+unpack TP file from local folder to test folder
+---------------------------------------------------------------------------------*/
+bool CuserEvxaInterface::unpackProgramFromLocalToTest()
 {
-    if(debug()) fprintf(stdout, "downloadProgram\n");
-    bool result = false;
-    std::stringstream fullRemoteProgPath;
-//    std::string ProgDir;
+  	if (debug()) std::cout << "[DEBUG] Executing CuserEvxaInterface::unpackProgramFromLocalToTest()" << std::endl;
 
-    	// ALLAN added. this gets the full remote program path [RemoteLocation/TPPath/TPFile]
-    	if (!m_TPArgs.TPPath.empty()){ fullRemoteProgPath << m_ConfigArgs.RemoteLocation << "/" << m_TPArgs.TPPath << "/" << m_TPArgs.TPFile; }
-	else { fullRemoteProgPath << m_ConfigArgs.RemoteLocation << "/" << m_TPArgs.TPFile; }
-    	fprintf(stdout, "TEST PROGRAM PACKAGE FULL REMOTE PATH: %s\n", fullRemoteProgPath.str().c_str());
-    // ALLAN removed
-//    unsigned found = m_TPArgs.TPName.find_last_of("."); // assumes tp directory is same name as the tp name.
-//    ProgDir = m_TPArgs.TPName.substr(0, found);
-//    fullRemoteProgPath << m_ConfigArgs.RemoteLocation << "/" << ProgDir << "." << m_ConfigArgs.PackageType;
+	// get full path-filename-extension of TP file to local folder
+	std::stringstream fullLocalProgPath;
+	fullLocalProgPath << m_ConfigArgs.LocalLocation << "/" << m_TPArgs.TPPath << "." << m_ConfigArgs.PackageType; 
 
+	// check if TP file exist in local folder
+	if (!isFileExist(fullLocalProgPath.str())) return false;
+
+	// chmod the TP file on local folder so we can unpack it
+	std::stringstream chmodCmd;
+	chmodCmd << "/bin/chmod +x " << fullLocalProgPath.str();
+	if(debug()) std::cout << "chmod cmd: " << chmodCmd.str().c_str() << std::endl;
+	system(chmodCmd.str().c_str());
+	if(debug()) std::cout << "chmod done." << std::endl;
+ 
+	// unpack to TP file from local folder into program folder
+	std::stringstream tarCmd;
+	tarCmd << "/bin/tar -C " << m_ConfigArgs.ProgLocation << " -xvf " << fullLocalProgPath.str();
+	if(debug()) std::cout << "[DEBUG] unpacking with cmd: " << tarCmd.str() << std::endl;
+	system(tarCmd.str().c_str());
+	if(debug()) std::cout << "[DEBUG] unpackdone. " << std::endl;
+ 
+	// check if TP program exists in program folder
+    	std::stringstream fullProgName;
+	fullProgName << m_ConfigArgs.ProgLocation << "/" << m_TPArgs.TPName;
+	if (!isFileExist(fullProgName.str())) return false;
+
+	// finally let's store the test program name to load
+	m_TPArgs.FullTPName = fullProgName.str();
+	return true;
+}
+
+/*---------------------------------------------------------------------------------
+download strategy: force
+reload strategy: don't care
+- download program from server. error if failed
+- unload existing program. error if failed
+- load downloaded program. error if failed.
+---------------------------------------------------------------------------------*/
+bool CuserEvxaInterface::forceDownloadAndLoad()
+{
+ 	if (debug()) std::cout << "[DEBUG] Executing CuserEvxaInterface::forceDownloadAndLoad()" << std::endl;
   
-    // check if the program is available remotely
-    if(debug()) fprintf(stdout, "downloadProgram fullProgPath:%s\n", fullRemoteProgPath.str().c_str());
-    if (access(fullRemoteProgPath.str().c_str(), F_OK) > -1)
-	result = true;
-    else {
-	fprintf(stderr, "ERROR: Cannot access %s\n", fullRemoteProgPath.str().c_str());
-    }
-    if (result == true) {
-	// Clear out local location
-	// std::stringstream rmCmd;
-	// rmCmd << "/bin/rm -rf " << m_ConfigArgs.ProgLocation << "/*";
-	// if(debug()) fprintf(stdout, "clean localdir cmd:%s\n", rmCmd.str().c_str());
-	// system(rmCmd.str().c_str());
-	// if(debug()) fprintf(stdout, "clean localdir done\n");
-    
-	// copy the file from remote to local
-	std::stringstream cpCmd;
-	cpCmd << "/bin/cp -rf " << fullRemoteProgPath.str() << " " << m_ConfigArgs.LocalLocation;
-	if(debug()) fprintf(stdout, "copy from remote server to local server cmd:%s\n", cpCmd.str().c_str());
-	system(cpCmd.str().c_str());
-	if(debug()) fprintf(stdout, "copy from remote server to local server done\n");
+    	// check if program is available remotely
+    	if (downloadProgramFromServerToLocal())	
+	{
+		// If there's a program loaded then unload it.
+		if (! unloadProgram(m_TPArgs.CurrentProgName)) return false;
 
-	// chmod the file so we are the owner and can execute
-	// std::stringstream chmodCmd;
-	// chmodCmd << "/bin/chmod +x " << m_ConfigArgs.LocalLocation << "/" << ProgDir << "." << m_ConfigArgs.PackageType;
-	// if(debug()) fprintf(stdout, "chmod cmd:%s\n", chmodCmd.str().c_str());
-	// system(chmodCmd.str().c_str());
-	// if(debug()) fprintf(stdout, "chmod done\n");
+		// load our program from XTRF
+		if (!loadProgram(m_TPArgs.FullTPName)) return false;
+	}	
+    	else 
+	{ 
+		fprintf(stdout, "[ERROR] Failed to force download program\n");
+		return false;
+    	}    
+	return true;
+}
 
-	// ALLAN this parser expects program file to be a "tar" package but TEST_PROGRAM_FILE now specify fully the package name, 
-	// let's check if it's extension is tar and ignore m_ConfigArgs.PackageType
-	unsigned found = m_TPArgs.TPFile.find_last_of("."); 
-	std::string szTestProgramFileExt = m_TPArgs.TPFile.substr(found+1); 
-	fprintf(stdout, "TEST_PROGRAM_FILE(Extension): %s\n", szTestProgramFileExt.c_str());
-     	if (szTestProgramFileExt.compare("tar") == 0) { result = checkLocalServerProgramExists(); }
-	
-	// ALLAN we are not referencing to m_ConfigArgs.PackageType for tar extenstion anymore
-/*	// // untar the package to a different local directory
-	 if (m_ConfigArgs.PackageType.compare("tar") == 0) {
-	//    std::stringstream tarCmd;
-	//    tarCmd << "/bin/tar -C " << m_ConfigArgs.ProgLocation << " -xvf " << m_ConfigArgs.LocalLocation << "/" << ProgDir << "." << m_ConfigArgs.PackageType;
-	//    if(debug()) fprintf(stdout, "tar cmd:%s\n", tarCmd.str().c_str());
-	//    system(tarCmd.str().c_str());
-	//    if(debug()) fprintf(stdout, "untar done\n");
-	     //program should exist locally now.
-	     result = checkLocalServerProgramExists();
-	 }
-*/
+/*---------------------------------------------------------------------------------
+download strategy: never
+reload strategy: force
+- if TP file exists in local folder, unpack to test folder
+- if not, try to download from remote folder and unpack. error if failed.
+- unload existing program. error if failed
+- load downloaded program. error if failed.
+---------------------------------------------------------------------------------*/
+bool CuserEvxaInterface::neverDownloadForceLoad()
+{
+	if (debug()) std::cout << "[DEBUG] Executing CuserEvxaInterface::neverDownloadForceLoad()" << std::endl;
+ 
+	// try unpacking TP file from local folder to test folder
+	if (!unpackProgramFromLocalToTest())
+	{
+		// if failed, try downloading TP file from remote folder to local folder
+		// this also unpack TP file from local folder to test folder
+		if (!downloadProgramFromServerToLocal())	
+		{
+			std::cout << "[ERROR] Failed to download program." << std::endl;
+			return false;	
+		}
+	}
+	// If there's a program loaded then unload it.
+	if (! unloadProgram(m_TPArgs.CurrentProgName)) return false;
+
+	// load our program from XTRF
+	if (!loadProgram(m_TPArgs.FullTPName)) return false;
+
+	return true;
+}
+/*---------------------------------------------------------------------------------
+download strategy: never
+reload strategy: attempt
+- if TP file exists in local folder, unpack to test folder
+	- if not, try to download from remote folder and unpack. 
+		- if failed to download from remote folder, use current loaded TP
+			- if current TP != new TP, or current TP = null, error.
+- unload existing program. error if failed
+- load downloaded program. error if failed.
+---------------------------------------------------------------------------------*/
+bool CuserEvxaInterface::neverDownloadAttemptLoad()
+{
+	if (debug()) std::cout << "[DEBUG] Executing CuserEvxaInterface::neverDownloadForceLoad()" << std::endl;
+ 
+	// try unpacking TP file from local folder to test folder
+	if (!unpackProgramFromLocalToTest())
+	{
+		// if failed, try downloading TP file from remote folder to local folder
+		// this also unpack TP file from local folder to test folder
+		if (!downloadProgramFromServerToLocal())	
+		{
+			std::cout << "[ERROR] Failed to download program." << std::endl;
+
+			if (isProgramToLoadAlreadyLoaded()) return true;
+			else return false;
+		}
+	}
+	// If there's a program loaded then unload it.
+	if (! unloadProgram(m_TPArgs.CurrentProgName)) return false;
+	// load our program from XTRF
+	if (!loadProgram(m_TPArgs.FullTPName)) return false;
+	return true;
+}
+
+/*---------------------------------------------------------------------------------
+download strategy: never
+reload strategy: never
+- if current TP = new TP. ok, done
+- if not, try unpacking TP from local folder
+	- if failed, try downloading new TP from remote server. error if fail
+- if unpacking TP from local folder to test folder succeeds	
+	- unload existing program. error if failed
+	- load downloaded program. error if failed.
+---------------------------------------------------------------------------------*/
+bool CuserEvxaInterface::neverDownloadNeverLoad()
+{
+	if (debug()) std::cout << "[DEBUG] Executing CuserEvxaInterface::neverDownloadNeverLoad()" << std::endl;
+ 
+	// check if test program we are trying to load is already loaded
+	if (isProgramToLoadAlreadyLoaded()) return true;
 	else 
 	{
-	    fprintf(stderr, "ERROR: Expecting tar as PackageType but got %s\n",szTestProgramFileExt.c_str());
-	    result = false;
+		// if not, try to reload from local folder
+		if (!unpackProgramFromLocalToTest())
+		{
+			// if program does not exist in local folder, try downloading it
+			if (!downloadProgramFromServerToLocal()) return false;
+		}
 	}
-    }
-    return result;
+	// if we reached this point, TP file is successfully unpacked to test folder
+
+	// If there's a program loaded then unload it.
+	if (! unloadProgram(m_TPArgs.CurrentProgName)) return false;
+	// load our program from XTRF
+	if (!loadProgram(m_TPArgs.FullTPName)) return false;
+	return true;
+}
+
+/*---------------------------------------------------------------------------------
+download strategy: attempt
+reload strategy: force
+- try to download TP file from remote folder
+	- if failed, try unpacking TP file from local folder
+		- error if failed
+- unload existing program. error if failed
+- load downloaded program. error if failed.
+---------------------------------------------------------------------------------*/
+bool CuserEvxaInterface::attemptDownloadForceLoad()
+{
+	if (debug()) std::cout << "[DEBUG] Executing CuserEvxaInterface::attemptDownloadForceLoad()" << std::endl;
+
+	// try downloading program from remote folder
+	if (!downloadProgramFromServerToLocal())
+	{
+		// if failed to download from remote folder, try unpacking the one from local folder
+		if (!unpackProgramFromLocalToTest()) return false;
+	}
+	// If there's a program loaded then unload it.
+	if (!unloadProgram(m_TPArgs.CurrentProgName)) return false;
+	// load our program from XTRF
+	if (!loadProgram(m_TPArgs.FullTPName)) return false;
+	return true;
+}
+
+/*---------------------------------------------------------------------------------
+download strategy: attempt
+reload strategy: force
+- try to download TP file from remote folder
+	- if failed, try unpacking TP file from local folder
+		- check if TP already loaded before. error if not
+- unload existing program. error if failed
+- load downloaded program. error if failed.
+---------------------------------------------------------------------------------*/
+bool CuserEvxaInterface::attemptDownloadAttemptLoad()
+{
+	if (debug()) std::cout << "[DEBUG] Executing CuserEvxaInterface::attemptDownloadAttemptLoad()" << std::endl;
+
+	// try downloading program from remote folder
+	if (!downloadProgramFromServerToLocal())
+	{
+		// if failed to download from remote folder, try unpacking the one from local folder
+		if (!unpackProgramFromLocalToTest()) 
+		{
+			// if failed to unpack from local folder, check if new TP is already loaded (current TP)
+			if (isProgramToLoadAlreadyLoaded()) return true;
+			else return false;
+		}
+	}
+	// If there's a program loaded then unload it.
+	if (!unloadProgram(m_TPArgs.CurrentProgName)) return false;
+	// load our program from XTRF
+	if (!loadProgram(m_TPArgs.FullTPName)) return false;
+	return true;
 }
 
 //--------------------------------------------------------------------

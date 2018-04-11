@@ -8,6 +8,13 @@
 #include <pwd.h>
 #include <iostream>
 #include <fstream>
+#include <xtrf.h>
+#include <sstream>
+
+template < typename T >
+std::string num2stdstring(T value) {
+	return static_cast< std::ostringstream* >(&(std::ostringstream() << value))->str();
+}
 
 #define EVXA_DEMO_VERSION "1.00"
 
@@ -92,7 +99,7 @@ private:
     bool parseSiteConfiguration(XML_Node *siteConfig);
     bool updateProgramLoad();
     bool updateTestProgramData();
-    bool executeRecipeReload();
+    bool executeRecipeReload(); 
     bool forceDownloadAndLoad();
     bool loadProgramURI();
     bool neverDownloadForceLoad();
@@ -101,7 +108,7 @@ private:
     bool attemptDownloadForceLoad();
     bool attemptDownloadAttemptLoad();
     bool clearAllParams();
-    bool sendMIRParams();
+    bool sendMIRParams(); 
     bool sendSDRParams();
     bool sendTPParams();
     bool sendEndOfLot();
@@ -111,11 +118,15 @@ private:
     void sendRecipeResultStatus(bool result);
     void resetRecipeVars();
 
-    bool checkLocalProgramExists();
-    bool checkLocalProgramURIExists();
-    bool checkLocalServerProgramExists();
-    bool downloadProgram();
-
+	bool loadProgram(const std::string &szProgFullPath);
+	bool unloadProgram(const std::string &sszProgFullPath, bool notify = true);
+	bool downloadProgramFromServerToLocal();
+	void copyFile(const std::string& from, const std::string& to);
+	bool isFileExist(const std::string& szFile);
+	bool unpackProgramFromLocalToTest();
+	bool isProgramToLoadAlreadyLoaded();
+	bool handleBackToIdleStrategy();
+   	bool parseGDR(XML_Node *GDRRecord);
 
 public:
 

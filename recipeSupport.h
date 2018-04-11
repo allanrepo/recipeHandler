@@ -5,7 +5,7 @@
 #include <iostream>
 
 class CRecipeConfig
-{
+{ 
  public:
     CRecipeConfig();
     CRecipeConfig(const CRecipeConfig& ot);
@@ -26,7 +26,7 @@ class CRecipeConfig
 	{ 
 		if (ProgLocation.empty()) { std::cout << "[ERROR] ProgLocation is empty." << std::endl; return false; }
 		else return true;
-    	}
+    	} 
 	
 };
 
@@ -42,6 +42,7 @@ public:
 
     std::string ReloadStrategy; // testPrgmLoader and testPrgmCopierLoaderScript
     std::string DownloadStrategy; // testPrgmLoader and testPrgmCopierLoaderScript
+    std::string BackToIdleStrategy; // testPrgmLoader and testPrgmCopierLoaderScript
     std::string TPName;		// testPrgmLoader and testPrgmCopierLoaderScript
     std::string TPPath;		// testPrgmLoader and testPrgmCopierLoaderScript
     std::string TPFile;		// testPrgmLoader and testPrgmCopierLoaderScript
@@ -110,6 +111,9 @@ public:
     std::string TstrTyp;	// TestProgData.TesterType
     std::string SuprNam;	// TestProgData.Supervisor
     std::string SpecVer;	// TestProgData.TestSpecRev
+
+    std::string ProtCod;	// TestProgData.ProtectionCode
+ 
 };
 
 class CSDRArgs
