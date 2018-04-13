@@ -74,4 +74,12 @@ from the xml.
 ./Debug/recipeHandler -t localuser_u1703_DMDx_sim -d -conf ./recipeHandler_config.xml
 
 
+Next Debug #goals20180413
+- 	in updateTestProgramData(), sendEndOfWafer(), sendEndOfLot(), sendStartOfWafer(), sendStartOfLot() are commented out
+	try enabling it and see its effects in ST. also try to understand what the hell these functions do...
+
+
+
+
+
 

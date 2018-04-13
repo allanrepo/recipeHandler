@@ -22,7 +22,7 @@ bool isFileExist(const char* pFileNamePath, int nAttempt, int nDelaySecond)
 	}
 	return false;
 }
-
+ 
 
 struct CMutexLock
 {
@@ -464,34 +464,28 @@ void CuserEvxaInterface::RecipeDecodeAvailable(const char *recipe_text, bool &re
 
 void CuserEvxaInterface::RecipeDecode(const char *recipe_text)
 {
-   	if (debug()) std::cout << "[DEBUG] Executing CuserEvxaInterface::RecipeDecode()" << std::endl;
-  
-    bool result = true;
+	if (debug()) std::cout << "[DEBUG] Executing CuserEvxaInterface::RecipeDecode()" << std::endl;
+	bool result = true;
 
-    // reset recipe variables before starting parsing.
-    resetRecipeVars();
+    	// reset recipe variables before starting parsing.
+    	resetRecipeVars();
  
-    // parse the xml file.  parseXML opens up a file.
-    if (recipe_text != NULL) {
-	result = parseXML(recipe_text);
-	
-    }
-    else {
-	fprintf(stderr, "RecipeDecode recipe_text is NULL\n");
-	result = false;
-    }
+    	// parse the xml file.  parseXML opens up a file.
+    	if (recipe_text != NULL) { result = parseXML(recipe_text); }
+    	else{ std::cout << "[ERROR] RecipeDecode recipe_text is NULL" <<  std::endl; result = false; }
 
-    // execute load based on reload strategy.
-    if (result == true) result = updateProgramLoad();
+    	// execute load based on reload strategy.
+    	if (result == true) result = updateProgramLoad();
 
-    // If the program load failed then set the result to fail.
-    if (m_recipeParseResult == false) result = false;
+    	// If the program load failed then set the result to fail.
+    	if (m_recipeParseResult == false) result = false;
 
-    // After program load, update parameters.
-    if ((result == true) && (m_skipProgramParam == false)) 
-	result = updateTestProgramData();
-
-    sendRecipeResultStatus(result);  // parsing failed so just send the result back to cgem.
+    	// After program load, update parameters.
+    	if ((result == true) && (m_skipProgramParam == false)) result = updateTestProgramData();
+    
+	// this line originally here but somehow calling this gives a false trigger to gem host that end-lot occurred.
+	// not sure why, probably need to investigate this but low priority for now.
+   	// sendRecipeResultStatus(result);  // parsing failed so just send the result back to cgem.
  }
 
 
@@ -709,6 +703,11 @@ bool CuserEvxaInterface::parseTestPrgmLoader(XML_Node *testPrgmLoader)
 		if (testPrgmLoader->fetchAttr(ii).compare("reloadStrategy") == 0) m_TPArgs.ReloadStrategy = testPrgmLoader->fetchVal(ii);
 		if (testPrgmLoader->fetchAttr(ii).compare("downloadStrategy") == 0) m_TPArgs.DownloadStrategy = testPrgmLoader->fetchVal(ii);
 		if (testPrgmLoader->fetchAttr(ii).compare("backToIdleStrategy") == 0) m_TPArgs.BackToIdleStrategy = testPrgmLoader->fetchVal(ii);  
+
+		/*
+		testPrgmURI is expected to contain "<progfolder>/<programname.una>" and is stored in m_TPArgs.TPName
+		<progfolder> is stored in m_TPArgs.TPPath. it will be referenced in download strategy later
+		*/		
 		if (testPrgmLoader->fetchAttr(ii).compare("testPrgmURI") == 0) 
 		{
 			m_TPArgs.TPName = testPrgmLoader->fetchVal(ii);
@@ -1826,7 +1825,6 @@ bool CuserEvxaInterface::updateTestProgramData()
     if (result == true) result = sendSDRParams();
 
     if (m_recipeParseResult == false) result = false;
-
     return result;
 }
 
