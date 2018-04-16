@@ -485,7 +485,7 @@ void CuserEvxaInterface::RecipeDecode(const char *recipe_text)
     
 	// this line originally here but somehow calling this gives a false trigger to gem host that end-lot occurred.
 	// not sure why, probably need to investigate this but low priority for now.
-   	// sendRecipeResultStatus(result);  // parsing failed so just send the result back to cgem.
+   	sendRecipeResultStatus(result);  // parsing failed so just send the result back to cgem.
  }
 
 
@@ -1092,10 +1092,12 @@ bool CuserEvxaInterface::parseGDR(XML_Node *GDRRecord)
 	if (debug()) std::cout << "[DEBUG] Executing CuserEvxaInterface::parseGDR()" << std::endl;
      	bool result = true;
 
+	// create xtrf xml object
 	tinyxtrf::Xtrf* xtrf(tinyxtrf::Xtrf::instance());
 	xtrf->clear();
 	tinyxtrf::GdrRecord gdrs;
 
+	// start reading fields from XTRF 
     	XML_Node *STDFfields = GDRRecord->fetchChild("STDFfields");
     	int nfields = STDFfields->numChildren();
     	for(int jj=0; jj<nfields; jj++) 
@@ -1106,17 +1108,23 @@ bool CuserEvxaInterface::parseGDR(XML_Node *GDRRecord)
 	    		std::string temp = STDFfield->fetchVal(0);
 	    		std::string result = STDFfield->fetchText();
 	    		if (debug()) fprintf(stdout, "[DEBUG] GDR found: %s %s\n", temp.c_str(), result.c_str());				
-	    		if (temp.compare("GEN_DATA") == 0)
-			{
-				gdrs.push_back(tinyxtrf::GdrField( temp.c_str(), "C*n", result.c_str()));
-			}	
+	    		if (temp.compare("GEN_DATA") == 0){ gdrs.push_back(tinyxtrf::GdrField( temp.c_str(), "C*n", result.c_str())); }	
 	    		else fprintf(stdout, "[ERROR] parseGDR unknown field: %s\n", temp.c_str());
 		}
     	}
+	/*
+	// add hard coded GDR field
+	gdrs.push_back(tinyxtrf::GdrField("GEN_DATA", "C*n", "STDF_FRM"));
+	gdrs.push_back(tinyxtrf::GdrField("GEN_DATA", "C*n", "REV_I"));
 
+	std::string driverId, driverRev;
+	PgmCtrl()->faprocGet("Current Equipment:QUERY_CHUCK_TEMP", driverId);
+	PgmCtrl()->faprocGet("Driver Revision", driverRev);
+	std::cout << "Driver ID: " << driverId << ", Driver Rev: " << driverRev << std::endl;	
+*/
 	gdrs.insert(gdrs.begin(), 1, tinyxtrf::GdrField("FIELD_CNT", "U*2", num2stdstring(gdrs.size())));
 	xtrf->addGdr(gdrs);
-	xtrf->dumpGdrs("/tmp/gdr.xtrf");
+	xtrf->dumpGdrs("/tmp/gdr_auto.xtrf");
 
     	return result;
 }

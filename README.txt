@@ -71,12 +71,14 @@ A similar approach needs to be taken for new data coming
 from the xml.
 
 
-./Debug/recipeHandler -t localuser_u1703_DMDx_sim -d -conf ./recipeHandler_config.xml
+./Debug/recipeHandler -t localuser_U1703_DMDx_sim -d -conf ./recipeHandler_config.xml
+./Release/recipeHandler -t localuser_U1703_DMDx_sim -d -conf ./recipeHandler_config.xml
 
 
 Next Debug #goals20180413
 - 	in updateTestProgramData(), sendEndOfWafer(), sendEndOfLot(), sendStartOfWafer(), sendStartOfLot() are commented out
 	try enabling it and see its effects in ST. also try to understand what the hell these functions do...
+-	verify if chuck temp is consistently read back from prober and placed into lotinformation
 
 
 

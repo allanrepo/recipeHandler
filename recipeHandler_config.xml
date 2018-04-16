@@ -11,7 +11,7 @@
 <!--       to the LocalLocation and then be un-tar'd. -->
 
 <RECIPEHANDLER_CONF>
-    <CurrentSiteConfiguration ConfigurationName="ST-TPY-Debug"/>
+    <CurrentSiteConfiguration ConfigurationName="Singapore"/>
 
     <SiteConfiguration ConfigurationName="Singapore">
         <argParameter RemoteLocation="/tmp/remote"/>

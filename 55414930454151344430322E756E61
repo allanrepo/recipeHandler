@@ -11,11 +11,12 @@
 <STDFrecord recordName="MIR">
 <STDFfields>
 <STDFfield fieldName="CMOD_COD" required="strict">T</STDFfield>
+<STDFfield fieldName="MODE_COD" required="strict">T</STDFfield>
 <STDFfield fieldName="LOT_ID" required="strict">FS726037</STDFfield>
 <STDFfield fieldName="PART_TYP" required="strict">SUAI0DAF</STDFfield>
 <STDFfield fieldName="OPER_NAM" required="strict">4477140</STDFfield>
-<STDFfield fieldName="USER_TXT" required="strict"></STDFfield>
-<STDFfield fieldName="FAMLY_ID" required="strict"></STDFfield>
+<STDFfield fieldName="USER_TXT" required="strict">VALUE</STDFfield>
+<STDFfield fieldName="FAMLY_ID" required="strict">VALUE</STDFfield>
 <STDFfield fieldName="FACIL_ID" required="strict">SGPEWS</STDFfield>
 <STDFfield fieldName="FLOOR_ID" required="strict">APEE</STDFfield>
 <STDFfield fieldName="PROC_ID" required="strict">EWS</STDFfield>
@@ -25,7 +26,11 @@
 <STDFfield fieldName="DSGN_REV" required="strict">SUAI0DAF-FS</STDFfield>
 <STDFfield fieldName="ENG_ID" required="strict">FS726037</STDFfield>
 <STDFfield fieldName="PKG_TYP" required="strict">SUAI0DAF</STDFfield>
-<STDFfield fieldName="TSTR_TYP" required="strict"></STDFfield>
+<STDFfield fieldName="TSTR_TYP" required="strict">VALUE</STDFfield>
+<STDFfield fieldName="SPEC_NAM" required="strict">VALUE</STDFfield>
+<STDFfield fieldName="SPEC_VER" required="strict">VALUE</STDFfield>
+<STDFfield fieldName="EXEC_TYP" required="strict">VALUE</STDFfield>
+<STDFfield fieldName="EXEC_VER" required="strict">VALUE</STDFfield>
 </STDFfields>
 </STDFrecord>
 <STDFrecord recordName="SDR">
@@ -41,9 +46,17 @@
 <STDFfields>
 <STDFfield fieldName="GEN_DATA" required="strict">AUTOMATION</STDFfield>
 <STDFfield fieldName="GEN_DATA" required="strict">AUTO_NAM</STDFfield>
-<STDFfield fieldName="GEN_DATA" comment="AUTO_NAM_VAL" required="strict"></STDFfield>
+<STDFfield fieldName="GEN_DATA" comment="AUTO_NAM_VAL" required="strict">VALUE</STDFfield>
 <STDFfield fieldName="GEN_DATA" required="strict">AUTO_VER</STDFfield>
-<STDFfield fieldName="GEN_DATA" comment="AUTO_VER_VAL" required="strict"></STDFfield>
+<STDFfield fieldName="GEN_DATA" comment="AUTO_VER_VAL" required="strict">VALUE</STDFfield>
+<STDFfield fieldName="GEN_DATA" required="strict">API_NAM</STDFfield>
+<STDFfield fieldName="GEN_DATA" comment="API_NAM_VAL" required="strict">VALUE</STDFfield>
+<STDFfield fieldName="GEN_DATA" required="strict">API_VER</STDFfield>
+<STDFfield fieldName="GEN_DATA" comment="API_VER_VAL" required="strict">VALUE</STDFfield>
+<STDFfield fieldName="GEN_DATA" required="strict">GUI_NAM</STDFfield>
+<STDFfield fieldName="GEN_DATA" comment="GUI_NAM_VAL" required="strict">VALUE</STDFfield>
+<STDFfield fieldName="GEN_DATA" required="strict">GUI_VER</STDFfield>
+<STDFfield fieldName="GEN_DATA" comment="GUI_VER_VAL" required="strict">VALUE</STDFfield>
 <STDFfield fieldName="GEN_DATA" required="strict">TRF-XTRF</STDFfield>
 <STDFfield fieldName="GEN_DATA" comment="TRF-XTRF_VAL" required="strict">FS726037_EWS1</STDFfield>
 </STDFfields>
