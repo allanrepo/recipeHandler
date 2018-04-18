@@ -64,6 +64,8 @@ public:
     std::string EndWaferEnable;	  // Added as example as attribute to testPrgmLoader and testPrgmCopierLoaderScript
     std::string StartLotEnable;	  // Added as example as attribute to testPrgmLoader and testPrgmCopierLoaderScript
     std::string StartWaferEnable;	  // Added as example as attribute to testPrgmLoader and testPrgmCopierLoaderScript
+	std::string SpecNam;
+	std::string SpecVer;
    // std::string ConfigurationName;
 };
 

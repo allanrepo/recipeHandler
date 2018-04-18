@@ -713,7 +713,25 @@ bool CuserEvxaInterface::parseTestPrgmLoader(XML_Node *testPrgmLoader)
 			m_TPArgs.TPName = testPrgmLoader->fetchVal(ii);
 			unsigned found = m_TPArgs.TPName.find_first_of("/");
 			if (found != std::string::npos){ m_TPArgs.TPPath = m_TPArgs.TPName.substr(0, found); }
-			else { m_TPArgs.TPPath = ""; }			
+			else { m_TPArgs.TPPath = ""; }		
+
+			// try to get mir.spec_nam and mir.spec_ver from TPPath
+			if (!m_TPArgs.TPPath.empty())
+			{
+				// TPPath might have subfolders. we're only interested in main folder, so we get rid of subs
+				std::string toSpec( m_TPArgs.TPPath );
+				std::size_t p = toSpec.find_first_of("/");
+				if (p != std::string::npos) toSpec = toSpec.substr(0, p);
+
+				p = toSpec.find_last_of("_");
+				if (p != std::string::npos)
+				{
+					m_TPArgs.SpecNam = m_TPArgs.TPPath.substr(0, p);
+					m_TPArgs.SpecVer = m_TPArgs.TPPath.substr(p + 1, std::string::npos);
+					if (debug()) std::cout << "MIR.SPEC_NAM from testPrgmURI: " << m_TPArgs.SpecNam << std::endl;
+					if (debug()) std::cout << "MIR.SPEC_VER from testPrgmURI: " << m_TPArgs.SpecVer << std::endl;
+				}
+			}				
 		}
     	}
 
@@ -1401,15 +1419,6 @@ bool CuserEvxaInterface::sendMIRParams()
                       fprintf(stdout, "MIR.SerlNum: %s\n", pgm->getLotInformation(EVX_LotTesterSerNum));
     }
 
-    if (!m_MIRArgs.SpecNam.empty()) {
-	if (status == EVXA::OK) status = pgm->setLotInformation(EVX_LotTestSpecName, m_MIRArgs.SpecNam.c_str());
-	if (status != EVXA::OK) {
-	    fprintf(stdout, "[ERROR] sendMIRParams EVX_LotTestSpecName: status:%d %s\n", status, pgm->getStatusBuffer());
-	    result = false;
-	}
-                        fprintf(stdout, "MIR.SpecNam: %s\n", pgm->getLotInformation(EVX_LotTestSpecName));
-
-    }
 
     if (!m_MIRArgs.TstrTyp.empty()) {
 	if (status == EVXA::OK) status = pgm->setLotInformation(EVX_LotTesterType, m_MIRArgs.TstrTyp.c_str());
@@ -1428,14 +1437,51 @@ bool CuserEvxaInterface::sendMIRParams()
 	}
     }
 
-    if (!m_MIRArgs.SpecVer.empty()) {
-	if (status == EVXA::OK) status = pgm->setLotInformation(EVX_LotTestSpecRev, m_MIRArgs.SpecVer.c_str());
-	if (status != EVXA::OK) {
-	    fprintf(stdout, "[ERROR] sendMIRParams EVX_LotTestSpecRev: status:%d %s\n", status, pgm->getStatusBuffer());
-	    result = false;
+	// set MIR.SPEC_NAM
+	if (!m_TPArgs.SpecNam.empty())
+	{
+		if (status == EVXA::OK) status = pgm->setLotInformation(EVX_LotTestSpecName, m_TPArgs.SpecNam.c_str());
+		if (status != EVXA::OK) 
+		{
+			fprintf(stdout, "[ERROR] sendMIRParams EVX_LotTestSpecName: status:%d %s\n", status, pgm->getStatusBuffer());
+			result = false;
+		}
+		fprintf(stdout, "MIR.SpecNam(From Load Recipe): %s\n", pgm->getLotInformation(EVX_LotTestSpecName));		
 	}
-                       fprintf(stdout, "MIR.SpecVer: %s\n", pgm->getLotInformation(EVX_LotTestSpecRev));
-    }
+	else if (!m_MIRArgs.SpecNam.empty()) 
+	{
+		if (status == EVXA::OK) status = pgm->setLotInformation(EVX_LotTestSpecName, m_MIRArgs.SpecNam.c_str());
+		if (status != EVXA::OK) 
+		{
+			fprintf(stdout, "[ERROR] sendMIRParams EVX_LotTestSpecName: status:%d %s\n", status, pgm->getStatusBuffer());
+			result = false;
+		}
+		fprintf(stdout, "MIR.SpecNam: %s\n", pgm->getLotInformation(EVX_LotTestSpecName));
+	}
+
+	// set MIR.SPEC_VER
+	if (!m_TPArgs.SpecVer.empty())
+	{
+		if (status == EVXA::OK) status = pgm->setLotInformation(EVX_LotTestSpecRev, m_TPArgs.SpecVer.c_str());
+		if (status != EVXA::OK) 
+		{
+			fprintf(stdout, "[ERROR] sendMIRParams EVX_LotTestSpecRev: status:%d %s\n", status, pgm->getStatusBuffer());
+			result = false;
+		}
+		fprintf(stdout, "MIR.SpecVer(From Load Recipe): %s\n", pgm->getLotInformation(EVX_LotTestSpecRev));
+	}
+	else if (!m_MIRArgs.SpecVer.empty()) 
+	{
+		if (status == EVXA::OK) status = pgm->setLotInformation(EVX_LotTestSpecRev, m_MIRArgs.SpecVer.c_str());
+		if (status != EVXA::OK) 
+		{
+			fprintf(stdout, "[ERROR] sendMIRParams EVX_LotTestSpecRev: status:%d %s\n", status, pgm->getStatusBuffer());
+			result = false;
+		}
+		fprintf(stdout, "MIR.SpecVer: %s\n", pgm->getLotInformation(EVX_LotTestSpecRev));
+	}
+
+
     if (!m_MIRArgs.ProtCod.empty()) {
 	if (status == EVXA::OK) status = pgm->setLotInformation(EVX_LotProtectionCode, m_MIRArgs.ProtCod.c_str());
 	if (status != EVXA::OK) {

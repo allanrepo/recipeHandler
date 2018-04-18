@@ -84,7 +84,7 @@ CTestProgArgs::CTestProgArgs() : ReloadStrategy(),DownloadStrategy(), BackToIdle
 				 Flow(),Salestype(),Temperature(),Product(),Parallelism(),
 				 DieCode(),CmodCode(),LotId(),FlowId(),GrossDie(),ActiveController(),
 				 CurrentProgName(),FullTPName(),EndWaferEnable(),StartLotEnable(),
-				 StartWaferEnable()
+				 StartWaferEnable(), SpecNam(), SpecVer()
 {  
 }
 
@@ -94,7 +94,7 @@ CTestProgArgs::CTestProgArgs(const CTestProgArgs& ot) : ReloadStrategy(ot.Reload
                Parallelism(ot.Parallelism),DieCode(ot.DieCode),CmodCode(ot.CmodCode),LotId(ot.LotId), 
                FlowId(ot.FlowId),GrossDie(ot.GrossDie),ActiveController(ot.ActiveController),
 	       CurrentProgName(ot.CurrentProgName),FullTPName(ot.FullTPName),EndWaferEnable(ot.EndWaferEnable),
-               StartLotEnable(ot.StartLotEnable),StartWaferEnable(ot.StartWaferEnable)
+               StartLotEnable(ot.StartLotEnable),StartWaferEnable(ot.StartWaferEnable), SpecNam(ot.SpecNam), SpecVer(ot.SpecVer)
 {
 }
 
@@ -123,6 +123,8 @@ CTestProgArgs& CTestProgArgs::operator=(const CTestProgArgs& ot)
     EndWaferEnable = ot.EndWaferEnable;
     StartLotEnable = ot.StartLotEnable;
     StartWaferEnable = ot.StartWaferEnable;
+	SpecNam = ot.SpecNam;
+	SpecVer = ot.SpecVer;
     return *this;
 }
 
@@ -156,7 +158,8 @@ bool CTestProgArgs::clearParams()
     EndWaferEnable.clear();
     StartLotEnable.clear();
     StartWaferEnable.clear();
-
+	SpecNam.clear();
+	SpecVer.clear();
     return true;
 }
 
