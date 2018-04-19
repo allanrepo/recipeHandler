@@ -701,6 +701,12 @@ bool CuserEvxaInterface::updateSTDFAfterProgLoad()
 	std::string SystemName = PgmCtrl()->getLotInformation(EVX_LotSystemName);
 	if (SystemName.empty() || SystemName.compare("enVision") == 0) m_MIRArgs.ExecTyp = "Unison";
 
+	// we send SDR.HAND_TYP to famodule so it can send it to STDF during onlotstart(). this ensures Unison doesn't overwrite it
+	PgmCtrl()->faprocSet("Current Equipment: HAND_TYP", m_SDRArgs.HandTyp);
+	std::string hand_typ;
+	PgmCtrl()->faprocGet("Current Equipment: HAND_TYP", hand_typ);
+	if (debug()) std::cout << "[DEBUG] HAND_TYP sent to faproc: " << hand_typ << std::endl;	
+
 	return true;
 }
 
