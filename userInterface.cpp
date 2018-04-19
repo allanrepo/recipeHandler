@@ -268,9 +268,10 @@ void CuserEvxaInterface::programChange(const EVX_PROGRAM_STATE state, const char
 	    m_recipeParseResult = false;
 	}
 	break;
-    case EVX_PROGRAM_LOADED:
+	case EVX_PROGRAM_LOADED:
 	{
-	    if (debug()) std::cout << "programChange: EVX_PROGRAM_LOADED" << std::endl;
+	    	if (debug()) std::cout << "programChange: EVX_PROGRAM_LOADED" << std::endl;
+		updateSTDFAfterProgLoad();
 	}
 	break;
     case EVX_PROGRAM_START:
@@ -688,9 +689,28 @@ bool CuserEvxaInterface::parseTestPrgm(XML_Node *testPrgm)
 
 }
 
-//-----------------------------------------------------------------------------------
-// backup this method as we will modify it to fit our needs
-//-----------------------------------------------------------------------------------
+/*---------------------------------------------------------------------------------
+any STDF field to be set by evxa (e.g. XTRF not available, info from tester)
+is done here. this is called after program is loaded
+---------------------------------------------------------------------------------*/
+bool CuserEvxaInterface::updateSTDFAfterProgLoad()
+{
+	if (!PgmCtrl()){ std::cout << "[ERROR] CuserEvxaInterface::updateSTDFAfterProgLoad(): Cannot access ProgramControl object." << std::endl; return false; }
+
+	// make sure to change exec_typ to "Unison"
+	std::string SystemName = PgmCtrl()->getLotInformation(EVX_LotSystemName);
+	if (SystemName.empty() || SystemName.compare("enVision") == 0) m_MIRArgs.ExecTyp = "Unison";
+
+	return true;
+}
+
+/*---------------------------------------------------------------------------------
+parse <testPrgmLoader> from XTRF
+testPrgmURI attribute 
+- holds the folder/program name and will be used to parse mir.spec_nam
+  and mir.spec_rev
+reloadStrategy, downloadStrategy, and backToIdleStrategy attributes		
+---------------------------------------------------------------------------------*/
 bool CuserEvxaInterface::parseTestPrgmLoader(XML_Node *testPrgmLoader)
 {
 	if (debug()) std::cout << "[DEBUG] Executing CuserEvxaInterface::parseTestPrgmLoader()" << std::endl;
@@ -1014,10 +1034,6 @@ bool CuserEvxaInterface::parseMIR(XML_Node *MIRRecord)
 		m_MIRArgs.SetupId = result;
 	    else if (temp.compare("JOB_REV") == 0)
 		m_MIRArgs.JobRev = result;
-	    else if (temp.compare("EXEC_TYP") == 0)
-		m_MIRArgs.ExecTyp = result;
-	    else if (temp.compare("EXEC_VER") == 0)
-		m_MIRArgs.ExecVer = result;
 	    else if (temp.compare("AUX_FILE") == 0)
 		m_MIRArgs.AuxFile = result;
 	    else if (temp.compare("RTST_COD") == 0)
@@ -1362,21 +1378,29 @@ bool CuserEvxaInterface::sendMIRParams()
 	}
     }
 
-    if (!m_MIRArgs.ExecTyp.empty()) {
-	if (status == EVXA::OK) status = pgm->setLotInformation(EVX_LotSystemName, m_MIRArgs.ExecTyp.c_str());
-	if (status != EVXA::OK) {
-	    fprintf(stdout, "[ERROR] sendMIRParams EVX_LotSystemName: status:%d %s\n", status, pgm->getStatusBuffer());
-	    result = false;
+	// set MIR.EXEC_TYP
+	if (!m_MIRArgs.ExecTyp.empty()) 
+	{
+		if (status == EVXA::OK) status = pgm->setLotInformation(EVX_LotSystemName, m_MIRArgs.ExecTyp.c_str());
+		if (status != EVXA::OK) 
+		{
+			fprintf(stdout, "[ERROR] sendMIRParams EVX_LotSystemName: status:%d %s\n", status, pgm->getStatusBuffer());
+			result = false;
+		}
+		fprintf(stdout, "MIR.ExecTyp: %s\n", pgm->getLotInformation(EVX_LotSystemName));
 	}
-    }
  
-    if (!m_MIRArgs.ExecVer.empty()) {
-	if (status == EVXA::OK) status = pgm->setLotInformation(EVX_LotTargetName, m_MIRArgs.ExecVer.c_str());
-	if (status != EVXA::OK) {
-	    fprintf(stdout, "[ERROR] sendMIRParams EVX_LotTargetName: status:%d %s\n", status, pgm->getStatusBuffer());
-	    result = false;
+	// set MIR.EXEC_VER
+	if (!m_MIRArgs.ExecVer.empty()) 
+	{
+		if (status == EVXA::OK) status = pgm->setLotInformation(EVX_LotTargetName, m_MIRArgs.ExecVer.c_str());
+		if (status != EVXA::OK) 
+		{
+			fprintf(stdout, "[ERROR] sendMIRParams EVX_LotTargetName: status:%d %s\n", status, pgm->getStatusBuffer());
+			result = false;
+		}
+		fprintf(stdout, "MIR.ExecVer: %s\n", pgm->getLotInformation(EVX_LotTargetName));
 	}
-    }
        
     if (!m_MIRArgs.AuxFile.empty()) {
 	if (status == EVXA::OK) status = pgm->setLotInformation(EVX_LotAuxDataFile, m_MIRArgs.AuxFile.c_str());

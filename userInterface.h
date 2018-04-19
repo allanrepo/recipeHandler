@@ -128,6 +128,7 @@ private:
 	bool isProgramToLoadAlreadyLoaded();
 	bool handleBackToIdleStrategy();
    	bool parseGDR(XML_Node *GDRRecord);
+	bool updateSTDFAfterProgLoad();
 
 public:
 
