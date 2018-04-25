@@ -170,7 +170,7 @@ bool CTestProgArgs::clearParams()
 CMIRArgs::CMIRArgs() : LotId(),CmodCod(),FlowId(),DsgnRev(),DateCod(),OperFrq(),OperNam(),NodeNam(),
 	  PartTyp(),EngId(),TestTmp(),FacilId(),FloorId(),StatNum(),ProcId(),ModCod(),
 	  FamilyId(),PkgTyp(),SblotId(),JobNam(),SetupId(),JobRev(),ExecTyp(),ExecVer(),AuxFile(),
-	  RtstCod(),TestCod(),UserText(),RomCod(),SerlNum(),SpecNam(),TstrTyp(),SuprNam(),SpecVer(), ProtCod()
+	  RtstCod(),TestCod(),UserText(),RomCod(),SerlNum(),SpecNam(),TstrTyp(),SuprNam(),SpecVer(), ProtCod(), GuiNam(), GuiRev()
 {
 }
 
@@ -182,7 +182,7 @@ CMIRArgs::CMIRArgs(const CMIRArgs& ot) : LotId(ot.LotId),CmodCod(ot.CmodCod),Flo
 	  JobNam(ot.JobNam),SetupId(ot.SetupId),JobRev(ot.JobRev),ExecTyp(ot.ExecTyp),
 	  ExecVer(ot.ExecVer),AuxFile(ot.AuxFile),RtstCod(ot.RtstCod),TestCod(ot.TestCod),
 	  UserText(ot.UserText),RomCod(ot.RomCod),SerlNum(ot.SerlNum),SpecNam(ot.SpecNam),TstrTyp(ot.TstrTyp),
-	  SuprNam(ot.SuprNam),SpecVer(ot.SpecVer), ProtCod(ot.ProtCod)	
+	  SuprNam(ot.SuprNam),SpecVer(ot.SpecVer), ProtCod(ot.ProtCod), GuiNam(ot.GuiNam), GuiRev(ot.GuiRev)
 {
 }
 
@@ -223,6 +223,8 @@ CMIRArgs& CMIRArgs::operator=(const CMIRArgs& ot)
     SuprNam = ot.SuprNam;
     SpecVer = ot.SpecVer;
     ProtCod = ot.ProtCod;
+	GuiNam = ot.GuiNam;
+	GuiRev = ot.GuiRev;
 
     return *this;
 }
@@ -267,6 +269,8 @@ bool CMIRArgs::clearParams()
    SuprNam.clear();
    SpecVer.clear();
    ProtCod.clear();
+	GuiNam.clear();
+	GuiRev.clear();
 
     return true;
 }

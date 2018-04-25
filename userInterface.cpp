@@ -291,8 +291,13 @@ void CuserEvxaInterface::programChange(const EVX_PROGRAM_STATE state, const char
 	    EVXAStatus status = pgm->UnblockRobot();
 	    if (status != EVXA::OK)
 		fprintf(stdout, "Error PROGRAM_UNLAODED UnblockRobot(): status:%d %s\n", status, pgm->getStatusBuffer());
-
 	}
+
+	// let's delete the "auto.xtrf" that we create during program loading (if it exists)
+	unlink("/tmp/gdr_auto.xtrf");
+	if (isFileExist("/tmp/gdr_auto.xtrf")) std::cout << "[ERROR] Failed to delete /tmp/gdr_auto.xtrf during program unload." << std::endl;
+	else { if (debug()) std::cout << "[OK] /tmp/gdr_auto.xtrf does not exist anymore after program unload." << std::endl; }
+
 	break;
     case EVX_PROGRAM_ABORT_LOAD:
 	{
@@ -486,7 +491,7 @@ void CuserEvxaInterface::RecipeDecode(const char *recipe_text)
     
 	// this line originally here but somehow calling this gives a false trigger to gem host that end-lot occurred.
 	// not sure why, probably need to investigate this but low priority for now.
-   	sendRecipeResultStatus(result);  // parsing failed so just send the result back to cgem.
+   	//sendRecipeResultStatus(result);  // parsing failed so just send the result back to cgem.
  }
 
 
@@ -707,7 +712,124 @@ bool CuserEvxaInterface::updateSTDFAfterProgLoad()
 	PgmCtrl()->faprocGet("Current Equipment: HAND_TYP", hand_typ);
 	if (debug()) std::cout << "[DEBUG] HAND_TYP sent to faproc: " << hand_typ << std::endl;	
 
+	// send GUI_NAM and GUI_REV to FAmodule
+	if (m_MIRArgs.GuiNam.length())
+	{
+		PgmCtrl()->faprocSet("Current Equipment: GUI_NAM_VAL", m_MIRArgs.GuiNam);
+		if (debug()) std::cout << "[DEBUG] GUI_NAM_VAL: " << m_MIRArgs.GuiNam << " set in FAmodule." << std::endl;
+	}
+	if (m_MIRArgs.GuiRev.length())
+	{
+		PgmCtrl()->faprocSet("Current Equipment: GUI_REV_VAL", m_MIRArgs.GuiRev);
+		if (debug()) std::cout << "[DEBUG] GUI_REV_VAL: " << m_MIRArgs.GuiRev << " set in FAmodule." << std::endl;
+	}
+
 	return true;
+}
+
+/*---------------------------------------------------------------------------------
+parse GDR
+---------------------------------------------------------------------------------*/
+bool CuserEvxaInterface::parseGDR(XML_Node *GDRRecord)
+{
+	if (debug()) std::cout << "[DEBUG] Executing CuserEvxaInterface::parseGDR()" << std::endl;
+     	bool result = true;
+
+	if (!PgmCtrl()){ std::cout << "[ERROR] CuserEvxaInterface::parseGDR(): Cannot access ProgramControl object." << std::endl; return false; }
+
+	// let's make sure the gdr_auto.xtrf file is deleted or not exist before proceeding
+	if (isFileExist("/tmp/gdr_auto.xtrf")) unlink("/tmp/gdr_auto.xtrf");	
+	if (isFileExist("/tmp/gdr_auto.xtrf")) std::cout << "[ERROR] Failed to delete /tmp/gdr_auto.xtrf during program unload." << std::endl;
+	else { if (debug()) std::cout << "[OK] /tmp/gdr_auto.xtrf does not exist. We're good to make a new one." << std::endl; }
+
+	// create xtrf xml object
+	tinyxtrf::Xtrf* xtrf(tinyxtrf::Xtrf::instance());
+	xtrf->clear();
+	tinyxtrf::GdrRecord gdrs;
+
+	// start reading fields from XTRF 
+    	XML_Node *STDFfields = GDRRecord->fetchChild("STDFfields");
+    	int nfields = STDFfields->numChildren();
+	bool bTrfXtrf = false;
+    	for(int jj=0; jj<nfields; jj++) 
+	{
+		XML_Node *STDFfield = STDFfields->fetchChild(jj);
+		if (STDFfield) 
+		{
+	    		std::string temp = STDFfield->fetchVal(0);
+	    		std::string result = STDFfield->fetchText();
+	    		if (debug()) fprintf(stdout, "[DEBUG] GDR found: %s %s\n", temp.c_str(), result.c_str());			
+			if (temp.compare("GEN_DATA") == 0)
+			{ 
+				// any GDR that is not part of GDR.AUTOMATION is skipped. it's value is instead sent to FAmodule
+				if (result.compare("GUI_NAM") == 0) continue;
+				if (result.compare("GUI_REV") == 0) continue;
+
+				bool skip = false;
+				for (int ii=0; ii<STDFfield->numAttr(); ii++)
+				{
+					if (STDFfield->fetchAttr(ii).compare("comment") == 0)
+					{
+						// found GUI_NAM value, send to FAmodule
+						if (STDFfield->fetchVal(ii).compare("GUI_NAM_VAL") == 0) 
+						{
+							if (debug()) std::cout << "[DEBUG] Found GUI_NAM but we're sending it to FAmodule. "<< std::endl;
+							m_MIRArgs.GuiNam = result;
+							skip = true;
+							break;
+						}
+						// found GUI_REV value, send to FAmodule
+						if (STDFfield->fetchVal(ii).compare("GUI_REV_VAL") == 0) 
+						{
+							if (debug()) std::cout << "[DEBUG] Found GUI_REV but we're sending it to FAmodule. "<< std::endl;
+							m_MIRArgs.GuiRev = result;
+							skip = true;
+							break;
+						}
+
+						// if we found TRF-XTRF from XTRF, we use this value. 
+						if (STDFfield->fetchVal(ii).compare("TRF-XTRF_VAL") == 0) 
+						{
+							bTrfXtrf = true;
+						}
+					}
+				}					
+				if (!skip) gdrs.push_back(tinyxtrf::GdrField( temp.c_str(), "C*n", result.c_str())); 
+			}	
+	    		else fprintf(stdout, "[ERROR] parseGDR unknown field: %s\n", temp.c_str());
+		}
+    	}
+
+	// if we didn't fin TRF-XTRF from XTRF, let's set it ourselves using lotid_flowid
+	if (!bTrfXtrf)
+	{
+		if (debug()) std::cout << "[DEBUG] Didn't find TRF-XTRF from XTRF. setting it instead to " << m_MIRArgs.LotId << "_" << m_MIRArgs.FlowId << " (lotid_flowid)" << std::endl;
+		gdrs.push_back(tinyxtrf::GdrField("GEN_DATA", "C*n", "TRF-XTRF"));
+		std::stringstream ssTrfXtrf; 
+		ssTrfXtrf << m_MIRArgs.LotId << "_" << m_MIRArgs.FlowId;
+		gdrs.push_back(tinyxtrf::GdrField("GEN_DATA", "C*n", ssTrfXtrf.str() ));
+	}
+	
+	// add GDR.AUTOMATION.SG_STATUS 
+	gdrs.push_back(tinyxtrf::GdrField("GEN_DATA", "C*n", "SG_STATUS"));
+	EVX_GemControlState gemCtrlState = PgmCtrl()->gemGetControlState();
+	if (gemCtrlState == EVX_controlDisabled)	{ gdrs.push_back(tinyxtrf::GdrField("GEN_DATA", "C*n", "DISABLED")); if (debug()) std::cout << "[DEBUG] GemCtrlState: DISABLED" << std::endl; }
+	if (gemCtrlState == EVX_equipOffline)		{ gdrs.push_back(tinyxtrf::GdrField("GEN_DATA", "C*n", "OFFLINE")); if (debug()) std::cout << "[DEBUG] GemCtrlState: OFFLINE" << std::endl; }
+	if (gemCtrlState == EVX_attemptOnline)		{ gdrs.push_back(tinyxtrf::GdrField("GEN_DATA", "C*n", "ATTEMPONLINE")); if (debug()) std::cout << "[DEBUG] GemCtrlState: ATTEMPONLINE" << std::endl; }
+	if (gemCtrlState == EVX_onlineLocal)		{ gdrs.push_back(tinyxtrf::GdrField("GEN_DATA", "C*n", "LOCAL")); if (debug()) std::cout << "[DEBUG] GemCtrlState: LOCAL" << std::endl; }
+	if (gemCtrlState == EVX_onlineRemote)		{ gdrs.push_back(tinyxtrf::GdrField("GEN_DATA", "C*n", "REMOTE")); if (debug()) std::cout << "[DEBUG] GemCtrlState: REMOTE" << std::endl; }
+	if (gemCtrlState == EVX_controlNoConnect)	{ gdrs.push_back(tinyxtrf::GdrField("GEN_DATA", "C*n", "NOCONNECT")); if (debug()) std::cout << "[DEBUG] GemCtrlState: NOCONNECT" << std::endl; }
+	gdrs.push_back(tinyxtrf::GdrField("GEN_DATA", "C*n", "SG_NAM"));
+	gdrs.push_back(tinyxtrf::GdrField("GEN_DATA", "C*n", "CGEM"));
+	gdrs.push_back(tinyxtrf::GdrField("GEN_DATA", "C*n", "SG_REV"));
+	gdrs.push_back(tinyxtrf::GdrField("GEN_DATA", "C*n", "01"));
+
+	// flush the GDR's to xml file
+	gdrs.insert(gdrs.begin(), 1, tinyxtrf::GdrField("FIELD_CNT", "U*2", num2stdstring(gdrs.size())));
+	xtrf->addGdr(gdrs);
+	xtrf->dumpGdrs("/tmp/gdr_auto.xtrf");
+
+    	return result;
 }
 
 /*---------------------------------------------------------------------------------
@@ -965,18 +1087,10 @@ bool CuserEvxaInterface::parseSTDFRecord(XML_Node *STDFRecord)
 	}
     }
     if (debug()) fprintf(stdout,"RecordName: %s\n", rname.c_str());
-    if (rname.compare("MIR") == 0) {
-	result = parseMIR(STDFRecord);
-    }
-    else if (rname.compare("SDR") == 0) {
-	result = parseSDR(STDFRecord);
-    }
-    else if (rname.compare("GDR") == 0) {
-	result = parseGDR(STDFRecord);
-    }
-    else {
-	fprintf(stdout, "[ERROR] parseSTDFRecord unknown recordName: %s\n", rname.c_str());
-    }
+    if (rname.compare("MIR") == 0){ result = parseMIR(STDFRecord); }
+    else if (rname.compare("SDR") == 0){ result = parseSDR(STDFRecord); }
+    else if (rname.compare("GDR") == 0){ result = parseGDR(STDFRecord); }
+    else { fprintf(stdout, "[ERROR] parseSTDFRecord unknown recordName: %s\n", rname.c_str()); }
 
     return result;
 }
@@ -1124,50 +1238,7 @@ bool CuserEvxaInterface::parseSDR(XML_Node *SDRRecord)
     return result;
 }
 
-/*---------------------------------------------------------------------------------
-parse GDR
----------------------------------------------------------------------------------*/
-bool CuserEvxaInterface::parseGDR(XML_Node *GDRRecord)
-{
-	if (debug()) std::cout << "[DEBUG] Executing CuserEvxaInterface::parseGDR()" << std::endl;
-     	bool result = true;
 
-	// create xtrf xml object
-	tinyxtrf::Xtrf* xtrf(tinyxtrf::Xtrf::instance());
-	xtrf->clear();
-	tinyxtrf::GdrRecord gdrs;
-
-	// start reading fields from XTRF 
-    	XML_Node *STDFfields = GDRRecord->fetchChild("STDFfields");
-    	int nfields = STDFfields->numChildren();
-    	for(int jj=0; jj<nfields; jj++) 
-	{
-		XML_Node *STDFfield = STDFfields->fetchChild(jj);
-		if (STDFfield) 
-		{
-	    		std::string temp = STDFfield->fetchVal(0);
-	    		std::string result = STDFfield->fetchText();
-	    		if (debug()) fprintf(stdout, "[DEBUG] GDR found: %s %s\n", temp.c_str(), result.c_str());				
-	    		if (temp.compare("GEN_DATA") == 0){ gdrs.push_back(tinyxtrf::GdrField( temp.c_str(), "C*n", result.c_str())); }	
-	    		else fprintf(stdout, "[ERROR] parseGDR unknown field: %s\n", temp.c_str());
-		}
-    	}
-	/*
-	// add hard coded GDR field
-	gdrs.push_back(tinyxtrf::GdrField("GEN_DATA", "C*n", "STDF_FRM"));
-	gdrs.push_back(tinyxtrf::GdrField("GEN_DATA", "C*n", "REV_I"));
-
-	std::string driverId, driverRev;
-	PgmCtrl()->faprocGet("Current Equipment:QUERY_CHUCK_TEMP", driverId);
-	PgmCtrl()->faprocGet("Driver Revision", driverRev);
-	std::cout << "Driver ID: " << driverId << ", Driver Rev: " << driverRev << std::endl;	
-*/
-	gdrs.insert(gdrs.begin(), 1, tinyxtrf::GdrField("FIELD_CNT", "U*2", num2stdstring(gdrs.size())));
-	xtrf->addGdr(gdrs);
-	xtrf->dumpGdrs("/tmp/gdr_auto.xtrf");
-
-    	return result;
-}
 
 //--------------------------------------------------------------------
 void CuserEvxaInterface::sendRecipeResultStatus(bool result)
@@ -1383,31 +1454,7 @@ bool CuserEvxaInterface::sendMIRParams()
 	    result = false;
 	}
     }
-
-	// set MIR.EXEC_TYP
-	if (!m_MIRArgs.ExecTyp.empty()) 
-	{
-		if (status == EVXA::OK) status = pgm->setLotInformation(EVX_LotSystemName, m_MIRArgs.ExecTyp.c_str());
-		if (status != EVXA::OK) 
-		{
-			fprintf(stdout, "[ERROR] sendMIRParams EVX_LotSystemName: status:%d %s\n", status, pgm->getStatusBuffer());
-			result = false;
-		}
-		fprintf(stdout, "MIR.ExecTyp: %s\n", pgm->getLotInformation(EVX_LotSystemName));
-	}
- 
-	// set MIR.EXEC_VER
-	if (!m_MIRArgs.ExecVer.empty()) 
-	{
-		if (status == EVXA::OK) status = pgm->setLotInformation(EVX_LotTargetName, m_MIRArgs.ExecVer.c_str());
-		if (status != EVXA::OK) 
-		{
-			fprintf(stdout, "[ERROR] sendMIRParams EVX_LotTargetName: status:%d %s\n", status, pgm->getStatusBuffer());
-			result = false;
-		}
-		fprintf(stdout, "MIR.ExecVer: %s\n", pgm->getLotInformation(EVX_LotTargetName));
-	}
-       
+    
     if (!m_MIRArgs.AuxFile.empty()) {
 	if (status == EVXA::OK) status = pgm->setLotInformation(EVX_LotAuxDataFile, m_MIRArgs.AuxFile.c_str());
 	if (status != EVXA::OK) {
@@ -1466,6 +1513,30 @@ bool CuserEvxaInterface::sendMIRParams()
 	    result = false;
 	}
     }
+
+	// set MIR.EXEC_TYP
+	if (!m_MIRArgs.ExecTyp.empty()) 
+	{
+		if (status == EVXA::OK) status = pgm->setLotInformation(EVX_LotSystemName, m_MIRArgs.ExecTyp.c_str());
+		if (status != EVXA::OK) 
+		{
+			fprintf(stdout, "[ERROR] sendMIRParams EVX_LotSystemName: status:%d %s\n", status, pgm->getStatusBuffer());
+			result = false;
+		}
+		fprintf(stdout, "MIR.ExecTyp: %s\n", pgm->getLotInformation(EVX_LotSystemName));
+	}
+ 
+	// set MIR.EXEC_VER
+	if (!m_MIRArgs.ExecVer.empty()) 
+	{
+		if (status == EVXA::OK) status = pgm->setLotInformation(EVX_LotTargetName, m_MIRArgs.ExecVer.c_str());
+		if (status != EVXA::OK) 
+		{
+			fprintf(stdout, "[ERROR] sendMIRParams EVX_LotTargetName: status:%d %s\n", status, pgm->getStatusBuffer());
+			result = false;
+		}
+		fprintf(stdout, "MIR.ExecVer: %s\n", pgm->getLotInformation(EVX_LotTargetName));
+	}
 
 	// set MIR.SPEC_NAM
 	if (!m_TPArgs.SpecNam.empty())
@@ -2194,7 +2265,7 @@ bool CuserEvxaInterface::isFileExist(const std::string& szFile)
 	// check if the program is available remotely
 	if (debug()) std::cout << "[DEBUG] Checking if " << szFile << " exists..." << std::endl;
      	if (access(szFile.c_str(), F_OK) > -1) { if (debug()) std::cout << "[OK] " << szFile << " exist." << std::endl; return true; }
-   	else { std::cout << "[ERROR] Cannot access " << szFile << ". It does not exist." << std::endl; return false; }
+   	else { std::cout << "[WARNING] Cannot access " << szFile << ". It does not exist." << std::endl; return false; }
 } 
 
 /*-----------------------------------------------------------------------------------------

@@ -115,6 +115,10 @@ public:
     std::string SpecVer;	// TestProgData.TestSpecRev
 
     std::string ProtCod;	// TestProgData.ProtectionCode
+
+	// fields for MIR_ADD to be passed to FAmodule
+	std::string GuiNam;
+	std::string GuiRev;
  
 };
 
