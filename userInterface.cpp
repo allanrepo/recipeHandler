@@ -700,6 +700,8 @@ is done here. this is called after program is loaded
 ---------------------------------------------------------------------------------*/
 bool CuserEvxaInterface::updateSTDFAfterProgLoad()
 {
+	if (debug()) std::cout << "[DEBUG] Executing CuserEvxaInterface::updateSTDFAfterProgLoad()" << std::endl;
+
 	if (!PgmCtrl()){ std::cout << "[ERROR] CuserEvxaInterface::updateSTDFAfterProgLoad(): Cannot access ProgramControl object." << std::endl; return false; }
 
 	// make sure to change exec_typ to "Unison"
@@ -732,10 +734,7 @@ bool CuserEvxaInterface::updateSTDFAfterProgLoad()
 		{
 			fprintf(stdout, "[ERROR] CuserEvxaInterface::updateSTDFAfterProgLoad() setting EVX_LotTesterSerNum: %s\n", PgmCtrl()->getStatusBuffer());
 		}
-		else
-		{
-			fprintf(stdout, "MIR.SerlNum: %s\n", PgmCtrl()->getLotInformation(EVX_LotTesterSerNum));
-		}
+		else{ fprintf(stdout, "MIR.SerlNum: %s\n", PgmCtrl()->getLotInformation(EVX_LotTesterSerNum)); }
 	}
 
 	return true;
@@ -833,10 +832,20 @@ bool CuserEvxaInterface::parseGDR(XML_Node *GDRRecord)
 	if (gemCtrlState == EVX_onlineLocal)		{ gdrs.push_back(tinyxtrf::GdrField("GEN_DATA", "C*n", "LOCAL")); if (debug()) std::cout << "[DEBUG] GemCtrlState: LOCAL" << std::endl; }
 	if (gemCtrlState == EVX_onlineRemote)		{ gdrs.push_back(tinyxtrf::GdrField("GEN_DATA", "C*n", "REMOTE")); if (debug()) std::cout << "[DEBUG] GemCtrlState: REMOTE" << std::endl; }
 	if (gemCtrlState == EVX_controlNoConnect)	{ gdrs.push_back(tinyxtrf::GdrField("GEN_DATA", "C*n", "NOCONNECT")); if (debug()) std::cout << "[DEBUG] GemCtrlState: NOCONNECT" << std::endl; }
+
+	// hard code CGEM information
 	gdrs.push_back(tinyxtrf::GdrField("GEN_DATA", "C*n", "SG_NAM"));
 	gdrs.push_back(tinyxtrf::GdrField("GEN_DATA", "C*n", "CGEM"));
 	gdrs.push_back(tinyxtrf::GdrField("GEN_DATA", "C*n", "SG_REV"));
 	gdrs.push_back(tinyxtrf::GdrField("GEN_DATA", "C*n", "01"));
+
+	// hard code API_NAM and API_REV. this is temporary as we don't really know what to put here yet.
+	gdrs.push_back(tinyxtrf::GdrField("GEN_DATA", "C*n", "API_NAM"));
+	//gdrs.push_back(tinyxtrf::GdrField("GEN_DATA", "C*n", PgmCtrl()->getLotInformation(EVX_LotSystemName) ));
+	gdrs.push_back(tinyxtrf::GdrField("GEN_DATA", "C*n", "Unison" ));
+	gdrs.push_back(tinyxtrf::GdrField("GEN_DATA", "C*n", "API_REV"));
+	//gdrs.push_back(tinyxtrf::GdrField("GEN_DATA", "C*n", PgmCtrl()->getLotInformation(EVX_LotTargetName) ));
+	gdrs.push_back(tinyxtrf::GdrField("GEN_DATA", "C*n", "U1703" ));
 
 	// flush the GDR's to xml file
 	gdrs.insert(gdrs.begin(), 1, tinyxtrf::GdrField("FIELD_CNT", "U*2", num2stdstring(gdrs.size())));
