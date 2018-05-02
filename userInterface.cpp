@@ -706,7 +706,7 @@ bool CuserEvxaInterface::updateSTDFAfterProgLoad()
 	std::string SystemName = PgmCtrl()->getLotInformation(EVX_LotSystemName);
 	if (SystemName.empty() || SystemName.compare("enVision") == 0) m_MIRArgs.ExecTyp = "Unison";
 
-	// we send SDR.HAND_TYP to famodule so it can send it to STDF during onlotstart(). this ensures Unison doesn't overwrite it
+	// we send SDR.HAND_TYP to FAmodule so it can send it to STDF during onlotstart(). this ensures Unison doesn't overwrite it
 	PgmCtrl()->faprocSet("Current Equipment: HAND_TYP", m_SDRArgs.HandTyp);
 	std::string hand_typ;
 	PgmCtrl()->faprocGet("Current Equipment: HAND_TYP", hand_typ);
@@ -722,6 +722,20 @@ bool CuserEvxaInterface::updateSTDFAfterProgLoad()
 	{
 		PgmCtrl()->faprocSet("Current Equipment: GUI_REV_VAL", m_MIRArgs.GuiRev);
 		if (debug()) std::cout << "[DEBUG] GUI_REV_VAL: " << m_MIRArgs.GuiRev << " set in FAmodule." << std::endl;
+	}
+
+	// assuming SERL_NUM is to be set as hostname, we do it here. note that this is temporary as we don't know yet what to put here
+	if (m_MIRArgs.SerlNum.empty())
+	{
+		m_MIRArgs.SerlNum = PgmCtrl()->getLotInformation(EVX_LotTcName);
+		if ( PgmCtrl()->setLotInformation(EVX_LotTesterSerNum, m_MIRArgs.SerlNum.c_str()) != EVXA::OK )
+		{
+			fprintf(stdout, "[ERROR] CuserEvxaInterface::updateSTDFAfterProgLoad() setting EVX_LotTesterSerNum: %s\n", PgmCtrl()->getStatusBuffer());
+		}
+		else
+		{
+			fprintf(stdout, "MIR.SerlNum: %s\n", PgmCtrl()->getLotInformation(EVX_LotTesterSerNum));
+		}
 	}
 
 	return true;
