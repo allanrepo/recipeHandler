@@ -61,6 +61,7 @@ private:
     CMIRArgs m_MIRArgs;
     CSDRArgs m_SDRArgs;
     CRecipeConfig m_ConfigArgs; 
+	CGDR m_GDR;
 
     // This section is for Thread synchronization 
     // It uses a condition variable to synchronize the recipeDecode thread

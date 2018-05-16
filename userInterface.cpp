@@ -726,6 +726,7 @@ bool CuserEvxaInterface::updateSTDFAfterProgLoad()
 		if (debug()) std::cout << "[DEBUG] GUI_REV_VAL: " << m_MIRArgs.GuiRev << " set in FAmodule." << std::endl;
 	}
 
+
 	// assuming SERL_NUM is to be set as hostname, we do it here. note that this is temporary as we don't know yet what to put here
 	if (m_MIRArgs.SerlNum.empty())
 	{
@@ -764,6 +765,9 @@ bool CuserEvxaInterface::parseGDR(XML_Node *GDRRecord)
     	XML_Node *STDFfields = GDRRecord->fetchChild("STDFfields");
     	int nfields = STDFfields->numChildren();
 	bool bTrfXtrf = false;
+	std::string AutoNamVal; AutoNamVal.clear();
+	std::string AutoVerVal; AutoVerVal.clear();
+	std::string TrfXtrf; TrfXtrf.clear();
     	for(int jj=0; jj<nfields; jj++) 
 	{
 		XML_Node *STDFfield = STDFfields->fetchChild(jj);
@@ -803,25 +807,52 @@ bool CuserEvxaInterface::parseGDR(XML_Node *GDRRecord)
 						// if we found TRF-XTRF from XTRF, we use this value. 
 						if (STDFfield->fetchVal(ii).compare("TRF-XTRF_VAL") == 0) 
 						{
+							TrfXtrf = result;
 							bTrfXtrf = true;
+						}
+
+						// if we found AUTO_NAM_VAL from XTRF, we use this value. 
+						if (STDFfield->fetchVal(ii).compare("AUTO_NAM_VAL") == 0) 
+						{
+							AutoNamVal = result;
+						}
+
+						// if we found AUTO_VER_VAL from XTRF, we use this value. 
+						if (STDFfield->fetchVal(ii).compare("AUTO_VER_VAL") == 0) 
+						{
+							AutoVerVal = result;
 						}
 					}
 				}					
-				if (!skip) gdrs.push_back(tinyxtrf::GdrField( temp.c_str(), "C*n", result.c_str())); 
+				// any value that is part of GDR.AUTOMATION is now added to its list for writing to STDF later
+				if (!skip) 
+				{
+					//gdrs.push_back(tinyxtrf::GdrField( temp.c_str(), "C*n", result.c_str())); 
+				}
 			}	
 	    		else fprintf(stdout, "[ERROR] parseGDR unknown field: %s\n", temp.c_str());
 		}
     	}
 
+	// let's start printing GDR.AUTOMATION 
+	gdrs.push_back(tinyxtrf::GdrField( "GEN_DATA", "C*n", "AUTOMATION")); 
+
+	// print AUTO_NAM and AUTO_VER
+	gdrs.push_back(tinyxtrf::GdrField( "GEN_DATA", "C*n", "AUTO_NAM")); 
+	gdrs.push_back(tinyxtrf::GdrField( "GEN_DATA", "C*n", AutoNamVal.c_str())); 
+	gdrs.push_back(tinyxtrf::GdrField( "GEN_DATA", "C*n", "AUTO_VER")); 
+	gdrs.push_back(tinyxtrf::GdrField( "GEN_DATA", "C*n", AutoVerVal.c_str())); 
+
 	// if we didn't fin TRF-XTRF from XTRF, let's set it ourselves using lotid_flowid
-	if (!bTrfXtrf)
+	gdrs.push_back(tinyxtrf::GdrField("GEN_DATA", "C*n", "TRF-XTRF"));
+	if (TrfXtrf.empty())
 	{
-		if (debug()) std::cout << "[DEBUG] Didn't find TRF-XTRF from XTRF. setting it instead to " << m_MIRArgs.LotId << "_" << m_MIRArgs.FlowId << " (lotid_flowid)" << std::endl;
-		gdrs.push_back(tinyxtrf::GdrField("GEN_DATA", "C*n", "TRF-XTRF"));
+		if (debug()) std::cout << "[DEBUG] Didn't find TRF-XTRF from XTRF. setting it instead to " << m_MIRArgs.LotId << "_" << m_MIRArgs.FlowId << " (lotid_flowid)" << std::endl;		
 		std::stringstream ssTrfXtrf; 
 		ssTrfXtrf << m_MIRArgs.LotId << "_" << m_MIRArgs.FlowId;
 		gdrs.push_back(tinyxtrf::GdrField("GEN_DATA", "C*n", ssTrfXtrf.str() ));
 	}
+	else{ gdrs.push_back(tinyxtrf::GdrField( "GEN_DATA", "C*n", TrfXtrf.c_str())); }
 	
 	// add GDR.AUTOMATION.SG_STATUS 
 	gdrs.push_back(tinyxtrf::GdrField("GEN_DATA", "C*n", "SG_STATUS"));
@@ -837,15 +868,13 @@ bool CuserEvxaInterface::parseGDR(XML_Node *GDRRecord)
 	gdrs.push_back(tinyxtrf::GdrField("GEN_DATA", "C*n", "SG_NAM"));
 	gdrs.push_back(tinyxtrf::GdrField("GEN_DATA", "C*n", "CGEM"));
 	gdrs.push_back(tinyxtrf::GdrField("GEN_DATA", "C*n", "SG_REV"));
-	gdrs.push_back(tinyxtrf::GdrField("GEN_DATA", "C*n", "01"));
+	gdrs.push_back(tinyxtrf::GdrField("GEN_DATA", "C*n", "1.0"));
 
-	// hard code API_NAM and API_REV. this is temporary as we don't really know what to put here yet.
+	// hard code API_NAM and API_REV. sabine suggest to leave this empty 
 	gdrs.push_back(tinyxtrf::GdrField("GEN_DATA", "C*n", "API_NAM"));
-	//gdrs.push_back(tinyxtrf::GdrField("GEN_DATA", "C*n", PgmCtrl()->getLotInformation(EVX_LotSystemName) ));
-	gdrs.push_back(tinyxtrf::GdrField("GEN_DATA", "C*n", "Unison" ));
+	gdrs.push_back(tinyxtrf::GdrField("GEN_DATA", "C*n", "" ));
 	gdrs.push_back(tinyxtrf::GdrField("GEN_DATA", "C*n", "API_REV"));
-	//gdrs.push_back(tinyxtrf::GdrField("GEN_DATA", "C*n", PgmCtrl()->getLotInformation(EVX_LotTargetName) ));
-	gdrs.push_back(tinyxtrf::GdrField("GEN_DATA", "C*n", "U1703" ));
+	gdrs.push_back(tinyxtrf::GdrField("GEN_DATA", "C*n", "" ));
 
 	// flush the GDR's to xml file
 	gdrs.insert(gdrs.begin(), 1, tinyxtrf::GdrField("FIELD_CNT", "U*2", num2stdstring(gdrs.size())));
@@ -1308,6 +1337,7 @@ bool CuserEvxaInterface::clearAllParams()
     m_TPArgs.clearParams();
     m_MIRArgs.clearParams();
     m_SDRArgs.clearParams();
+	m_GDR.clear();
     return true;
 }
 

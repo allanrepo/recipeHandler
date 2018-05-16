@@ -334,3 +334,80 @@ bool CSDRArgs::clearParams()
    CableTyp.clear();
     return true;
 }
+
+CGDR::CGDR()
+{
+}
+
+CGDR::CGDR(const CGDR& ot)
+{
+	automation.value = ot.automation.value;
+	auto_nam.value = ot.auto_nam.value; 
+	auto_nam_val.value = ot.auto_nam_val.value;
+	auto_ver.value = ot.auto_ver.value;
+	auto_ver_val.value = ot.auto_ver_val.value;
+	trf_xtrf.value = ot.trf_xtrf.value;
+	trf_xtrf_val.value = ot.trf_xtrf_val.value;
+	sg_status.value = ot.sg_status.value;
+	sg_status_val.value = ot.sg_status_val.value;
+	sg_nam.value = ot.sg_nam.value;
+	sg_nam_val.value = ot.sg_nam_val.value;
+	sg_rev.value = ot.sg_rev.value;
+	sg_rev_val.value = ot.sg_rev_val.value;
+	api_nam.value = ot.api_nam.value ;
+	api_nam_val.value = ot.api_nam_val.value;
+	api_rev.value =  ot.api_rev.value;
+	api_rev_val.value = ot.api_rev_val.value;
+}
+
+CGDR& CGDR::operator=(const CGDR& ot)
+{
+	automation.value = ot.automation.value;
+	auto_nam.value = ot.auto_nam.value;
+	auto_nam_val.value = ot.auto_nam_val.value;
+	auto_ver.value = ot.auto_ver.value;
+	auto_ver_val.value = ot.auto_ver_val.value;
+	trf_xtrf.value = ot.trf_xtrf.value;
+	trf_xtrf_val.value = ot.trf_xtrf_val.value;
+	sg_status.value = ot.sg_status.value;
+	sg_status_val.value = ot.sg_status_val.value;
+	sg_nam.value = ot.sg_nam.value;
+	sg_nam_val.value = ot.sg_nam_val.value;
+	sg_rev.value = ot.sg_rev.value;
+	sg_rev_val.value = ot.sg_rev_val.value;
+	api_nam.value = ot.api_nam.value ;
+	api_nam_val.value = ot.api_nam_val.value;
+	api_rev.value =  ot.api_rev.value;
+	api_rev_val.value = ot.api_rev_val.value;
+}
+
+CGDR::~CGDR()
+{
+}
+
+void CGDR::clear()
+{
+	automation.value.clear();
+	auto_nam.value.clear(); 
+	auto_nam_val.value.clear();
+	auto_ver.value.clear();
+	auto_ver_val.value.clear();
+	trf_xtrf.value.clear();
+	trf_xtrf_val.value.clear();
+	sg_status.value.clear();
+	sg_status_val.value.clear();
+	sg_nam.value.clear();
+	sg_nam_val.value.clear();
+	sg_rev.value.clear();
+	sg_rev_val.value.clear();
+	api_nam.value.clear();
+	api_nam_val.value.clear();
+	api_rev.value.clear();
+	api_rev_val.value.clear();
+}
+
+
+
+
+
+
