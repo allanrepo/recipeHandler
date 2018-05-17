@@ -715,16 +715,58 @@ bool CuserEvxaInterface::updateSTDFAfterProgLoad()
 	if (debug()) std::cout << "[DEBUG] HAND_TYP sent to faproc: " << hand_typ << std::endl;	
 
 	// send GUI_NAM and GUI_REV to FAmodule
-	if (m_MIRArgs.GuiNam.length())
+	PgmCtrl()->faprocSet("Current Equipment: GUI_NAM_VAL", m_MIRArgs.GuiNam);
+	if (debug()) std::cout << "[DEBUG] GUI_NAM_VAL: " << m_MIRArgs.GuiNam << " set in FAmodule." << std::endl;
+
+	PgmCtrl()->faprocSet("Current Equipment: GUI_REV_VAL", m_MIRArgs.GuiRev);
+	if (debug()) std::cout << "[DEBUG] GUI_REV_VAL: " << m_MIRArgs.GuiRev << " set in FAmodule." << std::endl;
+
+	// send GDR.AUTO_NAM to FAmodule
+	PgmCtrl()->faprocSet("Current Equipment: AUTO_NAM_VAL", m_GDR.auto_nam.value);
+	if (debug()) std::cout << "[DEBUG] AUTO_NAM_VAL: " << m_GDR.auto_nam.value << " set in FAmodule." << std::endl;
+	
+	// send GDR.AUTO_REV to FAmodule
+	PgmCtrl()->faprocSet("Current Equipment: AUTO_VER_VAL", m_GDR.auto_ver.value);
+	if (debug()) std::cout << "[DEBUG] AUTO_VER_VAL: " << m_GDR.auto_ver.value << " set in FAmodule." << std::endl;
+
+	// send GDR.TRF-XTRF value to FAmodule
+	if (m_GDR.trf_xtrf.value.empty())
 	{
-		PgmCtrl()->faprocSet("Current Equipment: GUI_NAM_VAL", m_MIRArgs.GuiNam);
-		if (debug()) std::cout << "[DEBUG] GUI_NAM_VAL: " << m_MIRArgs.GuiNam << " set in FAmodule." << std::endl;
+		if (debug()) std::cout << "[DEBUG] Didn't find TRF-XTRF from XTRF. setting it instead to " << m_MIRArgs.LotId << "_" << m_MIRArgs.FlowId << " (lotid_flowid)" << std::endl;		
+		std::stringstream ssTrfXtrf; 
+		ssTrfXtrf << m_MIRArgs.LotId << "_" << m_MIRArgs.FlowId;
+		m_GDR.trf_xtrf.value = ssTrfXtrf.str();
 	}
-	if (m_MIRArgs.GuiRev.length())
-	{
-		PgmCtrl()->faprocSet("Current Equipment: GUI_REV_VAL", m_MIRArgs.GuiRev);
-		if (debug()) std::cout << "[DEBUG] GUI_REV_VAL: " << m_MIRArgs.GuiRev << " set in FAmodule." << std::endl;
-	}
+	PgmCtrl()->faprocSet("Current Equipment: TRF-XTRF_VAL", m_GDR.trf_xtrf.value);
+	if (debug()) std::cout << "[DEBUG] TRF-XTRF_VAL: " << m_GDR.trf_xtrf.value << " set in FAmodule." << std::endl;
+	
+	// send GDR.AUTOMATION.SG_STATUS to FAmodule
+	EVX_GemControlState gemCtrlState = PgmCtrl()->gemGetControlState();
+	if (gemCtrlState == EVX_controlDisabled)	{ m_GDR.sg_status.value = "DISABLED"; if (debug()) std::cout << "[DEBUG] GemCtrlState: DISABLED" << std::endl; }
+	if (gemCtrlState == EVX_equipOffline)		{ m_GDR.sg_status.value = "OFFLINE";  if (debug()) std::cout << "[DEBUG] GemCtrlState: OFFLINE" << std::endl; }
+	if (gemCtrlState == EVX_attemptOnline)		{ m_GDR.sg_status.value = "ATTEMPONLINE";  if (debug()) std::cout << "[DEBUG] GemCtrlState: ATTEMPONLINE" << std::endl; }
+	if (gemCtrlState == EVX_onlineLocal)		{ m_GDR.sg_status.value = "LOCAL"; if (debug()) std::cout << "[DEBUG] GemCtrlState: LOCAL" << std::endl; }
+	if (gemCtrlState == EVX_onlineRemote)		{ m_GDR.sg_status.value = "REMOTE"; if (debug()) std::cout << "[DEBUG] GemCtrlState: REMOTE" << std::endl; }
+	if (gemCtrlState == EVX_controlNoConnect)	{ m_GDR.sg_status.value = "NOCONNECT"; if (debug()) std::cout << "[DEBUG] GemCtrlState: NOCONNECT" << std::endl; }
+	PgmCtrl()->faprocSet("Current Equipment: SG_STATUS_VAL", m_GDR.sg_status.value);
+	if (debug()) std::cout << "[DEBUG] SG_STATUS_VAL: " << m_GDR.sg_status.value << " set in FAmodule." << std::endl;
+
+	// hard code CGEM information
+	m_GDR.sg_nam.value = "CGEM";
+	PgmCtrl()->faprocSet("Current Equipment: SG_NAM_VAL", m_GDR.sg_nam.value);
+	if (debug()) std::cout << "[DEBUG] SG_NAM_VAL: " << m_GDR.sg_nam.value << " set in FAmodule." << std::endl;
+	m_GDR.sg_rev.value = "1.0";
+	PgmCtrl()->faprocSet("Current Equipment: SG_REV_VAL", m_GDR.sg_rev.value);
+	if (debug()) std::cout << "[DEBUG] SG_REV_VAL: " << m_GDR.sg_rev.value << " set in FAmodule." << std::endl;
+
+
+	// hard code API_NAM and API_REV. sabine suggest to leave this empty 
+	m_GDR.api_nam.value = "";
+	PgmCtrl()->faprocSet("Current Equipment: API_NAM_VAL", m_GDR.api_nam.value);
+	if (debug()) std::cout << "[DEBUG] API_NAM_VAL: " << m_GDR.api_nam.value << " set in FAmodule." << std::endl;
+	m_GDR.api_rev.value = "";
+	PgmCtrl()->faprocSet("Current Equipment: API_REV_VAL", m_GDR.api_rev.value);
+	if (debug()) std::cout << "[DEBUG] API_REV_VAL: " << m_GDR.api_rev.value << " set in FAmodule." << std::endl;
 
 
 	// assuming SERL_NUM is to be set as hostname, we do it here. note that this is temporary as we don't know yet what to put here
@@ -764,10 +806,6 @@ bool CuserEvxaInterface::parseGDR(XML_Node *GDRRecord)
 	// start reading fields from XTRF 
     	XML_Node *STDFfields = GDRRecord->fetchChild("STDFfields");
     	int nfields = STDFfields->numChildren();
-	bool bTrfXtrf = false;
-	std::string AutoNamVal; AutoNamVal.clear();
-	std::string AutoVerVal; AutoVerVal.clear();
-	std::string TrfXtrf; TrfXtrf.clear();
     	for(int jj=0; jj<nfields; jj++) 
 	{
 		XML_Node *STDFfield = STDFfields->fetchChild(jj);
@@ -807,80 +845,26 @@ bool CuserEvxaInterface::parseGDR(XML_Node *GDRRecord)
 						// if we found TRF-XTRF from XTRF, we use this value. 
 						if (STDFfield->fetchVal(ii).compare("TRF-XTRF_VAL") == 0) 
 						{
-							TrfXtrf = result;
-							bTrfXtrf = true;
+							m_GDR.trf_xtrf.value = result;
 						}
 
 						// if we found AUTO_NAM_VAL from XTRF, we use this value. 
 						if (STDFfield->fetchVal(ii).compare("AUTO_NAM_VAL") == 0) 
 						{
-							AutoNamVal = result;
+							m_GDR.auto_nam.value = result;
 						}
 
 						// if we found AUTO_VER_VAL from XTRF, we use this value. 
 						if (STDFfield->fetchVal(ii).compare("AUTO_VER_VAL") == 0) 
 						{
-							AutoVerVal = result;
+							m_GDR.auto_ver.value = result;
 						}
 					}
 				}					
-				// any value that is part of GDR.AUTOMATION is now added to its list for writing to STDF later
-				if (!skip) 
-				{
-					//gdrs.push_back(tinyxtrf::GdrField( temp.c_str(), "C*n", result.c_str())); 
-				}
 			}	
 	    		else fprintf(stdout, "[ERROR] parseGDR unknown field: %s\n", temp.c_str());
 		}
     	}
-
-	// let's start printing GDR.AUTOMATION 
-	gdrs.push_back(tinyxtrf::GdrField( "GEN_DATA", "C*n", "AUTOMATION")); 
-
-	// print AUTO_NAM and AUTO_VER
-	gdrs.push_back(tinyxtrf::GdrField( "GEN_DATA", "C*n", "AUTO_NAM")); 
-	gdrs.push_back(tinyxtrf::GdrField( "GEN_DATA", "C*n", AutoNamVal.c_str())); 
-	gdrs.push_back(tinyxtrf::GdrField( "GEN_DATA", "C*n", "AUTO_VER")); 
-	gdrs.push_back(tinyxtrf::GdrField( "GEN_DATA", "C*n", AutoVerVal.c_str())); 
-
-	// if we didn't fin TRF-XTRF from XTRF, let's set it ourselves using lotid_flowid
-	gdrs.push_back(tinyxtrf::GdrField("GEN_DATA", "C*n", "TRF-XTRF"));
-	if (TrfXtrf.empty())
-	{
-		if (debug()) std::cout << "[DEBUG] Didn't find TRF-XTRF from XTRF. setting it instead to " << m_MIRArgs.LotId << "_" << m_MIRArgs.FlowId << " (lotid_flowid)" << std::endl;		
-		std::stringstream ssTrfXtrf; 
-		ssTrfXtrf << m_MIRArgs.LotId << "_" << m_MIRArgs.FlowId;
-		gdrs.push_back(tinyxtrf::GdrField("GEN_DATA", "C*n", ssTrfXtrf.str() ));
-	}
-	else{ gdrs.push_back(tinyxtrf::GdrField( "GEN_DATA", "C*n", TrfXtrf.c_str())); }
-	
-	// add GDR.AUTOMATION.SG_STATUS 
-	gdrs.push_back(tinyxtrf::GdrField("GEN_DATA", "C*n", "SG_STATUS"));
-	EVX_GemControlState gemCtrlState = PgmCtrl()->gemGetControlState();
-	if (gemCtrlState == EVX_controlDisabled)	{ gdrs.push_back(tinyxtrf::GdrField("GEN_DATA", "C*n", "DISABLED")); if (debug()) std::cout << "[DEBUG] GemCtrlState: DISABLED" << std::endl; }
-	if (gemCtrlState == EVX_equipOffline)		{ gdrs.push_back(tinyxtrf::GdrField("GEN_DATA", "C*n", "OFFLINE")); if (debug()) std::cout << "[DEBUG] GemCtrlState: OFFLINE" << std::endl; }
-	if (gemCtrlState == EVX_attemptOnline)		{ gdrs.push_back(tinyxtrf::GdrField("GEN_DATA", "C*n", "ATTEMPONLINE")); if (debug()) std::cout << "[DEBUG] GemCtrlState: ATTEMPONLINE" << std::endl; }
-	if (gemCtrlState == EVX_onlineLocal)		{ gdrs.push_back(tinyxtrf::GdrField("GEN_DATA", "C*n", "LOCAL")); if (debug()) std::cout << "[DEBUG] GemCtrlState: LOCAL" << std::endl; }
-	if (gemCtrlState == EVX_onlineRemote)		{ gdrs.push_back(tinyxtrf::GdrField("GEN_DATA", "C*n", "REMOTE")); if (debug()) std::cout << "[DEBUG] GemCtrlState: REMOTE" << std::endl; }
-	if (gemCtrlState == EVX_controlNoConnect)	{ gdrs.push_back(tinyxtrf::GdrField("GEN_DATA", "C*n", "NOCONNECT")); if (debug()) std::cout << "[DEBUG] GemCtrlState: NOCONNECT" << std::endl; }
-
-	// hard code CGEM information
-	gdrs.push_back(tinyxtrf::GdrField("GEN_DATA", "C*n", "SG_NAM"));
-	gdrs.push_back(tinyxtrf::GdrField("GEN_DATA", "C*n", "CGEM"));
-	gdrs.push_back(tinyxtrf::GdrField("GEN_DATA", "C*n", "SG_REV"));
-	gdrs.push_back(tinyxtrf::GdrField("GEN_DATA", "C*n", "1.0"));
-
-	// hard code API_NAM and API_REV. sabine suggest to leave this empty 
-	gdrs.push_back(tinyxtrf::GdrField("GEN_DATA", "C*n", "API_NAM"));
-	gdrs.push_back(tinyxtrf::GdrField("GEN_DATA", "C*n", "" ));
-	gdrs.push_back(tinyxtrf::GdrField("GEN_DATA", "C*n", "API_REV"));
-	gdrs.push_back(tinyxtrf::GdrField("GEN_DATA", "C*n", "" ));
-
-	// flush the GDR's to xml file
-	gdrs.insert(gdrs.begin(), 1, tinyxtrf::GdrField("FIELD_CNT", "U*2", num2stdstring(gdrs.size())));
-	xtrf->addGdr(gdrs);
-	xtrf->dumpGdrs("/tmp/gdr_auto.xtrf");
-
     	return result;
 }
 
