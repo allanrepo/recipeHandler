@@ -170,7 +170,7 @@ bool CTestProgArgs::clearParams()
 CMIRArgs::CMIRArgs() : LotId(),CmodCod(),FlowId(),DsgnRev(),DateCod(),OperFrq(),OperNam(),NodeNam(),
 	  PartTyp(),EngId(),TestTmp(),FacilId(),FloorId(),StatNum(),ProcId(),ModCod(),
 	  FamilyId(),PkgTyp(),SblotId(),JobNam(),SetupId(),JobRev(),ExecTyp(),ExecVer(),AuxFile(),
-	  RtstCod(),TestCod(),UserText(),RomCod(),SerlNum(),SpecNam(),TstrTyp(),SuprNam(),SpecVer(), ProtCod(), GuiNam(), GuiRev()
+	  RtstCod(),TestCod(),UserText(),RomCod(),SerlNum(),SpecNam(),TstrTyp(),SuprNam(),SpecVer(), ProtCod()
 {
 }
 
@@ -182,7 +182,7 @@ CMIRArgs::CMIRArgs(const CMIRArgs& ot) : LotId(ot.LotId),CmodCod(ot.CmodCod),Flo
 	  JobNam(ot.JobNam),SetupId(ot.SetupId),JobRev(ot.JobRev),ExecTyp(ot.ExecTyp),
 	  ExecVer(ot.ExecVer),AuxFile(ot.AuxFile),RtstCod(ot.RtstCod),TestCod(ot.TestCod),
 	  UserText(ot.UserText),RomCod(ot.RomCod),SerlNum(ot.SerlNum),SpecNam(ot.SpecNam),TstrTyp(ot.TstrTyp),
-	  SuprNam(ot.SuprNam),SpecVer(ot.SpecVer), ProtCod(ot.ProtCod), GuiNam(ot.GuiNam), GuiRev(ot.GuiRev)
+	  SuprNam(ot.SuprNam),SpecVer(ot.SpecVer), ProtCod(ot.ProtCod)
 {
 }
 
@@ -223,8 +223,6 @@ CMIRArgs& CMIRArgs::operator=(const CMIRArgs& ot)
     SuprNam = ot.SuprNam;
     SpecVer = ot.SpecVer;
     ProtCod = ot.ProtCod;
-	GuiNam = ot.GuiNam;
-	GuiRev = ot.GuiRev;
 
     return *this;
 }
@@ -269,8 +267,6 @@ bool CMIRArgs::clearParams()
    SuprNam.clear();
    SpecVer.clear();
    ProtCod.clear();
-	GuiNam.clear();
-	GuiRev.clear();
 
     return true;
 }
@@ -341,44 +337,32 @@ CGDR::CGDR()
 
 CGDR::CGDR(const CGDR& ot)
 {
-	automation.value = ot.automation.value;
 	auto_nam.value = ot.auto_nam.value; 
-	auto_nam_val.value = ot.auto_nam_val.value;
 	auto_ver.value = ot.auto_ver.value;
-	auto_ver_val.value = ot.auto_ver_val.value;
 	trf_xtrf.value = ot.trf_xtrf.value;
-	trf_xtrf_val.value = ot.trf_xtrf_val.value;
 	sg_status.value = ot.sg_status.value;
-	sg_status_val.value = ot.sg_status_val.value;
 	sg_nam.value = ot.sg_nam.value;
-	sg_nam_val.value = ot.sg_nam_val.value;
 	sg_rev.value = ot.sg_rev.value;
-	sg_rev_val.value = ot.sg_rev_val.value;
-	api_nam.value = ot.api_nam.value ;
-	api_nam_val.value = ot.api_nam_val.value;
+	api_nam.value = ot.api_nam.value;
 	api_rev.value =  ot.api_rev.value;
-	api_rev_val.value = ot.api_rev_val.value;
+	gui_nam.value = ot.gui_nam.value;
+	gui_rev.value =  ot.gui_rev.value;
+	stdf_frm.value =  ot.gui_rev.value;
 }
 
 CGDR& CGDR::operator=(const CGDR& ot)
 {
-	automation.value = ot.automation.value;
-	auto_nam.value = ot.auto_nam.value;
-	auto_nam_val.value = ot.auto_nam_val.value;
+	auto_nam.value = ot.auto_nam.value; 
 	auto_ver.value = ot.auto_ver.value;
-	auto_ver_val.value = ot.auto_ver_val.value;
 	trf_xtrf.value = ot.trf_xtrf.value;
-	trf_xtrf_val.value = ot.trf_xtrf_val.value;
 	sg_status.value = ot.sg_status.value;
-	sg_status_val.value = ot.sg_status_val.value;
 	sg_nam.value = ot.sg_nam.value;
-	sg_nam_val.value = ot.sg_nam_val.value;
 	sg_rev.value = ot.sg_rev.value;
-	sg_rev_val.value = ot.sg_rev_val.value;
-	api_nam.value = ot.api_nam.value ;
-	api_nam_val.value = ot.api_nam_val.value;
+	api_nam.value = ot.api_nam.value;
 	api_rev.value =  ot.api_rev.value;
-	api_rev_val.value = ot.api_rev_val.value;
+	gui_nam.value = ot.gui_nam.value;
+	gui_rev.value =  ot.gui_rev.value;
+	stdf_frm.value =  ot.gui_rev.value;
 }
 
 CGDR::~CGDR()
@@ -387,23 +371,17 @@ CGDR::~CGDR()
 
 void CGDR::clear()
 {
-	automation.value.clear();
 	auto_nam.value.clear(); 
-	auto_nam_val.value.clear();
 	auto_ver.value.clear();
-	auto_ver_val.value.clear();
 	trf_xtrf.value.clear();
-	trf_xtrf_val.value.clear();
 	sg_status.value.clear();
-	sg_status_val.value.clear();
 	sg_nam.value.clear();
-	sg_nam_val.value.clear();
 	sg_rev.value.clear();
-	sg_rev_val.value.clear();
 	api_nam.value.clear();
-	api_nam_val.value.clear();
 	api_rev.value.clear();
-	api_rev_val.value.clear();
+	gui_nam.value.clear();
+	gui_rev.value.clear();
+	stdf_frm.value.clear();
 }
 
 

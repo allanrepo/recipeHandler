@@ -715,11 +715,11 @@ bool CuserEvxaInterface::updateSTDFAfterProgLoad()
 	if (debug()) std::cout << "[DEBUG] HAND_TYP sent to faproc: " << hand_typ << std::endl;	
 
 	// send GUI_NAM and GUI_REV to FAmodule
-	PgmCtrl()->faprocSet("Current Equipment: GUI_NAM_VAL", m_MIRArgs.GuiNam);
-	if (debug()) std::cout << "[DEBUG] GUI_NAM_VAL: " << m_MIRArgs.GuiNam << " set in FAmodule." << std::endl;
+	PgmCtrl()->faprocSet("Current Equipment: GUI_NAM_VAL", m_GDR.gui_nam.value);
+	if (debug()) std::cout << "[DEBUG] GUI_NAM_VAL: " << m_GDR.gui_nam.value << " set in FAmodule." << std::endl;
 
-	PgmCtrl()->faprocSet("Current Equipment: GUI_REV_VAL", m_MIRArgs.GuiRev);
-	if (debug()) std::cout << "[DEBUG] GUI_REV_VAL: " << m_MIRArgs.GuiRev << " set in FAmodule." << std::endl;
+	PgmCtrl()->faprocSet("Current Equipment: GUI_REV_VAL", m_GDR.gui_rev.value);
+	if (debug()) std::cout << "[DEBUG] GUI_REV_VAL: " << m_GDR.gui_rev.value << " set in FAmodule." << std::endl;
 
 	// send GDR.AUTO_NAM to FAmodule
 	PgmCtrl()->faprocSet("Current Equipment: AUTO_NAM_VAL", m_GDR.auto_nam.value);
@@ -768,6 +768,9 @@ bool CuserEvxaInterface::updateSTDFAfterProgLoad()
 	PgmCtrl()->faprocSet("Current Equipment: API_REV_VAL", m_GDR.api_rev.value);
 	if (debug()) std::cout << "[DEBUG] API_REV_VAL: " << m_GDR.api_rev.value << " set in FAmodule." << std::endl;
 
+	// send STDF_FRM to FAmodule
+	PgmCtrl()->faprocSet("Current Equipment: STDF_FRM_VAL", m_GDR.stdf_frm.value);
+	if (debug()) std::cout << "[DEBUG] STDF_FRM_VAL: " << m_GDR.stdf_frm.value << " set in FAmodule." << std::endl;
 
 	// assuming SERL_NUM is to be set as hostname, we do it here. note that this is temporary as we don't know yet what to put here
 	if (m_MIRArgs.SerlNum.empty())
@@ -829,7 +832,7 @@ bool CuserEvxaInterface::parseGDR(XML_Node *GDRRecord)
 						if (STDFfield->fetchVal(ii).compare("GUI_NAM_VAL") == 0) 
 						{
 							if (debug()) std::cout << "[DEBUG] Found GUI_NAM but we're sending it to FAmodule. "<< std::endl;
-							m_MIRArgs.GuiNam = result;
+							m_GDR.gui_nam.value = result;
 							skip = true;
 							break;
 						}
@@ -837,7 +840,7 @@ bool CuserEvxaInterface::parseGDR(XML_Node *GDRRecord)
 						if (STDFfield->fetchVal(ii).compare("GUI_REV_VAL") == 0) 
 						{
 							if (debug()) std::cout << "[DEBUG] Found GUI_REV but we're sending it to FAmodule. "<< std::endl;
-							m_MIRArgs.GuiRev = result;
+							m_GDR.gui_rev.value = result;
 							skip = true;
 							break;
 						}
@@ -858,6 +861,12 @@ bool CuserEvxaInterface::parseGDR(XML_Node *GDRRecord)
 						if (STDFfield->fetchVal(ii).compare("AUTO_VER_VAL") == 0) 
 						{
 							m_GDR.auto_ver.value = result;
+						}
+
+						// if we found STDF_FRM_VAL from XTRF, we use this value. 
+						if (STDFfield->fetchVal(ii).compare("STDF_FRM_VAL") == 0) 
+						{
+							m_GDR.stdf_frm.value = result;
 						}
 					}
 				}					

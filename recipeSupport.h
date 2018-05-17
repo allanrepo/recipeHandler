@@ -79,23 +79,17 @@ private:
 		long state;
 	};
 public:
-	param automation;
 	param auto_nam;
-	param auto_nam_val;
 	param auto_ver;
-	param auto_ver_val;
 	param trf_xtrf;
-	param trf_xtrf_val;
 	param sg_status;
-	param sg_status_val;
 	param sg_nam;
-	param sg_nam_val;
 	param sg_rev;
-	param sg_rev_val;
 	param api_nam;
-	param api_nam_val;
 	param api_rev;
-	param api_rev_val;
+	param gui_nam;
+	param gui_rev;
+	param stdf_frm;
 
 public:
 	CGDR();
@@ -153,9 +147,6 @@ public:
 
     std::string ProtCod;	// TestProgData.ProtectionCode
 
-	// fields for MIR_ADD to be passed to FAmodule
-	std::string GuiNam;
-	std::string GuiRev;
  
 };
 
