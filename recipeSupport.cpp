@@ -371,17 +371,17 @@ CGDR::~CGDR()
 
 void CGDR::clear()
 {
-	auto_nam.value.clear(); 
-	auto_ver.value.clear();
-	trf_xtrf.value.clear();
-	sg_status.value.clear();
-	sg_nam.value.clear();
-	sg_rev.value.clear();
-	api_nam.value.clear();
-	api_rev.value.clear();
-	gui_nam.value.clear();
-	gui_rev.value.clear();
-	stdf_frm.value.clear();
+	auto_nam.clear(); 
+	auto_ver.clear();
+	trf_xtrf.clear();
+	sg_status.clear();
+	sg_nam.clear();
+	sg_rev.clear();
+	api_nam.clear();
+	api_rev.clear();
+	gui_nam.clear();
+	gui_rev.clear();
+	stdf_frm.clear();
 }
 
 

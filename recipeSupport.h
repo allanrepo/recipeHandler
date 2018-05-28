@@ -76,7 +76,23 @@ private:
 	struct param
 	{
 		std::string value;
+		std::string required;
+		std::string override;
 		long state;
+
+		void clear()
+		{
+			value.clear();
+			required.clear();
+			override.clear();		
+		}
+
+		void set(const std::string& v, const std::string& r, const std::string o)
+		{
+			value = v;
+			required = r;
+			override = o;
+		}
 	};
 public:
 	param auto_nam;

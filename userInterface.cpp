@@ -796,85 +796,42 @@ bool CuserEvxaInterface::parseGDR(XML_Node *GDRRecord)
 
 	if (!PgmCtrl()){ std::cout << "[ERROR] CuserEvxaInterface::parseGDR(): Cannot access ProgramControl object." << std::endl; return false; }
 
-	// let's make sure the gdr_auto.xtrf file is deleted or not exist before proceeding
-	if (isFileExist("/tmp/gdr_auto.xtrf")) unlink("/tmp/gdr_auto.xtrf");	
-	if (isFileExist("/tmp/gdr_auto.xtrf")) std::cout << "[ERROR] Failed to delete /tmp/gdr_auto.xtrf during program unload." << std::endl;
-	else { if (debug()) std::cout << "[OK] /tmp/gdr_auto.xtrf does not exist. We're good to make a new one." << std::endl; }
-
-	// create xtrf xml object
-	tinyxtrf::Xtrf* xtrf(tinyxtrf::Xtrf::instance());
-	xtrf->clear();
-	tinyxtrf::GdrRecord gdrs;
-
 	// start reading fields from XTRF 
     	XML_Node *STDFfields = GDRRecord->fetchChild("STDFfields");
-    	int nfields = STDFfields->numChildren();
-    	for(int jj=0; jj<nfields; jj++) 
+	
+	// loop through each <STDFfield> found in <STDFfields> of <STDFrecord recordName="GDR">
+     	for(int jj = 0; jj < STDFfields->numChildren(); jj++) 
 	{
 		XML_Node *STDFfield = STDFfields->fetchChild(jj);
 		if (STDFfield) 
 		{
-	    		std::string temp = STDFfield->fetchVal(0);
-	    		std::string result = STDFfield->fetchText();
-	    		if (debug()) fprintf(stdout, "[DEBUG] GDR found: %s %s\n", temp.c_str(), result.c_str());			
-			if (temp.compare("GEN_DATA") == 0)
-			{ 
-				// any GDR that is not part of GDR.AUTOMATION is skipped. it's value is instead sent to FAmodule
-				if (result.compare("GUI_NAM") == 0) continue;
-				if (result.compare("GUI_REV") == 0) continue;
+			// get the value that this field contains
+			std::string result = STDFfield->fetchText();
 
-				bool skip = false;
-				for (int ii=0; ii<STDFfield->numAttr(); ii++)
-				{
-					if (STDFfield->fetchAttr(ii).compare("comment") == 0)
-					{
-						// found GUI_NAM value, send to FAmodule
-						if (STDFfield->fetchVal(ii).compare("GUI_NAM_VAL") == 0) 
-						{
-							if (debug()) std::cout << "[DEBUG] Found GUI_NAM but we're sending it to FAmodule. "<< std::endl;
-							m_GDR.gui_nam.value = result;
-							skip = true;
-							break;
-						}
-						// found GUI_REV value, send to FAmodule
-						if (STDFfield->fetchVal(ii).compare("GUI_REV_VAL") == 0) 
-						{
-							if (debug()) std::cout << "[DEBUG] Found GUI_REV but we're sending it to FAmodule. "<< std::endl;
-							m_GDR.gui_rev.value = result;
-							skip = true;
-							break;
-						}
+			std::string comment, fieldname, required, override;
+			// loop through attributes of each <STDFfield> and get their expected values
+			for (int ii=0; ii<STDFfield->numAttr(); ii++)
+			{
+				if (STDFfield->fetchAttr(ii).compare("comment") == 0){ comment = STDFfield->fetchVal(ii); }
+				if (STDFfield->fetchAttr(ii).compare("fieldName") == 0){ fieldname = STDFfield->fetchVal(ii); }
+				if (STDFfield->fetchAttr(ii).compare("required") == 0){ required = STDFfield->fetchVal(ii); }
+				if (STDFfield->fetchAttr(ii).compare("override") == 0){ override = STDFfield->fetchVal(ii); }
+			}
 
-						// if we found TRF-XTRF from XTRF, we use this value. 
-						if (STDFfield->fetchVal(ii).compare("TRF-XTRF_VAL") == 0) 
-						{
-							m_GDR.trf_xtrf.value = result;
-						}
-
-						// if we found AUTO_NAM_VAL from XTRF, we use this value. 
-						if (STDFfield->fetchVal(ii).compare("AUTO_NAM_VAL") == 0) 
-						{
-							m_GDR.auto_nam.value = result;
-						}
-
-						// if we found AUTO_VER_VAL from XTRF, we use this value. 
-						if (STDFfield->fetchVal(ii).compare("AUTO_VER_VAL") == 0) 
-						{
-							m_GDR.auto_ver.value = result;
-						}
-
-						// if we found STDF_FRM_VAL from XTRF, we use this value. 
-						if (STDFfield->fetchVal(ii).compare("STDF_FRM_VAL") == 0) 
-						{
-							m_GDR.stdf_frm.value = result;
-						}
-					}
-				}					
+			// we expect only GEN_DATA fields so...
+			if (fieldname.compare("GEN_DATA") == 0)
+			{
+				if (comment.compare("GUI_NAM_VAL") == 0){ m_GDR.gui_nam.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] GUI_NAM " << STDFfield->fetchText() << std::endl; }
+				if (comment.compare("GUI_REV_VAL") == 0){ m_GDR.gui_rev.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] GUI_REV " << STDFfield->fetchText() << std::endl; }
+				if (comment.compare("TRF-XTRF_VAL") == 0){ m_GDR.trf_xtrf.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] TRF_XTRF " << STDFfield->fetchText() << std::endl; }
+				if (comment.compare("AUTO_NAM_VAL") == 0){ m_GDR.auto_nam.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] AUTO_NAM " << STDFfield->fetchText() << std::endl; }
+				if (comment.compare("AUTO_VER_VAL") == 0){ m_GDR.auto_ver.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] AUTO_VER " << STDFfield->fetchText() << std::endl; }
+				if (comment.compare("STDF_FRM_VAL") == 0){ m_GDR.stdf_frm.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] STD_FRM " << STDFfield->fetchText() << std::endl; }
 			}	
-	    		else fprintf(stdout, "[ERROR] parseGDR unknown field: %s\n", temp.c_str());
-		}
-    	}
-    	return result;
+		}	
+	}
+
+	return result;
 }
 
 /*---------------------------------------------------------------------------------
@@ -1143,90 +1100,56 @@ bool CuserEvxaInterface::parseSTDFRecord(XML_Node *STDFRecord)
 bool CuserEvxaInterface::parseMIR(XML_Node *MIRRecord)
 {
 	if (debug()) std::cout << "[DEBUG] Executing CuserEvxaInterface::parseMIR()" << std::endl;
-    bool result = true;
+    	bool result = true;
 
-    XML_Node *STDFfields = MIRRecord->fetchChild("STDFfields");
-    int nfields = STDFfields->numChildren();
-    for(int jj=0; jj<nfields; jj++) {
-	XML_Node *STDFfield = STDFfields->fetchChild(jj);
-	if (STDFfield) {
-	    std::string temp = STDFfield->fetchVal(0);
-	    std::string result = STDFfield->fetchText();
-	    if (debug()) fprintf(stdout, "parseMIR: %s %s\n", temp.c_str(), result.c_str());
+    	XML_Node *STDFfields = MIRRecord->fetchChild("STDFfields");
+    	int nfields = STDFfields->numChildren();
+    	for(int jj=0; jj<nfields; jj++) 
+	{
+		XML_Node *STDFfield = STDFfields->fetchChild(jj);
+		if (STDFfield) 
+		{
+	    		std::string temp = STDFfield->fetchVal(0);
+	    		std::string result = STDFfield->fetchText();
+	    		if (debug()) fprintf(stdout, "parseMIR: %s %s\n", temp.c_str(), result.c_str());
 				
-	    if (temp.compare("LOT_ID") == 0)
-		m_MIRArgs.LotId = result;
-	    else if (temp.compare("CMOD_COD") == 0)
-		m_MIRArgs.CmodCod = result;
-	    else if (temp.compare("FLOW_ID") == 0)
-		m_MIRArgs.FlowId = result;
-	    else if (temp.compare("DSGN_REV") == 0)
-		m_MIRArgs.DsgnRev = result;
-	    else if (temp.compare("DATE_COD") == 0)
-		m_MIRArgs.DateCod = result;
-	    else if (temp.compare("OPER_FRQ") == 0)
-		m_MIRArgs.OperFrq = result;
-	    else if (temp.compare("OPER_NAM") == 0)
-		m_MIRArgs.OperNam = result;
-	    else if (temp.compare("NODE_NAM") == 0)
-		m_MIRArgs.NodeNam = result;
-	    else if (temp.compare("PART_TYP") == 0)
-		m_MIRArgs.PartTyp = result;
-	    else if (temp.compare("ENG_ID") == 0)
-		m_MIRArgs.EngId = result;
-	    else if (temp.compare("TST_TEMP") == 0)
-		m_MIRArgs.TestTmp = result;
-	    else if (temp.compare("FACIL_ID") == 0)
-		m_MIRArgs.FacilId = result;
-	    else if (temp.compare("FLOOR_ID") == 0)
-		m_MIRArgs.FloorId = result;
-	    else if (temp.compare("STAT_NUM") == 0)
-		m_MIRArgs.StatNum = result;
-	    else if (temp.compare("PROC_ID") == 0)
-		m_MIRArgs.ProcId = result;
-	    else if (temp.compare("MODE_COD") == 0)
-		m_MIRArgs.ModCod = result;
-	    else if (temp.compare("FAMLY_ID") == 0)
-		m_MIRArgs.FamilyId = result;
-	    else if (temp.compare("PKG_TYP") == 0)
-		m_MIRArgs.PkgTyp = result;
-	    else if (temp.compare("SBLOT_ID") == 0)
-		m_MIRArgs.SblotId = result;
-
-	    else if (temp.compare("JOB_NAM") == 0)
-		m_MIRArgs.JobNam = result;
-	    else if (temp.compare("SETUP_ID") == 0)
-		m_MIRArgs.SetupId = result;
-	    else if (temp.compare("JOB_REV") == 0)
-		m_MIRArgs.JobRev = result;
-	    else if (temp.compare("AUX_FILE") == 0)
-		m_MIRArgs.AuxFile = result;
-	    else if (temp.compare("RTST_COD") == 0)
-		m_MIRArgs.RtstCod = result;
-	    else if (temp.compare("TEST_COD") == 0)
-		m_MIRArgs.TestCod = result;
-	    else if (temp.compare("USER_TXT") == 0)
-		m_MIRArgs.UserText = result;
-	    else if (temp.compare("ROM_COD") == 0)
-		m_MIRArgs.RomCod = result;
-	    else if (temp.compare("SERL_NUM") == 0)
-		m_MIRArgs.SerlNum = result;
-	    else if (temp.compare("SPEC_NAM") == 0)
-		m_MIRArgs.SpecNam = result;
-	    else if (temp.compare("TSTR_TYP") == 0)
-		m_MIRArgs.TstrTyp = result;
-	    else if (temp.compare("SUPR_NAM") == 0)
-		m_MIRArgs.SuprNam = result;
-	    else if (temp.compare("SPEC_VER") == 0)
-		m_MIRArgs.SpecVer = result;
-	    else if (temp.compare("PROT_COD") == 0)
-		m_MIRArgs.ProtCod = result;
-
-	    else
-		fprintf(stdout, "parseMIR unkown field: %s\n", temp.c_str());
-	}
-    }			    
-    return result;
+	    		if (temp.compare("LOT_ID") == 0) m_MIRArgs.LotId = result;
+	    		else if (temp.compare("CMOD_COD") == 0) m_MIRArgs.CmodCod = result;
+	    		else if (temp.compare("FLOW_ID") == 0) m_MIRArgs.FlowId = result;
+	    		else if (temp.compare("DSGN_REV") == 0) m_MIRArgs.DsgnRev = result;
+	    		else if (temp.compare("DATE_COD") == 0) m_MIRArgs.DateCod = result;
+	    		else if (temp.compare("OPER_FRQ") == 0) m_MIRArgs.OperFrq = result;
+	    		else if (temp.compare("OPER_NAM") == 0) m_MIRArgs.OperNam = result;
+	    		else if (temp.compare("NODE_NAM") == 0) m_MIRArgs.NodeNam = result;
+	   		else if (temp.compare("PART_TYP") == 0) m_MIRArgs.PartTyp = result;
+			else if (temp.compare("ENG_ID") == 0) m_MIRArgs.EngId = result;
+	    		else if (temp.compare("TST_TEMP") == 0) m_MIRArgs.TestTmp = result;
+	    		else if (temp.compare("FACIL_ID") == 0) m_MIRArgs.FacilId = result;
+	    		else if (temp.compare("FLOOR_ID") == 0) m_MIRArgs.FloorId = result;
+	    		else if (temp.compare("STAT_NUM") == 0) m_MIRArgs.StatNum = result;
+	    		else if (temp.compare("PROC_ID") == 0) m_MIRArgs.ProcId = result;
+	    		else if (temp.compare("MODE_COD") == 0) m_MIRArgs.ModCod = result;
+	    		else if (temp.compare("FAMLY_ID") == 0) m_MIRArgs.FamilyId = result;
+	   	 	else if (temp.compare("PKG_TYP") == 0) m_MIRArgs.PkgTyp = result;
+	    		else if (temp.compare("SBLOT_ID") == 0) m_MIRArgs.SblotId = result;
+			else if (temp.compare("JOB_NAM") == 0) m_MIRArgs.JobNam = result;
+	    		else if (temp.compare("SETUP_ID") == 0) m_MIRArgs.SetupId = result;
+	    		else if (temp.compare("JOB_REV") == 0) m_MIRArgs.JobRev = result;
+	    		else if (temp.compare("AUX_FILE") == 0) m_MIRArgs.AuxFile = result;
+	    		else if (temp.compare("RTST_COD") == 0) m_MIRArgs.RtstCod = result;
+	    		else if (temp.compare("TEST_COD") == 0) m_MIRArgs.TestCod = result;
+	    		else if (temp.compare("USER_TXT") == 0) m_MIRArgs.UserText = result;
+	    		else if (temp.compare("ROM_COD") == 0) m_MIRArgs.RomCod = result;
+	    		else if (temp.compare("SERL_NUM") == 0) m_MIRArgs.SerlNum = result;
+	    		else if (temp.compare("SPEC_NAM") == 0) m_MIRArgs.SpecNam = result;
+	    		else if (temp.compare("TSTR_TYP") == 0) m_MIRArgs.TstrTyp = result;
+	    		else if (temp.compare("SUPR_NAM") == 0) m_MIRArgs.SuprNam = result;
+	    		else if (temp.compare("SPEC_VER") == 0) m_MIRArgs.SpecVer = result;
+	    		else if (temp.compare("PROT_COD") == 0) m_MIRArgs.ProtCod = result;
+	    		else fprintf(stdout, "parseMIR unknown field: %s\n", temp.c_str());
+		}
+    	}			    
+    	return result;
 }
 
 bool CuserEvxaInterface::parseSDR(XML_Node *SDRRecord)
