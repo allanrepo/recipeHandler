@@ -57,10 +57,10 @@ private:
     // if the recipe handler detects an abort load occurred during program load.
     EVX_RECIPE_PARSE_STATUS m_recipeParseStatus;
 
-    CTestProgArgs m_TPArgs;
-    CMIRArgs m_MIRArgs;
-    CSDRArgs m_SDRArgs;
-    CRecipeConfig m_ConfigArgs; 
+	CTestProgArgs m_TPArgs;
+	CMIRArgs m_MIRArgs;
+	CSDRArgs m_SDRArgs;
+	CRecipeConfig m_ConfigArgs; 
 	CGDR m_GDR;
 
     // This section is for Thread synchronization 
@@ -130,8 +130,7 @@ private:
 	bool handleBackToIdleStrategy();
    	bool parseGDR(XML_Node *GDRRecord);
 	bool updateSTDFAfterProgLoad();
-   	bool parseGDR2(XML_Node *GDRRecord);
-	
+ 	bool setLotInformation(const EVX_LOTINFO_TYPE type, param& field, const char* label);
 
 public:
 

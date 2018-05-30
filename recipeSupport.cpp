@@ -84,7 +84,7 @@ CTestProgArgs::CTestProgArgs() : ReloadStrategy(),DownloadStrategy(), BackToIdle
 				 Flow(),Salestype(),Temperature(),Product(),Parallelism(),
 				 DieCode(),CmodCode(),LotId(),FlowId(),GrossDie(),ActiveController(),
 				 CurrentProgName(),FullTPName(),EndWaferEnable(),StartLotEnable(),
-				 StartWaferEnable(), SpecNam(), SpecVer()
+				 StartWaferEnable()
 {  
 }
 
@@ -94,7 +94,7 @@ CTestProgArgs::CTestProgArgs(const CTestProgArgs& ot) : ReloadStrategy(ot.Reload
                Parallelism(ot.Parallelism),DieCode(ot.DieCode),CmodCode(ot.CmodCode),LotId(ot.LotId), 
                FlowId(ot.FlowId),GrossDie(ot.GrossDie),ActiveController(ot.ActiveController),
 	       CurrentProgName(ot.CurrentProgName),FullTPName(ot.FullTPName),EndWaferEnable(ot.EndWaferEnable),
-               StartLotEnable(ot.StartLotEnable),StartWaferEnable(ot.StartWaferEnable), SpecNam(ot.SpecNam), SpecVer(ot.SpecVer)
+               StartLotEnable(ot.StartLotEnable),StartWaferEnable(ot.StartWaferEnable)
 {
 }
 
@@ -123,8 +123,6 @@ CTestProgArgs& CTestProgArgs::operator=(const CTestProgArgs& ot)
     EndWaferEnable = ot.EndWaferEnable;
     StartLotEnable = ot.StartLotEnable;
     StartWaferEnable = ot.StartWaferEnable;
-	SpecNam = ot.SpecNam;
-	SpecVer = ot.SpecVer;
     return *this;
 }
 
@@ -158,8 +156,6 @@ bool CTestProgArgs::clearParams()
     EndWaferEnable.clear();
     StartLotEnable.clear();
     StartWaferEnable.clear();
-	SpecNam.clear();
-	SpecVer.clear();
     return true;
 }
 
@@ -167,168 +163,204 @@ bool CTestProgArgs::clearParams()
 ///////////////////////////////////////////////////////
 // CMIRArgs
 
-CMIRArgs::CMIRArgs() : LotId(),CmodCod(),FlowId(),DsgnRev(),DateCod(),OperFrq(),OperNam(),NodeNam(),
-	  PartTyp(),EngId(),TestTmp(),FacilId(),FloorId(),StatNum(),ProcId(),ModCod(),
-	  FamilyId(),PkgTyp(),SblotId(),JobNam(),SetupId(),JobRev(),ExecTyp(),ExecVer(),AuxFile(),
-	  RtstCod(),TestCod(),UserText(),RomCod(),SerlNum(),SpecNam(),TstrTyp(),SuprNam(),SpecVer(), ProtCod()
+CMIRArgs::CMIRArgs()
 {
 }
 
-CMIRArgs::CMIRArgs(const CMIRArgs& ot) : LotId(ot.LotId),CmodCod(ot.CmodCod),FlowId(ot.FlowId),
-          DsgnRev(ot.DsgnRev),DateCod(ot.DateCod),OperFrq(ot.OperFrq),OperNam(ot.OperNam),
-          NodeNam(ot.NodeNam),PartTyp(ot.PartTyp),EngId(ot.EngId),TestTmp(ot.TestTmp),FacilId(ot.FacilId),
-          FloorId(ot.FloorId),StatNum(ot.StatNum),ProcId(ot.ProcId),ModCod(ot.ModCod),
-	  FamilyId(ot.FamilyId),PkgTyp(ot.PkgTyp),SblotId(ot.SblotId),
-	  JobNam(ot.JobNam),SetupId(ot.SetupId),JobRev(ot.JobRev),ExecTyp(ot.ExecTyp),
-	  ExecVer(ot.ExecVer),AuxFile(ot.AuxFile),RtstCod(ot.RtstCod),TestCod(ot.TestCod),
-	  UserText(ot.UserText),RomCod(ot.RomCod),SerlNum(ot.SerlNum),SpecNam(ot.SpecNam),TstrTyp(ot.TstrTyp),
-	  SuprNam(ot.SuprNam),SpecVer(ot.SpecVer), ProtCod(ot.ProtCod)
+CMIRArgs::CMIRArgs(const CMIRArgs& ot)
 {
+	LotId = ot.LotId;
+	CmodCod = ot.CmodCod;
+	FlowId = ot.FlowId;
+	DsgnRev = ot.DsgnRev;
+	DateCod = ot.DateCod;
+	OperFrq = ot.OperFrq;
+	OperNam = ot.OperNam;
+	NodeNam = ot.NodeNam;
+	PartTyp = ot.PartTyp;
+	EngId = ot.EngId;
+	TestTmp = ot.TestTmp;
+	FacilId = ot.FacilId;
+	FloorId = ot.FloorId;
+	StatNum = ot.StatNum;
+	ProcId = ot.ProcId;
+	ModCod = ot.ModCod;
+	FamilyId = ot.FamilyId;	
+	PkgTyp = ot.PkgTyp;
+	SblotId = ot.SblotId;
+	JobNam = ot.JobNam;
+	SetupId = ot.SetupId;
+	JobRev = ot.JobRev;
+	ExecTyp = ot.ExecTyp;
+	ExecVer = ot.ExecVer;
+	AuxFile = ot.AuxFile;
+	RtstCod = ot.RtstCod;
+	TestCod = ot.TestCod;
+	UserText = ot.UserText;
+	RomCod = ot.RomCod;
+	SerlNum = ot.SerlNum;
+	SpecNam = ot.SpecNam;
+	TstrTyp = ot.TstrTyp;
+	SuprNam = ot.SuprNam;
+	SpecVer = ot.SpecVer;
+	ProtCod = ot.ProtCod;
 }
 
 CMIRArgs& CMIRArgs::operator=(const CMIRArgs& ot)
 {
-    LotId = ot.LotId;
-    CmodCod = ot.CmodCod;
-    FlowId = ot.FlowId;
-    DsgnRev = ot.DsgnRev;
-    DateCod = ot.DateCod;
-    OperFrq = ot.OperFrq;
-    OperNam = ot.OperNam;
-    NodeNam = ot.NodeNam;
-    PartTyp = ot.PartTyp;
-    EngId = ot.EngId;
-    TestTmp = ot.TestTmp;
-    FacilId = ot.FacilId;
-    FloorId = ot.FloorId;
-    StatNum = ot.StatNum;
-    ProcId = ot.ProcId;
-    ModCod = ot.ModCod;
-    FamilyId = ot.FamilyId;	
-    PkgTyp = ot.PkgTyp;
-    SblotId = ot.SblotId;
-    JobNam = ot.JobNam;
-    SetupId = ot.SetupId;
-    JobRev = ot.JobRev;
-    ExecTyp = ot.ExecTyp;
-    ExecVer = ot.ExecVer;
-    AuxFile = ot.AuxFile;
-    RtstCod = ot.RtstCod;
-    TestCod = ot.TestCod;
-    UserText = ot.UserText;
-    RomCod = ot.RomCod;
-    SerlNum = ot.SerlNum;
-    SpecNam = ot.SpecNam;
-    TstrTyp = ot.TstrTyp;
-    SuprNam = ot.SuprNam;
-    SpecVer = ot.SpecVer;
-    ProtCod = ot.ProtCod;
-
-    return *this;
+	LotId = ot.LotId;
+	CmodCod = ot.CmodCod;
+	FlowId = ot.FlowId;
+	DsgnRev = ot.DsgnRev;
+	DateCod = ot.DateCod;
+	OperFrq = ot.OperFrq;
+	OperNam = ot.OperNam;
+	NodeNam = ot.NodeNam;
+	PartTyp = ot.PartTyp;
+	EngId = ot.EngId;
+	TestTmp = ot.TestTmp;
+	FacilId = ot.FacilId;
+	FloorId = ot.FloorId;
+	StatNum = ot.StatNum;
+	ProcId = ot.ProcId;
+	ModCod = ot.ModCod;
+	FamilyId = ot.FamilyId;	
+	PkgTyp = ot.PkgTyp;
+	SblotId = ot.SblotId;
+	JobNam = ot.JobNam;
+	SetupId = ot.SetupId;
+	JobRev = ot.JobRev;
+	ExecTyp = ot.ExecTyp;
+	ExecVer = ot.ExecVer;
+	AuxFile = ot.AuxFile;
+	RtstCod = ot.RtstCod;
+	TestCod = ot.TestCod;
+	UserText = ot.UserText;
+	RomCod = ot.RomCod;
+	SerlNum = ot.SerlNum;
+	SpecNam = ot.SpecNam;
+	TstrTyp = ot.TstrTyp;
+	SuprNam = ot.SuprNam;
+	SpecVer = ot.SpecVer;
+	ProtCod = ot.ProtCod;
+	return *this;
 }
 
 CMIRArgs::~CMIRArgs()
 {
 }
 
-bool CMIRArgs::clearParams()
+bool CMIRArgs::clear()
 {
-    LotId.clear();
-    CmodCod.clear();
-    DsgnRev.clear();
-    DateCod.clear();
-    OperFrq.clear();
-    OperNam.clear();
-    NodeNam.clear();
-    PartTyp.clear();
-    EngId.clear();
-    TestTmp.clear();
-    FacilId.clear();
-    FloorId.clear();
-    StatNum.clear();
-    ProcId.clear();
-    ModCod.clear();
-    FamilyId.clear();
-    PkgTyp.clear();
-    SblotId.clear();
-   JobNam.clear();
-   JobRev.clear();
-   ExecTyp.clear();
-   ExecVer.clear();
-   AuxFile.clear();
-   RtstCod.clear();
-   TestCod.clear();
-   SetupId.clear();
-   UserText.clear();
-   RomCod.clear();
-   SerlNum.clear();
-   SpecNam.clear();
-   TstrTyp.clear();
-   SuprNam.clear();
-   SpecVer.clear();
-   ProtCod.clear();
-
-    return true;
+	LotId.clear();
+	CmodCod.clear();
+	DsgnRev.clear();
+	DateCod.clear();
+	OperFrq.clear();
+	OperNam.clear();
+	NodeNam.clear();
+	PartTyp.clear();
+	EngId.clear();
+	TestTmp.clear();
+	FacilId.clear();
+	FloorId.clear();
+	StatNum.clear();
+	ProcId.clear();
+	ModCod.clear();
+	FamilyId.clear();
+	PkgTyp.clear();
+	SblotId.clear();
+	JobNam.clear();
+	JobRev.clear();
+	ExecTyp.clear();
+	ExecVer.clear();
+	AuxFile.clear();
+	RtstCod.clear();
+	TestCod.clear();
+	SetupId.clear();
+	UserText.clear();
+	RomCod.clear();
+	SerlNum.clear();
+	SpecNam.clear();
+	TstrTyp.clear();
+	SuprNam.clear();
+	SpecVer.clear();
+	ProtCod.clear();
+	return true;
 }
 
 
 ///////////////////////////////////////////////////////
 // CSDRArgs
 
-CSDRArgs::CSDRArgs() : HandTyp(),CardId(),LoadId(),PHId(),DibTyp(),CableId(),ContTyp(),LoadTyp(),ContId(),LaserTyp(),LaserId(),ExtrTyp(),ExtrId(),DibId(),CardTyp(),CableTyp()
+CSDRArgs::CSDRArgs() 
 {
 }
 
-CSDRArgs::CSDRArgs(const CSDRArgs& ot) : HandTyp(ot.HandTyp),CardId(ot.CardId),LoadId(ot.LoadId),PHId(ot.PHId),
-					 DibTyp(ot.DibTyp),CableId(ot.CableId),ContTyp(ot.ContTyp),LoadTyp(ot.LoadTyp),ContId(ot.ContId),LaserTyp(ot.LaserTyp),LaserId(ot.LaserId),ExtrTyp(ot.ExtrTyp),ExtrId(ot.ExtrId),
-					 DibId(ot.DibId),CardTyp(ot.CardTyp),CableTyp(ot.CableTyp)
+CSDRArgs::CSDRArgs(const CSDRArgs& ot)
 {
+	HandTyp = ot.HandTyp; 
+    	CardId = ot.CardId;
+    	LoadId = ot.LoadId;
+    	PHId = ot.PHId;  
+	DibTyp = ot.DibTyp;
+	CableId = ot.CableId;
+	ContTyp = ot.ContTyp;
+	LoadTyp = ot.LoadTyp;
+	LaserTyp = ot.LaserTyp;
+	LaserId = ot.LaserId;
+	ExtrTyp = ot.ExtrTyp;
+	ExtrId = ot.ExtrId;
+	ContId = ot.ContId;
+	DibId = ot.DibId;
+	CardTyp = ot.CardTyp;
+	CableTyp = ot.CableTyp; 
 }
 
 CSDRArgs& CSDRArgs::operator=(const CSDRArgs& ot)
 {
-    HandTyp = ot.HandTyp;
-    CardId = ot.CardId;
-    LoadId = ot.LoadId;
-    PHId = ot.PHId;  
-    DibTyp = ot.DibTyp;
-    CableId = ot.CableId;
-    ContTyp = ot.ContTyp;
-    LoadTyp = ot.LoadTyp;
-    LaserTyp = ot.LaserTyp;
-    LaserId = ot.LaserId;
-    ExtrTyp = ot.ExtrTyp;
-    ExtrId = ot.ExtrId;
-    ContId = ot.ContId;
-    DibId = ot.DibId;
-    CardTyp = ot.CardTyp;
-    CableTyp = ot.CableTyp;
-    return *this;
+	HandTyp = ot.HandTyp; 
+    	CardId = ot.CardId;
+    	LoadId = ot.LoadId;
+    	PHId = ot.PHId;  
+	DibTyp = ot.DibTyp;
+	CableId = ot.CableId;
+	ContTyp = ot.ContTyp;
+	LoadTyp = ot.LoadTyp;
+	LaserTyp = ot.LaserTyp;
+	LaserId = ot.LaserId;
+	ExtrTyp = ot.ExtrTyp;
+	ExtrId = ot.ExtrId;
+	ContId = ot.ContId;
+	DibId = ot.DibId;
+	CardTyp = ot.CardTyp;
+	CableTyp = ot.CableTyp;
+    	return *this;
 }
 
 CSDRArgs::~CSDRArgs() 
 {
 }
 
-bool CSDRArgs::clearParams()
+bool CSDRArgs::clear()
 {
-    HandTyp.clear(); 
-    CardId.clear();
-    LoadId.clear();
-    PHId.clear();
-   DibTyp.clear();
-   CableId.clear();
-   ContTyp.clear();
-   LoadTyp.clear();
-   LaserTyp.clear();
-   LaserId.clear();
-   ExtrTyp.clear();
-   ExtrId.clear();
-   ContId.clear();
-   DibId.clear();
-   CardTyp.clear();
-   CableTyp.clear();
-    return true;
+	HandTyp.clear(); 
+	CardId.clear();
+	LoadId.clear();
+	PHId.clear();
+	DibTyp.clear();
+	CableId.clear();
+	ContTyp.clear();
+	LoadTyp.clear();
+	LaserTyp.clear();
+	LaserId.clear();
+	ExtrTyp.clear();
+	ExtrId.clear();
+	ContId.clear();
+	DibId.clear();
+	CardTyp.clear();
+	CableTyp.clear();
+    	return true;
 }
 
 CGDR::CGDR()
@@ -363,10 +395,12 @@ CGDR& CGDR::operator=(const CGDR& ot)
 	gui_nam.value = ot.gui_nam.value;
 	gui_rev.value =  ot.gui_rev.value;
 	stdf_frm.value =  ot.gui_rev.value;
+	return *this;
 }
 
 CGDR::~CGDR()
 {
+	clear();
 }
 
 void CGDR::clear()

@@ -65,35 +65,51 @@ public:
     std::string EndWaferEnable;	  // Added as example as attribute to testPrgmLoader and testPrgmCopierLoaderScript
     std::string StartLotEnable;	  // Added as example as attribute to testPrgmLoader and testPrgmCopierLoaderScript
     std::string StartWaferEnable;	  // Added as example as attribute to testPrgmLoader and testPrgmCopierLoaderScript
-	std::string SpecNam;
-	std::string SpecVer;
    // std::string ConfigurationName;
+};
+
+struct param
+{
+	std::string value;
+	std::string required;
+	std::string override;
+	long state;
+
+	bool empty(){ return value.empty(); }
+	const char* c_str() const { return value.c_str(); }
+	const std::string& str() const { return value; }
+	param& operator=(const param& ot)
+	{
+		value = ot.value;
+		required = ot.required;
+		override = ot.override;
+		state = ot.state;
+		return *this;
+	}  
+
+	param& operator=(const std::string& ot)
+	{
+		value = ot;
+		return *this;
+	}
+
+	void clear()
+	{
+		value.clear();
+		required.clear();
+		override.clear();		
+	}
+
+	void set(const std::string& v, const std::string& r, const std::string o)
+	{
+		value = v;
+		required = r;
+		override = o;
+	}
 };
 
 class CGDR
 {
-private:
-	struct param
-	{
-		std::string value;
-		std::string required;
-		std::string override;
-		long state;
-
-		void clear()
-		{
-			value.clear();
-			required.clear();
-			override.clear();		
-		}
-
-		void set(const std::string& v, const std::string& r, const std::string o)
-		{
-			value = v;
-			required = r;
-			override = o;
-		}
-	};
 public:
 	param auto_nam;
 	param auto_ver;
@@ -124,46 +140,44 @@ public:
     CMIRArgs& operator=(const CMIRArgs& ot);
     ~CMIRArgs();
 
-    bool clearParams();
+    bool clear();
 
-    std::string LotId;		// TestProgData.LotId
-    std::string CmodCod;	// TestProgData.CommandMode
-    std::string FlowId;		// TestProgData.ActiveFlowName
-    std::string DsgnRev;	// TestProgData.DesignRev
-    std::string DateCod;	// TestProgData.DateCode
-    std::string OperFrq;	// TestProgData.OperFreq
-    std::string OperNam;	// TestProgData.Operator
-    std::string NodeNam;	// TestProgData.TcName
-    std::string PartTyp;	// TestProgData.Device
-    std::string EngId;		// TestProgData.EngrLotId
-    std::string TestTmp;	// TestProgData.TestTemp
-    std::string FacilId;	// TestProgData.TestFacility
-    std::string FloorId;	// TestProgData.TestFloor
-    std::string StatNum;	// TestProgData.Head (int)	
-    std::string ProcId;		// TestProgData.FabId
-    std::string ModCod;		// TestProgData.TestMode
-    std::string FamilyId;	// TestProgData.ProdId
-    std::string PkgTyp;		// TestProgData.Package
-    std::string SblotId;	// TestProgData.SublotId
-    std::string JobNam;		// TestProgData.ObjName        //// exists in TestProgData class but cannot be set in setLotInformation()
-    std::string SetupId;	// TestProgData.TestSetup
-    std::string JobRev;		// TestProgData.FileNameRev
-    std::string ExecTyp;	// TestProgData.SystemName
-    std::string ExecVer;	// TestProgData.TargetName
-    std::string AuxFile;	// TestProgData.AuxDataFile
-    std::string RtstCod;	// TestProgData.LotStatusTest  //// exists in TestProgData class but cannot be set in setLotInformation()
-    std::string TestCod;	// TestProgData.TestPhase
-    std::string UserText;	// TestProgData.UserText
-    std::string RomCod;		// TestProgData.RomCode
-    std::string SerlNum;	// TestProgData.TesterSerNum
-    std::string SpecNam;	// TestProgData.TestSpecName
-    std::string TstrTyp;	// TestProgData.TesterType
-    std::string SuprNam;	// TestProgData.Supervisor
-    std::string SpecVer;	// TestProgData.TestSpecRev
+    param LotId;		// TestProgData.LotId
+    param CmodCod;	// TestProgData.CommandMode
+    param FlowId;		// TestProgData.ActiveFlowName
+    param DsgnRev;	// TestProgData.DesignRev
+    param DateCod;	// TestProgData.DateCode
+    param OperFrq;	// TestProgData.OperFreq
+    param OperNam;	// TestProgData.Operator
+    param NodeNam;	// TestProgData.TcName
+    param PartTyp;	// TestProgData.Device
+    param EngId;		// TestProgData.EngrLotId
+    param TestTmp;	// TestProgData.TestTemp
+    param FacilId;	// TestProgData.TestFacility
+    param FloorId;	// TestProgData.TestFloor
+    param StatNum;	// TestProgData.Head (int)	
+    param ProcId;		// TestProgData.FabId
+    param ModCod;		// TestProgData.TestMode
+    param FamilyId;	// TestProgData.ProdId
+    param PkgTyp;		// TestProgData.Package
+    param SblotId;	// TestProgData.SublotId
+    param JobNam;		// TestProgData.ObjName        //// exists in TestProgData class but cannot be set in setLotInformation()
+    param SetupId;	// TestProgData.TestSetup
+    param JobRev;		// TestProgData.FileNameRev
+    param ExecTyp;	// TestProgData.SystemName
+    param ExecVer;	// TestProgData.TargetName
+    param AuxFile;	// TestProgData.AuxDataFile
+    param RtstCod;	// TestProgData.LotStatusTest  //// exists in TestProgData class but cannot be set in setLotInformation()
+    param TestCod;	// TestProgData.TestPhase
+    param UserText;	// TestProgData.UserText
+    param RomCod;		// TestProgData.RomCode
+    param SerlNum;	// TestProgData.TesterSerNum
+    param SpecNam;	// TestProgData.TestSpecName
+    param TstrTyp;	// TestProgData.TesterType
+    param SuprNam;	// TestProgData.Supervisor
+    param SpecVer;	// TestProgData.TestSpecRev
+    param ProtCod;	// TestProgData.ProtectionCode
 
-    std::string ProtCod;	// TestProgData.ProtectionCode
-
- 
 };
 
 
@@ -175,26 +189,24 @@ public:
     CSDRArgs& operator=(const CSDRArgs& ot);
     ~CSDRArgs();
 
-    bool clearParams();
+    bool clear();
     
-    std::string HandTyp;   	// TestProgData.HandlerType
-    std::string CardId;		// TestProgData.CardId
-    std::string LoadId;		// TestProgData.LoadboardId
-    std::string PHId;		// TestProgData.PHID
-    std::string DibTyp;		// TestProgData.DIBType
-    std::string CableId;	// TestProgData.IfCableId
-    std::string ContTyp;	// TestProgData.ContactorType
-    std::string LoadTyp;	// TestProgData.LoadBrdType
-    std::string ContId;		// TestProgData.ContactorId
-    std::string LaserTyp;	// TestProgData.LaserType
-    std::string LaserId;	// TestProgData.LasterId
-    std::string ExtrTyp;	// TestProgData.ExtEquipType
-    std::string ExtrId;		// TestProgData.ExtEquipId
-    std::string DibId;		// TestProgData.ActiveLoadBrdName
-    std::string CardTyp;	// TestProgData.CardType
-    std::string CableTyp;	// TestProgData.LotIfCableType
-
-
+    param HandTyp;   	// TestProgData.HandlerType
+    param CardId;	// TestProgData.CardId
+    param LoadId;	// TestProgData.LoadboardId
+    param PHId;		// TestProgData.PHID
+    param DibTyp;	// TestProgData.DIBType
+    param CableId;	// TestProgData.IfCableId
+    param ContTyp;	// TestProgData.ContactorType
+    param LoadTyp;	// TestProgData.LoadBrdType
+    param ContId;	// TestProgData.ContactorId
+    param LaserTyp;	// TestProgData.LaserType
+    param LaserId;	// TestProgData.LasterId
+    param ExtrTyp;	// TestProgData.ExtEquipType
+    param ExtrId;	// TestProgData.ExtEquipId
+    param DibId;	// TestProgData.ActiveLoadBrdName
+    param CardTyp;	// TestProgData.CardType
+    param CableTyp;	// TestProgData.LotIfCableType
 };
 
 #endif // _RECIPE_SUPPORT_HEADER_INCLUDED_

@@ -220,7 +220,7 @@ void CuserEvxaInterface::resetRecipeVars()
 	m_skipProgramParam = false;
 	m_statusResultsHaveBeenSent = false;
 	m_recipeParseStatus = EVX_RECIPE_PARSE_BEGIN;
-
+	clearAllParams();
 }
 
 ProgramControl *CuserEvxaInterface::PgmCtrl()
@@ -709,7 +709,7 @@ bool CuserEvxaInterface::updateSTDFAfterProgLoad()
 	if (SystemName.empty() || SystemName.compare("enVision") == 0) m_MIRArgs.ExecTyp = "Unison";
 
 	// we send SDR.HAND_TYP to FAmodule so it can send it to STDF during onlotstart(). this ensures Unison doesn't overwrite it
-	PgmCtrl()->faprocSet("Current Equipment: HAND_TYP", m_SDRArgs.HandTyp);
+	PgmCtrl()->faprocSet("Current Equipment: HAND_TYP", m_SDRArgs.HandTyp.value);
 	std::string hand_typ;
 	PgmCtrl()->faprocGet("Current Equipment: HAND_TYP", hand_typ);
 	if (debug()) std::cout << "[DEBUG] HAND_TYP sent to faproc: " << hand_typ << std::endl;	
@@ -732,9 +732,9 @@ bool CuserEvxaInterface::updateSTDFAfterProgLoad()
 	// send GDR.TRF-XTRF value to FAmodule
 	if (m_GDR.trf_xtrf.value.empty())
 	{
-		if (debug()) std::cout << "[DEBUG] Didn't find TRF-XTRF from XTRF. setting it instead to " << m_MIRArgs.LotId << "_" << m_MIRArgs.FlowId << " (lotid_flowid)" << std::endl;		
+		if (debug()) std::cout << "[DEBUG] Didn't find TRF-XTRF from XTRF. setting it instead to " << m_MIRArgs.LotId.value << "_" << m_MIRArgs.FlowId.value << " (lotid_flowid)" << std::endl;		
 		std::stringstream ssTrfXtrf; 
-		ssTrfXtrf << m_MIRArgs.LotId << "_" << m_MIRArgs.FlowId;
+		ssTrfXtrf << m_MIRArgs.LotId.value << "_" << m_MIRArgs.FlowId.value;
 		m_GDR.trf_xtrf.value = ssTrfXtrf.str();
 	}
 	PgmCtrl()->faprocSet("Current Equipment: TRF-XTRF_VAL", m_GDR.trf_xtrf.value);
@@ -835,6 +835,226 @@ bool CuserEvxaInterface::parseGDR(XML_Node *GDRRecord)
 }
 
 /*---------------------------------------------------------------------------------
+parse MIR
+---------------------------------------------------------------------------------*/
+bool CuserEvxaInterface::parseMIR(XML_Node *MIRRecord)
+{
+	if (debug()) std::cout << "[DEBUG] Executing CuserEvxaInterface::parseMIR()" << std::endl;
+    	bool result = true;
+
+	// start reading fields from XTRF 
+     	XML_Node *STDFfields = MIRRecord->fetchChild("STDFfields");
+
+ 	// loop through each <STDFfield> found in <STDFfields> of <STDFrecord recordName="MIR">
+     	for(int jj=0; jj < STDFfields->numChildren(); jj++) 
+	{
+		XML_Node *STDFfield = STDFfields->fetchChild(jj);
+		if (STDFfield) 
+		{
+			// get the value that this field contains
+			std::string result = STDFfield->fetchText();
+
+			std::string comment, fieldname, required, override;
+			// loop through attributes of each <STDFfield> and get their expected values
+			for (int ii=0; ii<STDFfield->numAttr(); ii++)
+			{
+				if (STDFfield->fetchAttr(ii).compare("comment") == 0){ comment = STDFfield->fetchVal(ii); }
+				if (STDFfield->fetchAttr(ii).compare("fieldName") == 0){ fieldname = STDFfield->fetchVal(ii); }
+				if (STDFfield->fetchAttr(ii).compare("required") == 0){ required = STDFfield->fetchVal(ii); }
+				if (STDFfield->fetchAttr(ii).compare("override") == 0){ override = STDFfield->fetchVal(ii); }
+			}
+			
+	    		if (fieldname.compare("LOT_ID") == 0){ m_MIRArgs.LotId.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] LOT_ID: " << STDFfield->fetchText() << std::endl; }
+	    		else if (fieldname.compare("CMOD_COD") == 0){ m_MIRArgs.CmodCod.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] CMOD_COD: " << STDFfield->fetchText() << std::endl; }
+	    		else if (fieldname.compare("FLOW_ID") == 0){ m_MIRArgs.FlowId.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] FLOW_ID: " << STDFfield->fetchText() << std::endl; }
+	    		else if (fieldname.compare("DSGN_REV") == 0){ m_MIRArgs.DsgnRev.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] DSGN_REV: " << STDFfield->fetchText() << std::endl; }
+	    		else if (fieldname.compare("DATE_COD") == 0){ m_MIRArgs.DateCod.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] DATE_COD: " << STDFfield->fetchText() << std::endl; }
+	    		else if (fieldname.compare("OPER_FRQ") == 0){ m_MIRArgs.OperFrq.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] OPER_FRQ: " << STDFfield->fetchText() << std::endl; }
+	    		else if (fieldname.compare("OPER_NAM") == 0){ m_MIRArgs.OperNam.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] OPER_NAM: " << STDFfield->fetchText() << std::endl; }
+	    		else if (fieldname.compare("NODE_NAM") == 0){ m_MIRArgs.NodeNam.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] NODE_NAM: " << STDFfield->fetchText() << std::endl; }
+	   		else if (fieldname.compare("PART_TYP") == 0){ m_MIRArgs.PartTyp.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] PART_TYP: " << STDFfield->fetchText() << std::endl; }
+			else if (fieldname.compare("ENG_ID") == 0){ m_MIRArgs.EngId.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] ENG_ID: " << STDFfield->fetchText() << std::endl; }
+	    		else if (fieldname.compare("TST_TEMP") == 0){ m_MIRArgs.TestTmp.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] TST_TEMP: " << STDFfield->fetchText() << std::endl; }
+	    		else if (fieldname.compare("FACIL_ID") == 0){ m_MIRArgs.FacilId.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] FACIL_ID: " << STDFfield->fetchText() << std::endl; }
+	    		else if (fieldname.compare("FLOOR_ID") == 0){ m_MIRArgs.FloorId.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] FLOOR_ID: " << STDFfield->fetchText() << std::endl; }
+	    		else if (fieldname.compare("STAT_NUM") == 0){ m_MIRArgs.StatNum.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] STAT_NUM: " << STDFfield->fetchText() << std::endl; }
+	    		else if (fieldname.compare("PROC_ID") == 0){ m_MIRArgs.ProcId.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] PROC_ID: " << STDFfield->fetchText() << std::endl; }
+	    		else if (fieldname.compare("MODE_COD") == 0){ m_MIRArgs.ModCod.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] MODE_COD: " << STDFfield->fetchText() << std::endl; }
+	    		else if (fieldname.compare("FAMLY_ID") == 0){ m_MIRArgs.FamilyId.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] FAMLY_ID: " << STDFfield->fetchText() << std::endl; }
+	   	 	else if (fieldname.compare("PKG_TYP") == 0){ m_MIRArgs.PkgTyp.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] PKG_TYP: " << STDFfield->fetchText() << std::endl; }
+	    		else if (fieldname.compare("SBLOT_ID") == 0){ m_MIRArgs.SblotId.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] SBLOT_ID: " << STDFfield->fetchText() << std::endl; }
+			else if (fieldname.compare("JOB_NAM") == 0){ m_MIRArgs.JobNam.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] JOB_NAM: " << STDFfield->fetchText() << std::endl; }
+	    		else if (fieldname.compare("SETUP_ID") == 0){ m_MIRArgs.SetupId.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] SETUP_ID: " << STDFfield->fetchText() << std::endl; }
+	    		else if (fieldname.compare("JOB_REV") == 0){ m_MIRArgs.JobRev.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] JOB_REV: " << STDFfield->fetchText() << std::endl; }
+	    		else if (fieldname.compare("AUX_FILE") == 0){ m_MIRArgs.AuxFile.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] AUX_FILE: " << STDFfield->fetchText() << std::endl; }
+	    		else if (fieldname.compare("RTST_COD") == 0){ m_MIRArgs.RtstCod.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] RTST_COD: " << STDFfield->fetchText() << std::endl; }
+	    		else if (fieldname.compare("TEST_COD") == 0){ m_MIRArgs.TestCod.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] TEST_COD: " << STDFfield->fetchText() << std::endl; }
+	    		else if (fieldname.compare("USER_TXT") == 0){ m_MIRArgs.UserText.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] USER_TXT: " << STDFfield->fetchText() << std::endl; }
+	    		else if (fieldname.compare("ROM_COD") == 0){ m_MIRArgs.RomCod.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] ROM_COD: " << STDFfield->fetchText() << std::endl; }
+	    		else if (fieldname.compare("SERL_NUM") == 0){ m_MIRArgs.SerlNum.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] SERL_NUM: " << STDFfield->fetchText() << std::endl; }
+	    		//else if (fieldname.compare("SPEC_NAM") == 0){ m_MIRArgs.SpecNam.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] SPEC_NAM: " << STDFfield->fetchText() << std::endl; }
+	    		//else if (fieldname.compare("SPEC_VER") == 0){ m_MIRArgs.SpecVer.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] SPEC_VER: " << STDFfield->fetchText() << std::endl; }
+	    		else if (fieldname.compare("TSTR_TYP") == 0){ m_MIRArgs.TstrTyp.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] TSTR_TYP: " << STDFfield->fetchText() << std::endl; }
+	    		else if (fieldname.compare("SUPR_NAM") == 0){ m_MIRArgs.SuprNam.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] SUPR_NAM: " << STDFfield->fetchText() << std::endl; }
+	    		else if (fieldname.compare("PROT_COD") == 0){ m_MIRArgs.ProtCod.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] PROT_COD: " << STDFfield->fetchText() << std::endl; }
+	    		else fprintf(stdout, "parseMIR unknown field: %s\n", fieldname.c_str());
+		}
+    	}			    
+    	return result;
+}
+
+/*---------------------------------------------------------------------------------
+parse SDR
+---------------------------------------------------------------------------------*/
+bool CuserEvxaInterface::parseSDR(XML_Node *SDRRecord)
+{
+	if (debug()) std::cout << "[DEBUG] Executing CuserEvxaInterface::parseSDR()" << std::endl;
+    	bool result = true;
+
+	// start reading fields from XTRF 
+     	XML_Node *STDFfields = SDRRecord->fetchChild("STDFfields");
+
+ 	// loop through each <STDFfield> found in <STDFfields> of <STDFrecord recordName="SDR">
+     	for(int jj=0; jj < STDFfields->numChildren(); jj++) 
+	{
+		XML_Node *STDFfield = STDFfields->fetchChild(jj);
+		if (STDFfield) 
+		{
+			// get the value that this field contains
+			std::string result = STDFfield->fetchText();
+
+			std::string comment, fieldname, required, override;
+			// loop through attributes of each <STDFfield> and get their expected values
+			for (int ii=0; ii<STDFfield->numAttr(); ii++)
+			{
+				if (STDFfield->fetchAttr(ii).compare("comment") == 0){ comment = STDFfield->fetchVal(ii); }
+				if (STDFfield->fetchAttr(ii).compare("fieldName") == 0){ fieldname = STDFfield->fetchVal(ii); }
+				if (STDFfield->fetchAttr(ii).compare("required") == 0){ required = STDFfield->fetchVal(ii); }
+				if (STDFfield->fetchAttr(ii).compare("override") == 0){ override = STDFfield->fetchVal(ii); }
+			}
+
+			if (fieldname.compare("HAND_TYP") == 0){ m_SDRArgs.HandTyp.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] HAND_TYP: " << STDFfield->fetchText() << std::endl; }
+			else if (fieldname.compare("CARD_ID") == 0){ m_SDRArgs.CardId.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] CARD_ID: " << STDFfield->fetchText() << std::endl; }
+			else if (fieldname.compare("LOAD_ID") == 0){ m_SDRArgs.LoadId.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] LOAD_ID: " << STDFfield->fetchText() << std::endl; }
+			else if (fieldname.compare("HAND_ID") == 0){ m_SDRArgs.PHId.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] HAND_ID: " << STDFfield->fetchText() << std::endl; }	
+			else if (fieldname.compare("DIB_TYP") == 0){ m_SDRArgs.DibTyp.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] DIB_TYP: " << STDFfield->fetchText() << std::endl; }
+			else if (fieldname.compare("CABL_ID") == 0){ m_SDRArgs.CableId.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] CABL_ID: " << STDFfield->fetchText() << std::endl; }
+			else if (fieldname.compare("CONT_TYP") == 0){ m_SDRArgs.ContTyp.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] CONT_TYP: " << STDFfield->fetchText() << std::endl; }
+			else if (fieldname.compare("LOAD_TYP") == 0){ m_SDRArgs.LoadTyp.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] LOAD_TYP: " << STDFfield->fetchText() << std::endl; }
+			else if (fieldname.compare("CONT_ID") == 0){ m_SDRArgs.ContId.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] CONT_ID: " << STDFfield->fetchText() << std::endl; }
+			else if (fieldname.compare("LASR_TYP") == 0){ m_SDRArgs.LaserTyp.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] LASR_TYP: " << STDFfield->fetchText() << std::endl; }
+			else if (fieldname.compare("LASR_ID") == 0){ m_SDRArgs.LaserId.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] LASR_ID: " << STDFfield->fetchText() << std::endl; }
+			else if (fieldname.compare("EXTR_TYP") == 0){ m_SDRArgs.ExtrTyp.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] EXTR_TYP: " << STDFfield->fetchText() << std::endl; }
+			else if (fieldname.compare("EXTR_ID") == 0){ m_SDRArgs.ExtrId.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] EXTR_ID: " << STDFfield->fetchText() << std::endl; }
+			else if (fieldname.compare("DIB_ID") == 0){ m_SDRArgs.DibId.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] DIB_ID: " << STDFfield->fetchText() << std::endl; }
+			else if (fieldname.compare("CARD_TYP") == 0){ m_SDRArgs.CardTyp.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] CARD_TYP: " << STDFfield->fetchText() << std::endl; }
+			else if (fieldname.compare("CABL_TYP") == 0){ m_SDRArgs.CableTyp.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] CABL_TYP: " << STDFfield->fetchText() << std::endl; }
+			else fprintf(stdout, "parseSDR unknown field: %s\n", fieldname.c_str());
+		}
+    	}			    
+    	return result;
+}
+
+/*---------------------------------------------------------------------------------
+if field value exists, required = strict, and override is blank, 
+we force this field into STDF
+if field value exists, required = strict, and override is "onEmpty", 
+we only set this field into STDF if current value in STDF is empty
+---------------------------------------------------------------------------------*/
+bool CuserEvxaInterface::setLotInformation(const EVX_LOTINFO_TYPE type, param& field, const char* label)
+{
+	if (!PgmCtrl()){ std::cout << "[ERROR] CuserEvxaInterface::setLotInformation(): Cannot access ProgramControl object." << std::endl; return false; }
+	EVXAStatus status = EVXA::OK;
+
+   	if (!field.empty()) 
+	{
+		//if (!field.required.compare("strict"))
+		{
+			if (field.override.compare("onEmpty")) { status = PgmCtrl()->setLotInformation(type, field.c_str()); }
+			else{ std::string str = PgmCtrl()->getLotInformation(type); if(str.empty()) status = PgmCtrl()->setLotInformation(type, field.c_str()); } 
+		}
+		if (status != EVXA::OK)
+		{
+			std::cout << "[ERROR] sending " << label << " to Unison." << std::endl;
+			return false;
+		}
+		std::cout << "Query " << label << ": " << PgmCtrl()->getLotInformation(type) << std::endl;
+   	}
+	else{ std::cout << "Field is empty, will not set " << label << " to Unison." << std::endl; }
+	return true;
+}
+
+/*---------------------------------------------------------------------------------
+send MIR fields to STDF
+---------------------------------------------------------------------------------*/
+bool CuserEvxaInterface::sendMIRParams()
+{
+	if (debug()) std::cout << "[DEBUG] Executing CuserEvxaInterface::sendMIRParams()" << std::endl;	
+ 
+	if ( !setLotInformation(EVX_LotLotID, 		m_MIRArgs.LotId, 	"MIR.LotLotID") ) return false;
+	if ( !setLotInformation(EVX_LotCommandMode, 	m_MIRArgs.CmodCod, 	"MIR.LotCommandMode") ) return false;
+	if ( !setLotInformation(EVX_LotActiveFlowName, 	m_MIRArgs.FlowId, 	"MIR.LotActiveFlowName") ) return false;
+	if ( !setLotInformation(EVX_LotDesignRev, 	m_MIRArgs.DsgnRev, 	"MIR.LotDesignRev") ) return false;
+	if ( !setLotInformation(EVX_LotDateCode, 	m_MIRArgs.DateCod, 	"MIR.LotDateCode") ) return false;
+	if ( !setLotInformation(EVX_LotOperFreq, 	m_MIRArgs.OperFrq, 	"MIR.LotOperFreq") ) return false;
+	if ( !setLotInformation(EVX_LotOperator, 	m_MIRArgs.OperNam, 	"MIR.LotOperator") ) return false;
+	if ( !setLotInformation(EVX_LotTcName, 		m_MIRArgs.NodeNam, 	"MIR.LotTcName") ) return false;
+	if ( !setLotInformation(EVX_LotDevice, 		m_MIRArgs.PartTyp, 	"MIR.LotDevice") ) return false;
+	if ( !setLotInformation(EVX_LotEngrLotId, 	m_MIRArgs.EngId, 	"MIR.LotEngrLotId") ) return false;
+	if ( !setLotInformation(EVX_LotTestTemp, 	m_MIRArgs.TestTmp, 	"MIR.LotTestTemp") ) return false;
+	if ( !setLotInformation(EVX_LotTestFacility, 	m_MIRArgs.FacilId, 	"MIR.LotTestFacility") ) return false;
+	if ( !setLotInformation(EVX_LotTestFloor, 	m_MIRArgs.FloorId, 	"MIR.LotTestFloor") ) return false;
+	if ( !setLotInformation(EVX_LotHead, 		m_MIRArgs.StatNum, 	"MIR.LotHead") ) return false;
+	if ( !setLotInformation(EVX_LotFabricationID, 	m_MIRArgs.ProcId, 	"MIR.LotFabricationID") ) return false;
+	if ( !setLotInformation(EVX_LotTestMode, 	m_MIRArgs.ModCod, 	"MIR.LotTestMode") ) return false;
+	if ( !setLotInformation(EVX_LotProductID, 	m_MIRArgs.FamilyId, 	"MIR.LotProductID") ) return false;
+	if ( !setLotInformation(EVX_LotPackage, 	m_MIRArgs.PkgTyp, 	"MIR.LotPackage") ) return false;
+	if ( !setLotInformation(EVX_LotSublotID, 	m_MIRArgs.SblotId, 	"MIR.LotSublotID") ) return false;
+	if ( !setLotInformation(EVX_LotTestSetup, 	m_MIRArgs.SetupId, 	"MIR.LotTestSetup") ) return false;
+	if ( !setLotInformation(EVX_LotFileNameRev, 	m_MIRArgs.JobRev, 	"MIR.LotFileNameRev") ) return false;
+	if ( !setLotInformation(EVX_LotAuxDataFile, 	m_MIRArgs.AuxFile, 	"MIR.LotAuxDataFile") ) return false;
+	if ( !setLotInformation(EVX_LotTestPhase, 	m_MIRArgs.TestCod, 	"MIR.LotTestPhase") ) return false;
+	if ( !setLotInformation(EVX_LotUserText, 	m_MIRArgs.UserText, 	"MIR.LotUserText") ) return false;
+	if ( !setLotInformation(EVX_LotRomCode, 	m_MIRArgs.RomCod, 	"MIR.LotRomCode") ) return false;
+	if ( !setLotInformation(EVX_LotTesterSerNum, 	m_MIRArgs.SerlNum, 	"MIR.LotTesterSerNum") ) return false;
+	if ( !setLotInformation(EVX_LotTesterType, 	m_MIRArgs.TstrTyp, 	"MIR.LotTesterType") ) return false;
+	if ( !setLotInformation(EVX_LotSupervisor, 	m_MIRArgs.SuprNam, 	"MIR.LotSupervisor") ) return false;
+	if ( !setLotInformation(EVX_LotSystemName, 	m_MIRArgs.ExecTyp, 	"MIR.LotSystemName") ) return false;
+	if ( !setLotInformation(EVX_LotTargetName, 	m_MIRArgs.ExecVer, 	"MIR.LotTargetName") ) return false;
+	if ( !setLotInformation(EVX_LotTestSpecName, 	m_MIRArgs.SpecNam, 	"MIR.LotTestSpecName") ) return false;
+	if ( !setLotInformation(EVX_LotTestSpecRev, 	m_MIRArgs.SpecVer, 	"MIR.LotTestSpecRev") ) return false;
+	if ( !setLotInformation(EVX_LotProtectionCode, 	m_MIRArgs.ProtCod, 	"MIR.LotProtectionCode") ) return false;	  
+    	return true;
+}
+
+/*---------------------------------------------------------------------------------
+send MIR fields to STDF
+---------------------------------------------------------------------------------*/
+bool CuserEvxaInterface::sendSDRParams()
+{
+	if (debug()) std::cout << "[DEBUG] Executing CuserEvxaInterface::sendSDRParams()" << std::endl;	
+ 
+	if ( !setLotInformation(EVX_LotHandlerType, 	m_SDRArgs.HandTyp, 	"SDR.LotHandlerType") ) return false;
+	if ( !setLotInformation(EVX_LotCardId, 		m_SDRArgs.CardId, 	"SDR.LotCardId") ) return false;
+	if ( !setLotInformation(EVX_LotLoadBrdId, 	m_SDRArgs.LoadId, 	"SDR.LotLoadBrdId") ) return false;
+	if ( !setLotInformation(EVX_LotProberHandlerID, m_SDRArgs.PHId, 	"SDR.LotProberHandlerID") ) return false;
+	if ( !setLotInformation(EVX_LotDIBType, 	m_SDRArgs.DibTyp, 	"SDR.LotDIBType") ) return false;
+	if ( !setLotInformation(EVX_LotIfCableId, 	m_SDRArgs.CableId, 	"SDR.LotIfCableId") ) return false;
+	if ( !setLotInformation(EVX_LotContactorType, 	m_SDRArgs.ContTyp, 	"SDR.LotContactorType") ) return false;
+	if ( !setLotInformation(EVX_LotLoadBrdType, 	m_SDRArgs.LoadTyp, 	"SDR.LotLoadBrdType") ) return false;
+	if ( !setLotInformation(EVX_LotContactorId, 	m_SDRArgs.ContId, 	"SDR.LotContactorId") ) return false;
+	if ( !setLotInformation(EVX_LotLaserType, 	m_SDRArgs.LaserTyp, 	"SDR.LotLaserType") ) return false;
+	if ( !setLotInformation(EVX_LotLaserId, 	m_SDRArgs.LaserId, 	"SDR.LotLaserId") ) return false;
+	if ( !setLotInformation(EVX_LotExtEquipType, 		m_SDRArgs.ExtrTyp, 	"SDR.LotExtEquipType") ) return false;
+	if ( !setLotInformation(EVX_LotExtEquipId, 		m_SDRArgs.ExtrId, 	"SDR.LotExtEquipId") ) return false;
+	if ( !setLotInformation(EVX_LotActiveLoadBrdName, 	m_SDRArgs.DibId, 	"SDR.LotActiveLoadBrdName") ) return false;
+	if ( !setLotInformation(EVX_LotCardType, 		m_SDRArgs.CardTyp, 	"SDR.LotCardType") ) return false;
+	if ( !setLotInformation(EVX_LotIfCableType, 		m_SDRArgs.CableTyp, 	"SDR.LotIfCableType") ) return false;
+    	return true;
+}
+
+
+/*---------------------------------------------------------------------------------
 parse <testPrgmLoader> from XTRF
 testPrgmURI attribute 
 - holds the folder/program name and will be used to parse mir.spec_nam
@@ -876,10 +1096,10 @@ bool CuserEvxaInterface::parseTestPrgmLoader(XML_Node *testPrgmLoader)
 				p = toSpec.find_last_of("_");
 				if (p != std::string::npos)
 				{
-					m_TPArgs.SpecNam = m_TPArgs.TPPath.substr(0, p);
-					m_TPArgs.SpecVer = m_TPArgs.TPPath.substr(p + 1, std::string::npos);
-					if (debug()) std::cout << "MIR.SPEC_NAM from testPrgmURI: " << m_TPArgs.SpecNam << std::endl;
-					if (debug()) std::cout << "MIR.SPEC_VER from testPrgmURI: " << m_TPArgs.SpecVer << std::endl;
+					m_MIRArgs.SpecNam = m_TPArgs.TPPath.substr(0, p);
+					m_MIRArgs.SpecVer = m_TPArgs.TPPath.substr(p + 1, std::string::npos);
+					if (debug()) std::cout << "MIR.SPEC_NAM from testPrgmURI: " << m_MIRArgs.SpecNam.c_str() << std::endl;
+					if (debug()) std::cout << "MIR.SPEC_VER from testPrgmURI: " << m_MIRArgs.SpecVer.c_str() << std::endl;
 				}
 			}				
 		}
@@ -1097,117 +1317,6 @@ bool CuserEvxaInterface::parseSTDFRecord(XML_Node *STDFRecord)
     return result;
 }
 
-bool CuserEvxaInterface::parseMIR(XML_Node *MIRRecord)
-{
-	if (debug()) std::cout << "[DEBUG] Executing CuserEvxaInterface::parseMIR()" << std::endl;
-    	bool result = true;
-
-    	XML_Node *STDFfields = MIRRecord->fetchChild("STDFfields");
-    	int nfields = STDFfields->numChildren();
-    	for(int jj=0; jj<nfields; jj++) 
-	{
-		XML_Node *STDFfield = STDFfields->fetchChild(jj);
-		if (STDFfield) 
-		{
-	    		std::string temp = STDFfield->fetchVal(0);
-	    		std::string result = STDFfield->fetchText();
-	    		if (debug()) fprintf(stdout, "parseMIR: %s %s\n", temp.c_str(), result.c_str());
-				
-	    		if (temp.compare("LOT_ID") == 0) m_MIRArgs.LotId = result;
-	    		else if (temp.compare("CMOD_COD") == 0) m_MIRArgs.CmodCod = result;
-	    		else if (temp.compare("FLOW_ID") == 0) m_MIRArgs.FlowId = result;
-	    		else if (temp.compare("DSGN_REV") == 0) m_MIRArgs.DsgnRev = result;
-	    		else if (temp.compare("DATE_COD") == 0) m_MIRArgs.DateCod = result;
-	    		else if (temp.compare("OPER_FRQ") == 0) m_MIRArgs.OperFrq = result;
-	    		else if (temp.compare("OPER_NAM") == 0) m_MIRArgs.OperNam = result;
-	    		else if (temp.compare("NODE_NAM") == 0) m_MIRArgs.NodeNam = result;
-	   		else if (temp.compare("PART_TYP") == 0) m_MIRArgs.PartTyp = result;
-			else if (temp.compare("ENG_ID") == 0) m_MIRArgs.EngId = result;
-	    		else if (temp.compare("TST_TEMP") == 0) m_MIRArgs.TestTmp = result;
-	    		else if (temp.compare("FACIL_ID") == 0) m_MIRArgs.FacilId = result;
-	    		else if (temp.compare("FLOOR_ID") == 0) m_MIRArgs.FloorId = result;
-	    		else if (temp.compare("STAT_NUM") == 0) m_MIRArgs.StatNum = result;
-	    		else if (temp.compare("PROC_ID") == 0) m_MIRArgs.ProcId = result;
-	    		else if (temp.compare("MODE_COD") == 0) m_MIRArgs.ModCod = result;
-	    		else if (temp.compare("FAMLY_ID") == 0) m_MIRArgs.FamilyId = result;
-	   	 	else if (temp.compare("PKG_TYP") == 0) m_MIRArgs.PkgTyp = result;
-	    		else if (temp.compare("SBLOT_ID") == 0) m_MIRArgs.SblotId = result;
-			else if (temp.compare("JOB_NAM") == 0) m_MIRArgs.JobNam = result;
-	    		else if (temp.compare("SETUP_ID") == 0) m_MIRArgs.SetupId = result;
-	    		else if (temp.compare("JOB_REV") == 0) m_MIRArgs.JobRev = result;
-	    		else if (temp.compare("AUX_FILE") == 0) m_MIRArgs.AuxFile = result;
-	    		else if (temp.compare("RTST_COD") == 0) m_MIRArgs.RtstCod = result;
-	    		else if (temp.compare("TEST_COD") == 0) m_MIRArgs.TestCod = result;
-	    		else if (temp.compare("USER_TXT") == 0) m_MIRArgs.UserText = result;
-	    		else if (temp.compare("ROM_COD") == 0) m_MIRArgs.RomCod = result;
-	    		else if (temp.compare("SERL_NUM") == 0) m_MIRArgs.SerlNum = result;
-	    		else if (temp.compare("SPEC_NAM") == 0) m_MIRArgs.SpecNam = result;
-	    		else if (temp.compare("TSTR_TYP") == 0) m_MIRArgs.TstrTyp = result;
-	    		else if (temp.compare("SUPR_NAM") == 0) m_MIRArgs.SuprNam = result;
-	    		else if (temp.compare("SPEC_VER") == 0) m_MIRArgs.SpecVer = result;
-	    		else if (temp.compare("PROT_COD") == 0) m_MIRArgs.ProtCod = result;
-	    		else fprintf(stdout, "parseMIR unknown field: %s\n", temp.c_str());
-		}
-    	}			    
-    	return result;
-}
-
-bool CuserEvxaInterface::parseSDR(XML_Node *SDRRecord)
-{
-	if (debug()) std::cout << "[DEBUG] Executing CuserEvxaInterface::parseSDR()" << std::endl;
-     bool result = true;
-
-    XML_Node *STDFfields = SDRRecord->fetchChild("STDFfields");
-    int nfields = STDFfields->numChildren();
-    for(int jj=0; jj<nfields; jj++) {
-	XML_Node *STDFfield = STDFfields->fetchChild(jj);
-	if (STDFfield) {
-	    std::string temp = STDFfield->fetchVal(0);
-	    std::string result = STDFfield->fetchText();
-	    if (debug()) fprintf(stdout, "parseSDR: %s %s\n", temp.c_str(), result.c_str());
-				
-	    if (temp.compare("HAND_TYP") == 0)
-		m_SDRArgs.HandTyp = result;
-	    else if (temp.compare("CARD_ID") == 0)
-		m_SDRArgs.CardId = result;
-	    else if (temp.compare("LOAD_ID") == 0)
-		m_SDRArgs.LoadId = result;
-	    else if (temp.compare("HAND_ID") == 0)
-		m_SDRArgs.PHId = result;	
-
-	    else if (temp.compare("DIB_TYP") == 0)
-		m_SDRArgs.DibTyp = result;
-	    else if (temp.compare("CABL_ID") == 0)
-		m_SDRArgs.CableId = result;
-	    else if (temp.compare("CONT_TYP") == 0)
-		m_SDRArgs.ContTyp = result;
-	    else if (temp.compare("LOAD_TYP") == 0)
-		m_SDRArgs.LoadTyp = result;
-	    else if (temp.compare("CONT_ID") == 0)
-		m_SDRArgs.ContId = result;
-	    else if (temp.compare("LASR_TYP") == 0)
-		m_SDRArgs.LaserTyp = result;
-	    else if (temp.compare("LASR_ID") == 0)
-		m_SDRArgs.LaserId = result;
-	    else if (temp.compare("EXTR_TYP") == 0)
-		m_SDRArgs.ExtrTyp = result;
-	    else if (temp.compare("EXTR_ID") == 0)
-		m_SDRArgs.ExtrId = result;
-	    else if (temp.compare("DIB_ID") == 0)
-		m_SDRArgs.DibId = result;
-	    else if (temp.compare("CARD_TYP") == 0)
-		m_SDRArgs.CardTyp = result;
-	    else if (temp.compare("CABL_TYP") == 0)
-		m_SDRArgs.CableTyp = result;
-	    else
-		fprintf(stdout, "parseSDR unkown field: %s\n", temp.c_str());
-	}
-    }
-    return result;
-}
-
-
-
 //--------------------------------------------------------------------
 void CuserEvxaInterface::sendRecipeResultStatus(bool result)
 {
@@ -1250,464 +1359,17 @@ void CuserEvxaInterface::sendRecipeResultStatus(bool result)
 //--------------------------------------------------------------------
 bool CuserEvxaInterface::clearAllParams()
 {
-    m_TPArgs.clearParams();
-    m_MIRArgs.clearParams();
-    m_SDRArgs.clearParams();
+    	m_TPArgs.clearParams();
+    	m_MIRArgs.clear();
+    	m_SDRArgs.clear();
 	m_GDR.clear();
-    return true;
-}
-
-//--------------------------------------------------------------------
-/* This function takes the MIR parameters and sends them to 
-   The Test Program.
-*/
-bool CuserEvxaInterface::sendMIRParams()
-{
-	if (debug()) std::cout << "[DEBUG] Executing CuserEvxaInterface::sendMIRParams()" << std::endl;
- 
-    ProgramControl *pgm = PgmCtrl();
-    if (NULL == pgm) {
-	fprintf(stdout, "Error sendMIRParams: no ProgramControl\n");
-	return false;
-    }
-    EVXAStatus status = EVXA::OK;
-    bool result = true;
-    if (!m_MIRArgs.LotId.empty()) {
-	if (status == EVXA::OK) status = pgm->setLotInformation(EVX_LotLotID, m_MIRArgs.LotId.c_str());
-	if (status != EVXA::OK) {
-	    fprintf(stdout, "Error sendMIRParams EVX_LotLotID: status:%d %s\n", status, pgm->getStatusBuffer());
-	    result = false;
-	}
-	fprintf(stdout, "MIR.LotLotID: %s\n", pgm->getLotInformation(EVX_LotLotID));
-    }
-    if (!m_MIRArgs.CmodCod.empty()) {
-	if (status == EVXA::OK) status = pgm->setLotInformation(EVX_LotCommandMode, m_MIRArgs.CmodCod.c_str());
-	if (status != EVXA::OK) {
-	    fprintf(stdout, "Error sendMIRParams EVX_LotCommandMode: status:%d %s\n", status, pgm->getStatusBuffer());
-	    result = false;
-	}
-    }		
-    if (!m_MIRArgs.FlowId.empty()) {
-	if (status == EVXA::OK) status = pgm->setLotInformation(EVX_LotActiveFlowName, m_MIRArgs.FlowId.c_str());
-	if (status != EVXA::OK) {
-	    fprintf(stdout, "Error sendMIRParams EVX_LotActiveFlowName: status:%d %s\n", status, pgm->getStatusBuffer());
-	    result = false;
-	}
-    }
-    if (!m_MIRArgs.DsgnRev.empty()) {
-	if (status == EVXA::OK) status = pgm->setLotInformation(EVX_LotDesignRev, m_MIRArgs.DsgnRev.c_str());
-	if (status != EVXA::OK) {
-	    fprintf(stdout, "Error sendMIRParams EVX_LotDesignRev: status:%d %s\n", status, pgm->getStatusBuffer());
-	    result = false;
-	}
-    }
-    if (!m_MIRArgs.DateCod.empty()) {
-	if (status == EVXA::OK) status = pgm->setLotInformation(EVX_LotDateCode, m_MIRArgs.DateCod.c_str());
-	if (status != EVXA::OK) {
-	    fprintf(stdout, "Error sendMIRParams EVX_LotDateCode: status:%d %s\n", status, pgm->getStatusBuffer());
-	    result = false;
-	}
-    }
-    if (!m_MIRArgs.OperFrq.empty()) {
-	if (status == EVXA::OK) status = pgm->setLotInformation(EVX_LotOperFreq, m_MIRArgs.OperFrq.c_str());
-	if (status != EVXA::OK) {
-	    fprintf(stdout, "Error sendMIRParams EVX_LotOperFreq: status:%d %s\n", status, pgm->getStatusBuffer());
-	    result = false;
-	}
-    }
-    if (!m_MIRArgs.OperNam.empty()) {
-	if (status == EVXA::OK) status = pgm->setLotInformation(EVX_LotOperator, m_MIRArgs.OperNam.c_str());
-	if (status != EVXA::OK) {
-	    fprintf(stdout, "Error sendMIRParams EVX_LotOperator: status:%d %s\n", status, pgm->getStatusBuffer());
-	    result = false;
-	}
-    }
-    if (!m_MIRArgs.NodeNam.empty()) {
-	if (status == EVXA::OK) status = pgm->setLotInformation(EVX_LotTcName, m_MIRArgs.NodeNam.c_str());
-	if (status != EVXA::OK) {
-	    fprintf(stdout, "Error sendMIRParams EVX_LotTcName: status:%d %s\n", status, pgm->getStatusBuffer());
-	    result = false;
-	}
-    }
-    if (!m_MIRArgs.PartTyp.empty()) {
-	if (status == EVXA::OK) status = pgm->setLotInformation(EVX_LotDevice, m_MIRArgs.PartTyp.c_str());
-	if (status != EVXA::OK) {
-	    fprintf(stdout, "Error sendMIRParams EVX_LotDevice: status:%d %s\n", status, pgm->getStatusBuffer());
-	    result = false;
-	}
-    }
-    if(!m_MIRArgs.EngId.empty()) {
-	if (status == EVXA::OK) status = pgm->setLotInformation(EVX_LotEngrLotId, m_MIRArgs.EngId.c_str());
-	if (status != EVXA::OK) {
-	    fprintf(stdout, "Error sendMIRParams EVX_LotEngrLotId: status:%d %s\n", status, pgm->getStatusBuffer());
-	    result = false;
-	}
-    }
-    if (!m_MIRArgs.TestTmp.empty()) {
-	if (status == EVXA::OK) status = pgm->setLotInformation(EVX_LotTestTemp, m_MIRArgs.TestTmp.c_str());
-	if (status != EVXA::OK) {
-	    fprintf(stdout, "Error sendMIRParams EVX_LotTestTemp: status:%d %s\n", status, pgm->getStatusBuffer());
-	    result = false;
-	}
-    }
-    if (!m_MIRArgs.FacilId.empty()) {
-	if (status == EVXA::OK) status = pgm->setLotInformation(EVX_LotTestFacility, m_MIRArgs.FacilId.c_str());
-	if (status != EVXA::OK) {
-	    fprintf(stdout, "Error sendMIRParams EVX_LotTestFacility: status:%d %s\n", status, pgm->getStatusBuffer());
-	    result = false;
-	} 
-    }
-    if (!m_MIRArgs.FloorId.empty()) {
-	if (status == EVXA::OK) status = pgm->setLotInformation(EVX_LotTestFloor, m_MIRArgs.FloorId.c_str());
-	if (status != EVXA::OK) {
-	    fprintf(stdout, "Error sendMIRParams EVX_LotTestFloor: status:%d %s\n", status, pgm->getStatusBuffer());
-	    result = false;
-	}
-    }
-    if (!m_MIRArgs.StatNum.empty()) {
-	if (status == EVXA::OK) status = pgm->setLotInformation(EVX_LotHead, m_MIRArgs.StatNum.c_str());
-	if (status != EVXA::OK) {
-	    fprintf(stdout, "Error sendMIRParams EVX_LotHead: status:%d %s\n", status, pgm->getStatusBuffer());
-	    result = false;
-	}
-    }
-    if (!m_MIRArgs.ProcId.empty()) {
-	if (status == EVXA::OK) status = pgm->setLotInformation(EVX_LotFabricationID, m_MIRArgs.ProcId.c_str());
-	if (status != EVXA::OK) {
-	    fprintf(stdout, "Error sendMIRParams EVX_LotFabricationID: status:%d %s\n", status, pgm->getStatusBuffer());
-	    result = false;
-	}
-                        fprintf(stdout, "MIR.ProcId: %s\n", pgm->getLotInformation(EVX_LotFabricationID));
-    }
-    if (!m_MIRArgs.ModCod.empty()) {
-	if (status == EVXA::OK) status = pgm->setLotInformation(EVX_LotTestMode, m_MIRArgs.ModCod.c_str());
-	if (status != EVXA::OK) {
-	    fprintf(stdout, "Error sendMIRParams EVX_LotTestMode: status:%d %s\n", status, pgm->getStatusBuffer());
-	    result = false;
-	}
-    }
-    if (!m_MIRArgs.FamilyId.empty()) {
-	if (status == EVXA::OK) status = pgm->setLotInformation(EVX_LotProductID, m_MIRArgs.FamilyId.c_str());
-	if (status != EVXA::OK) {
-	    fprintf(stdout, "Error sendMIRParams EVX_LotProductID: status:%d %s\n", status, pgm->getStatusBuffer());
-	    result = false;
-	}
-    }
-    if (!m_MIRArgs.PkgTyp.empty()) {
-	if (status == EVXA::OK) status = pgm->setLotInformation(EVX_LotPackage, m_MIRArgs.PkgTyp.c_str());
-	if (status != EVXA::OK) {
-	    fprintf(stdout, "Error sendMIRParams EVX_LotPackage: status:%d %s\n", status, pgm->getStatusBuffer());
-	    result = false;
-	}
-    }
-    if (!m_MIRArgs.SblotId.empty()) {
-	if (status == EVXA::OK) status = pgm->setLotInformation(EVX_LotSublotID, m_MIRArgs.SblotId.c_str());
-	if (status != EVXA::OK) {
-	    fprintf(stdout, "Error sendMIRParams EVX_LotSublotID: status:%d %s\n", status, pgm->getStatusBuffer());
-	    result = false;
-	}
-    }
-
-    if (!m_MIRArgs.SetupId.empty()) {
-	if (status == EVXA::OK) status = pgm->setLotInformation(EVX_LotTestSetup, m_MIRArgs.SetupId.c_str());
-	if (status != EVXA::OK) {
-	    fprintf(stdout, "[ERROR] sendMIRParams EVX_LotTestSetup: status:%d %s\n", status, pgm->getStatusBuffer());
-	    result = false;
-	}
-    }
-
-    if (!m_MIRArgs.JobRev.empty()) {
-	if (status == EVXA::OK) status = pgm->setLotInformation(EVX_LotFileNameRev, m_MIRArgs.JobRev.c_str());
-	if (status != EVXA::OK) {
-	    fprintf(stdout, "[ERROR] sendMIRParams EVX_LotFileNameRev: status:%d %s\n", status, pgm->getStatusBuffer());
-	    result = false;
-	}
-    }
-    
-    if (!m_MIRArgs.AuxFile.empty()) {
-	if (status == EVXA::OK) status = pgm->setLotInformation(EVX_LotAuxDataFile, m_MIRArgs.AuxFile.c_str());
-	if (status != EVXA::OK) {
-	    fprintf(stdout, "[ERROR] sendMIRParams EVX_LotAuxDataFile: status:%d %s\n", status, pgm->getStatusBuffer());
-	    result = false;
-	}
-    }
-
-    if (!m_MIRArgs.TestCod.empty()) {
-	if (status == EVXA::OK) status = pgm->setLotInformation(EVX_LotTestPhase, m_MIRArgs.TestCod.c_str());
-	if (status != EVXA::OK) {
-	    fprintf(stdout, "[ERROR] sendMIRParams EVX_LotTestPhase: status:%d %s\n", status, pgm->getStatusBuffer());
-	    result = false;
-	}
-    }
-
-    if (!m_MIRArgs.UserText.empty()) {
-	if (status == EVXA::OK) status = pgm->setLotInformation(EVX_LotUserText, m_MIRArgs.UserText.c_str());
-	if (status != EVXA::OK) {
-	    fprintf(stdout, "[ERROR] sendMIRParams EVX_LotUserText: status:%d %s\n", status, pgm->getStatusBuffer());
-	    result = false;
-	}
-    }
-
-    if (!m_MIRArgs.RomCod.empty()) {
-	if (status == EVXA::OK) status = pgm->setLotInformation(EVX_LotRomCode, m_MIRArgs.RomCod.c_str());
-	if (status != EVXA::OK) {
-	    fprintf(stdout, "[ERROR] sendMIRParams EVX_LotRomCode: status:%d %s\n", status, pgm->getStatusBuffer());
-	    result = false;
-	}
-    }
-
-    if (!m_MIRArgs.SerlNum.empty()) {
-	if (status == EVXA::OK) status = pgm->setLotInformation(EVX_LotTesterSerNum, m_MIRArgs.SerlNum.c_str());
-	if (status != EVXA::OK) {
-	    fprintf(stdout, "[ERROR] sendMIRParams EVX_LotTesterSerNum: status:%d %s\n", status, pgm->getStatusBuffer());
-	    result = false;
-	}
-                      fprintf(stdout, "MIR.SerlNum: %s\n", pgm->getLotInformation(EVX_LotTesterSerNum));
-    }
-
-
-    if (!m_MIRArgs.TstrTyp.empty()) {
-	if (status == EVXA::OK) status = pgm->setLotInformation(EVX_LotTesterType, m_MIRArgs.TstrTyp.c_str());
-	if (status != EVXA::OK) {
-	    fprintf(stdout, "[ERROR] sendMIRParams EVX_LotTesterType: status:%d %s\n", status, pgm->getStatusBuffer());
-	    result = false;
-	}
-                      fprintf(stdout, "MIR.TstrTyp: %s\n", pgm->getLotInformation(EVX_LotTesterType));
-    }
-
-    if (!m_MIRArgs.SuprNam.empty()) {
-	if (status == EVXA::OK) status = pgm->setLotInformation(EVX_LotSupervisor, m_MIRArgs.SuprNam.c_str());
-	if (status != EVXA::OK) {
-	    fprintf(stdout, "[ERROR] sendMIRParams EVX_LotSupervisor: status:%d %s\n", status, pgm->getStatusBuffer());
-	    result = false;
-	}
-    }
-
-	// set MIR.EXEC_TYP
-	if (!m_MIRArgs.ExecTyp.empty()) 
-	{
-		if (status == EVXA::OK) status = pgm->setLotInformation(EVX_LotSystemName, m_MIRArgs.ExecTyp.c_str());
-		if (status != EVXA::OK) 
-		{
-			fprintf(stdout, "[ERROR] sendMIRParams EVX_LotSystemName: status:%d %s\n", status, pgm->getStatusBuffer());
-			result = false;
-		}
-		fprintf(stdout, "MIR.ExecTyp: %s\n", pgm->getLotInformation(EVX_LotSystemName));
-	}
- 
-	// set MIR.EXEC_VER
-	if (!m_MIRArgs.ExecVer.empty()) 
-	{
-		if (status == EVXA::OK) status = pgm->setLotInformation(EVX_LotTargetName, m_MIRArgs.ExecVer.c_str());
-		if (status != EVXA::OK) 
-		{
-			fprintf(stdout, "[ERROR] sendMIRParams EVX_LotTargetName: status:%d %s\n", status, pgm->getStatusBuffer());
-			result = false;
-		}
-		fprintf(stdout, "MIR.ExecVer: %s\n", pgm->getLotInformation(EVX_LotTargetName));
-	}
-
-	// set MIR.SPEC_NAM
-	if (!m_TPArgs.SpecNam.empty())
-	{
-		if (status == EVXA::OK) status = pgm->setLotInformation(EVX_LotTestSpecName, m_TPArgs.SpecNam.c_str());
-		if (status != EVXA::OK) 
-		{
-			fprintf(stdout, "[ERROR] sendMIRParams EVX_LotTestSpecName: status:%d %s\n", status, pgm->getStatusBuffer());
-			result = false;
-		}
-		fprintf(stdout, "MIR.SpecNam(From Load Recipe): %s\n", pgm->getLotInformation(EVX_LotTestSpecName));		
-	}
-	else if (!m_MIRArgs.SpecNam.empty()) 
-	{
-		if (status == EVXA::OK) status = pgm->setLotInformation(EVX_LotTestSpecName, m_MIRArgs.SpecNam.c_str());
-		if (status != EVXA::OK) 
-		{
-			fprintf(stdout, "[ERROR] sendMIRParams EVX_LotTestSpecName: status:%d %s\n", status, pgm->getStatusBuffer());
-			result = false;
-		}
-		fprintf(stdout, "MIR.SpecNam: %s\n", pgm->getLotInformation(EVX_LotTestSpecName));
-	}
-
-	// set MIR.SPEC_VER
-	if (!m_TPArgs.SpecVer.empty())
-	{
-		if (status == EVXA::OK) status = pgm->setLotInformation(EVX_LotTestSpecRev, m_TPArgs.SpecVer.c_str());
-		if (status != EVXA::OK) 
-		{
-			fprintf(stdout, "[ERROR] sendMIRParams EVX_LotTestSpecRev: status:%d %s\n", status, pgm->getStatusBuffer());
-			result = false;
-		}
-		fprintf(stdout, "MIR.SpecVer(From Load Recipe): %s\n", pgm->getLotInformation(EVX_LotTestSpecRev));
-	}
-	else if (!m_MIRArgs.SpecVer.empty()) 
-	{
-		if (status == EVXA::OK) status = pgm->setLotInformation(EVX_LotTestSpecRev, m_MIRArgs.SpecVer.c_str());
-		if (status != EVXA::OK) 
-		{
-			fprintf(stdout, "[ERROR] sendMIRParams EVX_LotTestSpecRev: status:%d %s\n", status, pgm->getStatusBuffer());
-			result = false;
-		}
-		fprintf(stdout, "MIR.SpecVer: %s\n", pgm->getLotInformation(EVX_LotTestSpecRev));
-	}
-
-
-    if (!m_MIRArgs.ProtCod.empty()) {
-	if (status == EVXA::OK) status = pgm->setLotInformation(EVX_LotProtectionCode, m_MIRArgs.ProtCod.c_str());
-	if (status != EVXA::OK) {
-	    fprintf(stdout, "[ERROR] sendMIRParams EVX_LotProtectionCode: status:%d %s\n", status, pgm->getStatusBuffer());
-	    result = false;
-	}
-        fprintf(stdout, "MIR.ProtCod: %s\n", pgm->getLotInformation(EVX_LotProtectionCode));
-    }
-    
-    return true;
+    	return true;
 }
 
 //--------------------------------------------------------------------
 /* This function takes the SDR parameters and sends them to 
    The Test Program.
 */
-bool CuserEvxaInterface::sendSDRParams()
-{
-	if (debug()) std::cout << "[DEBUG] Executing CuserEvxaInterface::sendSDRParams()" << std::endl;
-  
-    ProgramControl *pgm = PgmCtrl();
-    if (NULL == pgm) {
-	fprintf(stdout, "Error sendSDRParams: no ProgramControl\n");
-	return false;
-    }
-
-    EVXAStatus status = EVXA::OK;
-    bool result = true;
-    if (!m_SDRArgs.HandTyp.empty()) {
-	if (status == EVXA::OK) status = pgm->setLotInformation(EVX_LotHandlerType, m_SDRArgs.HandTyp.c_str());
-	if (status != EVXA::OK) {
-	    fprintf(stdout, "Error sendSDRParams set handler: %s\n", pgm->getStatusBuffer());
-	    result = false;
-	}
-        fprintf(stdout, "SDR.HandTyp: %s\n", pgm->getLotInformation(EVX_LotHandlerType));
-    }
-
-
-    if (!m_SDRArgs.CardId.empty()) {
-	if (status == EVXA::OK) status = pgm->setLotInformation(EVX_LotCardId, m_SDRArgs.CardId.c_str());
-	if (status != EVXA::OK) {
-	    fprintf(stdout, "Error sendSDRParams set card ID: %s\n", pgm->getStatusBuffer());
-	    result = false;
-	}
-    }
-    if (!m_SDRArgs.LoadId.empty()) {
-	if (status == EVXA::OK) status = pgm->setLotInformation(EVX_LotLoadBrdId, m_SDRArgs.LoadId.c_str());
-	if (status != EVXA::OK) {
-	    fprintf(stdout, "Error sendSDRParams set Loadboard ID: %s\n", pgm->getStatusBuffer());
-	    result = false;
-	}
-    }
-    if (!m_SDRArgs.PHId.empty()) {
-	if (status == EVXA::OK) status = pgm->setLotInformation(EVX_LotProberHandlerID, m_SDRArgs.PHId.c_str());
-	if (status != EVXA::OK) {
-	    fprintf(stdout, "Error sendSDRParams set Prober Handler ID: %s\n", pgm->getStatusBuffer());
-	    result = false;
-	}
-    }
-
-    if (!m_SDRArgs.DibTyp.empty()) {
-	if (status == EVXA::OK) status = pgm->setLotInformation(EVX_LotDIBType, m_SDRArgs.DibTyp.c_str());
-	if (status != EVXA::OK) {
-	    fprintf(stdout, "[ERROR] sendSDRParams set LotDIBType: %s\n", pgm->getStatusBuffer());
-	    result = false;
-	}
-    }
-
-    if (!m_SDRArgs.CableId.empty()) {
-	if (status == EVXA::OK) status = pgm->setLotInformation(EVX_LotIfCableId, m_SDRArgs.CableId.c_str());
-	if (status != EVXA::OK) {
-	    fprintf(stdout, "[ERROR] sendSDRParams set LotIfCableId: %s\n", pgm->getStatusBuffer());
-	    result = false;
-	}
-    }
-
-    if (!m_SDRArgs.ContTyp.empty()) {
-	if (status == EVXA::OK) status = pgm->setLotInformation(EVX_LotContactorType, m_SDRArgs.ContTyp.c_str());
-	if (status != EVXA::OK) {
-	    fprintf(stdout, "[ERROR] sendSDRParams set LotContactorType: %s\n", pgm->getStatusBuffer());
-	    result = false;
-	}
-    }
-
-    if (!m_SDRArgs.LoadTyp.empty()) {
-	if (status == EVXA::OK) status = pgm->setLotInformation(EVX_LotLoadBrdType, m_SDRArgs.LoadTyp.c_str());
-	if (status != EVXA::OK) {
-	    fprintf(stdout, "[ERROR] sendSDRParams set LotLoadBrdType: %s\n", pgm->getStatusBuffer());
-	    result = false;
-	}
-    }
-
-    if (!m_SDRArgs.ContId.empty()) {
-	if (status == EVXA::OK) status = pgm->setLotInformation(EVX_LotContactorId, m_SDRArgs.ContId.c_str());
-	if (status != EVXA::OK) {
-	    fprintf(stdout, "[ERROR] sendSDRParams set LotContactorId: %s\n", pgm->getStatusBuffer());
-	    result = false;
-	}
-    }
-
-    if (!m_SDRArgs.LaserTyp.empty()) {
-	if (status == EVXA::OK) status = pgm->setLotInformation(EVX_LotLaserType, m_SDRArgs.LaserTyp.c_str());
-	if (status != EVXA::OK) {
-	    fprintf(stdout, "[ERROR] sendSDRParams set LotLaserType: %s\n", pgm->getStatusBuffer());
-	    result = false;
-	}
-    }
-
-    if (!m_SDRArgs.LaserId.empty()) {
-	if (status == EVXA::OK) status = pgm->setLotInformation(EVX_LotLaserId, m_SDRArgs.LaserId.c_str());
-	if (status != EVXA::OK) {
-	    fprintf(stdout, "[ERROR] sendSDRParams set LotLaserId: %s\n", pgm->getStatusBuffer());
-	    result = false;
-	}
-    }
-    if (!m_SDRArgs.ExtrTyp.empty()) {
-	if (status == EVXA::OK) status = pgm->setLotInformation(EVX_LotExtEquipType, m_SDRArgs.ExtrTyp.c_str());
-	if (status != EVXA::OK) {
-	    fprintf(stdout, "[ERROR] sendSDRParams set LotExtEquipType: %s\n", pgm->getStatusBuffer());
-	    result = false;
-	}
-    }
-    if (!m_SDRArgs.ExtrId.empty()) {
-	if (status == EVXA::OK) status = pgm->setLotInformation(EVX_LotExtEquipId, m_SDRArgs.ExtrId.c_str());
-	if (status != EVXA::OK) {
-	    fprintf(stdout, "[ERROR] sendSDRParams set LotExtEquipId: %s\n", pgm->getStatusBuffer());
-	    result = false;
-	}
-    }
-    if (!m_SDRArgs.DibId.empty()) {
-	if (status == EVXA::OK) status = pgm->setLotInformation(EVX_LotActiveLoadBrdName, m_SDRArgs.DibId.c_str());
-	if (status != EVXA::OK) {
-	    fprintf(stdout, "[ERROR] sendSDRParams set LotActiveLoadBrdName: %s\n", pgm->getStatusBuffer());
-	    result = false;
-	}
-    }
-    if (!m_SDRArgs.CardTyp.empty()) {
-	if (status == EVXA::OK) status = pgm->setLotInformation(EVX_LotCardType, m_SDRArgs.CardTyp.c_str());
-	if (status != EVXA::OK) {
-	    fprintf(stdout, "[ERROR] sendSDRParams set LotCardType: %s\n", pgm->getStatusBuffer());
-	    result = false;
-	}
-    }
-    if (!m_SDRArgs.CableTyp.empty()) {
-	if (status == EVXA::OK) status = pgm->setLotInformation(EVX_LotIfCableType, m_SDRArgs.CableTyp.c_str());
-	if (status != EVXA::OK) {
-	    fprintf(stdout, "[ERROR] sendSDRParams set LotIfCableType: %s\n", pgm->getStatusBuffer());
-	    result = false;
-	}
-        fprintf(stdout, "SDR.CableTyp: %s\n", pgm->getLotInformation(EVX_LotIfCableType));
-    }
-
-
-
-    return result;
-}
 
 //--------------------------------------------------------------------
 /* This function takes the TP parameters and sends them to 
