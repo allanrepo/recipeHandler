@@ -56,7 +56,7 @@ CuserEvxaInterface::CuserEvxaInterface(const std::string& testerName, bool conne
     if (connect) connectToTester();
 }
 
-CuserEvxaInterface::CuserEvxaInterface(const std::string& testerName, unsigned long headNumber, bool connect) 
+CuserEvxaInterface::CuserEvxaInterface(const std::string& testerName, FA_ULONG headNumber, bool connect) 
 {
     commonInit();
     m_args.testerName(testerName);
@@ -387,7 +387,7 @@ void CuserEvxaInterface::gemRunning(void)
 }
 
 void CuserEvxaInterface::alarmChange(const EVX_ALARM_STATE alarm_state, const ALARM_TYPE alarm_type,
-                         const long time_occurred, const char *description)
+                         const FA_LONG time_occurred, const char *description)
 {
     if (debug()) std::cout << "CuserEvxaInterface::alarmChange" << std::endl;
 }
@@ -803,7 +803,7 @@ bool CuserEvxaInterface::parseGDR(XML_Node *GDRRecord)
      	for(int jj = 0; jj < STDFfields->numChildren(); jj++) 
 	{
 		XML_Node *STDFfield = STDFfields->fetchChild(jj);
-		if (STDFfield) 
+		if (STDFfield)  
 		{
 			// get the value that this field contains
 			std::string result = STDFfield->fetchText();
@@ -2192,7 +2192,7 @@ and wait for the StateNotification to occur before continuing.
 This is so we can serialize events so the RecipeDecodeResult will
 be the last thing sent to cgem.
 */ 
-void CuserEvxaInterface::setupWaitForNotification(unsigned long wait_state, unsigned long wait_minor_state)
+void CuserEvxaInterface::setupWaitForNotification(FA_ULONG wait_state, FA_ULONG wait_minor_state)
 {
     // initialize the condition we are waiting for
     m_currentState = wait_state;
@@ -2250,7 +2250,7 @@ void CuserEvxaInterface::waitForNotification()
 if the given wait_state and wait_program_wait state match
 what was given from setup.
 */ 
-void CuserEvxaInterface::sendNotificationComplete(unsigned long wait_state, unsigned long wait_minor_state)
+void CuserEvxaInterface::sendNotificationComplete(FA_ULONG wait_state, FA_ULONG wait_minor_state)
 {
     if ((MAX_EVX_STATE == m_currentState) && (MAX_EVX_PROGRAM_STATE == m_currentMinorState))
 	return;

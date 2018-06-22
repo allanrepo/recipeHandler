@@ -49,7 +49,7 @@ bool CevxaTester::CStateNotify::startListener(void)
     return Cmonitor::startListener(this); 
 }
 
-bool CevxaTester::CStateNotify::run(long userID, void *pUserData) 
+bool CevxaTester::CStateNotify::run(signed int userID, void *pUserData) 
 {
     struct timespec tv;
     fd_set l_watchFd;
@@ -193,7 +193,7 @@ void CevxaTester::CStateNotify::gemRunning(void)
 }
 
 void CevxaTester::CStateNotify::alarmChange(const EVX_ALARM_STATE alarm_state, const ALARM_TYPE alarm_type,
-			       const long time_occurred, const char *description) 
+			       const signed int time_occurred, const char *description) 
 {
     CSemLock l(sem(), timeout());
     if (!l.locked()) return;
@@ -249,7 +249,7 @@ bool CevxaTester::CstreamClient::startListener(void)
     return Cmonitor::startListener(this); 
 }
 
-bool CevxaTester::CstreamClient::run(long userID, void *pUserData) 
+bool CevxaTester::CstreamClient::run(signed int userID, void *pUserData) 
 {
     struct timespec tv;
     fd_set l_watchFd;
@@ -294,7 +294,7 @@ bool CevxaTester::CCmdNotify::startListener(void)
     return Cmonitor::startListener(this); 
 }
 
-bool CevxaTester::CCmdNotify::run(long userID, void *pUserData) 
+bool CevxaTester::CCmdNotify::run(signed int userID, void *pUserData) 
 {
     struct timespec tv;
     fd_set l_watchFd;

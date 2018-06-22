@@ -17,6 +17,19 @@ std::string num2stdstring(T value) {
 	return static_cast< std::ostringstream* >(&(std::ostringstream() << value))->str();
 }
 
+// This is to compile in both 32bit and 64bit
+#if __x86_64__
+	typedef int32_t FA_LONG;
+	typedef uint32_t FA_ULONG;
+	#define _FAPROC_LONG_FS_ d
+	#define _FAPROC_ULONG_FS_ u
+#else
+	typedef long FA_LONG;
+	typedef unsigned long FA_ULONG;
+	#define _FAPROC_LONG_FS_ ld
+	#define _FAPROC_ULONG_FS_ lu
+#endif
+
 #define EVXA_DEMO_VERSION "1.00"
 
 ////////////////////////////////////////
@@ -70,14 +83,14 @@ private:
     pthread_cond_t m_wakeUp;
     bool m_goAway;
     bool m_taskComplete;
-    unsigned long m_currentState;
-    unsigned long m_currentMinorState;
+    FA_ULONG m_currentState;
+    FA_ULONG m_currentMinorState;
     std::vector<unsigned int> m_currentProgramStateArray;
 
-    void setupWaitForNotification(unsigned long wait_state, unsigned long wait_minor_state);
+    void setupWaitForNotification(FA_ULONG wait_state, FA_ULONG wait_minor_state);
     void setupProgramNotification(EVX_PROGRAM_STATE *wait_program_states);
     void waitForNotification();
-    void sendNotificationComplete(unsigned long wait_state, unsigned long wait_minor_state);
+    void sendNotificationComplete(FA_ULONG wait_state, FA_ULONG wait_minor_state);
 
     void commonInit();
     ProgramControl *PgmCtrl(); 
@@ -138,7 +151,7 @@ public:
     CuserEvxaInterface(int argc, char *argv[], char *envp[]);
     CuserEvxaInterface(const std::string& testerName, bool connect);
 
-    CuserEvxaInterface(const std::string& testerName, unsigned long headNumber, bool connect);
+    CuserEvxaInterface(const std::string& testerName, FA_ULONG headNumber, bool connect);
     virtual ~CuserEvxaInterface();
     evxaTester::CevxaTester* GetTesterClass();
 
@@ -191,7 +204,7 @@ public:
     void testerReady(void);
     void gemRunning(void);
     void alarmChange(const EVX_ALARM_STATE alarm_state, const ALARM_TYPE alarm_type,
-                             const long time_occurred, const char *description);
+                             const FA_LONG time_occurred, const char *description);
     void testerStateChange(const EVX_TESTER_STATE tester_state);
     void waferChange(const EVX_WAFER_STATE wafer_state, const char *wafer_id);
     void lotChange(const EVX_LOT_STATE lot_state, const char *lot_id);

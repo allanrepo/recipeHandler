@@ -52,7 +52,7 @@ public:
     virtual void testerReady(void) {}
     virtual void gemRunning(void) {}
     virtual void alarmChange(const EVX_ALARM_STATE alarm_state, const ALARM_TYPE alarm_type,
-                             const long time_occurred, const char *description) {}
+                             const signed int time_occurred, const char *description) {}
 
     virtual void testerStateChange(const EVX_TESTER_STATE tester_state) {}
     virtual void waferChange(const EVX_WAFER_STATE wafer_state, const char *wafer_id) {}
@@ -70,7 +70,7 @@ public:
 class Cmonitor : public curi::utilities::CThreadCallback {
 private:
         curi::utilities::CThread m_thread;
-        long m_timeout;
+        signed int m_timeout;
         curi::utilities::CsemaphoreCtrl m_sem;
 public:
 
@@ -81,7 +81,7 @@ public:
         long timeout(long t);
 
         inline curi::utilities::CsemaphoreCtrl& sem(void) { return m_sem; }
-        inline long timeout(void) const { return m_timeout; }
+        inline signed int timeout(void) const { return m_timeout; }
         inline curi::utilities::CThread& thread(void) { return m_thread; }
 
 };
@@ -108,7 +108,7 @@ private:
         bool startListener(void);
 
         // Thread listener
-	bool run(long userID, void *pUserData);
+	bool run(signed int userID, void *pUserData);
 
 	void dlogChange(const EVX_DLOG_STATE state);
 	void expressionChange(const char *expr_obj_name);
@@ -127,7 +127,7 @@ private:
         void testerReady(void);
         void gemRunning(void);
         void alarmChange(const EVX_ALARM_STATE alarm_state, const ALARM_TYPE alarm_type,
-			 const long time_occurred, const char *description);
+			 const signed int time_occurred, const char *description);
         void testerStateChange(const EVX_TESTER_STATE tester_state);
         void waferChange(const EVX_WAFER_STATE wafer_state, const char *wafer_id);
         void lotChange(const EVX_LOT_STATE lot_state, const char *lot_id);
@@ -154,7 +154,7 @@ private:
         bool startListener(void);
 
         // Thread listener
-        bool run(long userID, void *pUserData);
+        bool run(signed int userID, void *pUserData);
         void EvxioMessage(int responseNeeded, int responseAquired, char *evxio_msg);
     };
 
@@ -181,7 +181,7 @@ private:
         bool startListener(void);
 
         // Thread listener
-        bool run(long userID, void *pUserData);
+        bool run(signed int userID, void *pUserData);
         void RecipeDecodeAvailable(const char *recipe_text, bool &result);
 	void RecipeDecode(const char *recipe_text);
         void RecipeStatus(const EVX_RECIPE_PARSE_STATUS recipe_status);
