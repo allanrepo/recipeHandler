@@ -21,7 +21,7 @@ must not be misrepresented as being the original software.
 distribution.
 */
 
-#include "tinyxml2.h"
+#include <tinyxml2.h>
 
 #include <new>		// yes, this one new style header, is in the Android SDK.
 #if defined(ANDROID_NDK) || defined(__BORLANDC__) || defined(__QNXNTO__)
@@ -400,11 +400,11 @@ const char* XMLUtil::ReadBOM( const char* p, bool* bom )
 }
 
 
-void XMLUtil::ConvertUTF32ToUTF8( unsigned long input, char* output, int* length )
+void XMLUtil::ConvertUTF32ToUTF8( uint32_t input, char* output, int* length )
 {
-    const unsigned long BYTE_MASK = 0xBF;
-    const unsigned long BYTE_MARK = 0x80;
-    const unsigned long FIRST_BYTE_MARK[7] = { 0x00, 0x00, 0xC0, 0xE0, 0xF0, 0xF8, 0xFC };
+    const uint32_t BYTE_MASK = 0xBF;
+    const uint32_t BYTE_MARK = 0x80;
+    const uint32_t FIRST_BYTE_MARK[7] = { 0x00, 0x00, 0xC0, 0xE0, 0xF0, 0xF8, 0xFC };
 
     if (input < 0x80) {
         *length = 1;
@@ -459,7 +459,7 @@ const char* XMLUtil::GetCharacterRef( const char* p, char* value, int* length )
     *length = 0;
 
     if ( *(p+1) == '#' && *(p+2) ) {
-        unsigned long ucs = 0;
+        uint32_t ucs = 0;
         TIXMLASSERT( sizeof( ucs ) >= 4 );
         ptrdiff_t delta = 0;
         unsigned mult = 1;
@@ -500,7 +500,7 @@ const char* XMLUtil::GetCharacterRef( const char* p, char* value, int* length )
                 TIXMLASSERT( digit < 16 );
                 TIXMLASSERT( digit == 0 || mult <= UINT_MAX / digit );
                 const unsigned int digitScaled = mult * digit;
-                TIXMLASSERT( ucs <= ULONG_MAX - digitScaled );
+                TIXMLASSERT( ucs <= UINT_MAX - digitScaled );
                 ucs += digitScaled;
                 TIXMLASSERT( mult <= UINT_MAX / 16 );
                 mult *= 16;
@@ -530,7 +530,7 @@ const char* XMLUtil::GetCharacterRef( const char* p, char* value, int* length )
                     TIXMLASSERT( digit < 10 );
                     TIXMLASSERT( digit == 0 || mult <= UINT_MAX / digit );
                     const unsigned int digitScaled = mult * digit;
-                    TIXMLASSERT( ucs <= ULONG_MAX - digitScaled );
+                    TIXMLASSERT( ucs <= UINT_MAX - digitScaled );
                     ucs += digitScaled;
                 }
                 else {
@@ -2169,9 +2169,9 @@ XMLError XMLDocument::LoadFile( const char* filename )
 // is useful and code with no check when a check is redundant depending on how size_t and unsigned long
 // types sizes relate to each other.
 template
-<bool = (sizeof(unsigned long) >= sizeof(size_t))>
+<bool = (sizeof(uint32_t) >= sizeof(size_t))>
 struct LongFitsIntoSizeTMinusOne {
-    static bool Fits( unsigned long value )
+    static bool Fits( uint32_t value )
     {
         return value < (size_t)-1;
     }
@@ -2179,7 +2179,7 @@ struct LongFitsIntoSizeTMinusOne {
 
 template <>
 struct LongFitsIntoSizeTMinusOne<false> {
-    static bool Fits( unsigned long )
+    static bool Fits( uint32_t )
     {
         return true;
     }
@@ -2196,7 +2196,7 @@ XMLError XMLDocument::LoadFile( FILE* fp )
     }
 
     fseek( fp, 0, SEEK_END );
-    const long filelength = ftell( fp );
+    const int32_t filelength = ftell( fp );
     fseek( fp, 0, SEEK_SET );
     if ( filelength == -1L ) {
         SetError( XML_ERROR_FILE_READ_ERROR, 0, 0 );

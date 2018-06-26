@@ -1,3 +1,4 @@
+#include <xtrf.h>
 
 #include <iostream>
 #include <fstream>
@@ -7,8 +8,7 @@
 #include <cstring> // for strerror
 #include <cerrno>  // for errno
 
-#include "xtrf.h"
-#include "tinyxml2.h"
+#include <tinyxml2.h>
 
 namespace tinyxtrf {
 
