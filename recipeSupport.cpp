@@ -380,6 +380,8 @@ CGDR::CGDR(const CGDR& ot)
 	gui_nam.value = ot.gui_nam.value;
 	gui_rev.value =  ot.gui_rev.value;
 	stdf_frm.value =  ot.gui_rev.value;
+	drv_rev.value = ot.drv_rev.value;
+	drv_nam.value = ot.drv_nam.value;
 }
 
 CGDR& CGDR::operator=(const CGDR& ot)
@@ -395,6 +397,8 @@ CGDR& CGDR::operator=(const CGDR& ot)
 	gui_nam.value = ot.gui_nam.value;
 	gui_rev.value =  ot.gui_rev.value;
 	stdf_frm.value =  ot.gui_rev.value;
+	drv_rev.value = ot.drv_rev.value;
+	drv_nam.value = ot.drv_nam.value;	
 	return *this;
 }
 
@@ -416,6 +420,8 @@ void CGDR::clear()
 	gui_nam.clear();
 	gui_rev.clear();
 	stdf_frm.clear();
+	drv_rev.clear();
+	drv_nam.clear();
 }
 
 

@@ -122,6 +122,8 @@ public:
 	param gui_nam;
 	param gui_rev;
 	param stdf_frm;
+	param drv_rev;
+	param drv_nam;
 
 public:
 	CGDR();

@@ -704,32 +704,43 @@ bool CuserEvxaInterface::updateSTDFAfterProgLoad()
 
 	if (!PgmCtrl()){ std::cout << "[ERROR] CuserEvxaInterface::updateSTDFAfterProgLoad(): Cannot access ProgramControl object." << std::endl; return false; }
 
-	// make sure to change exec_typ to "Unison"
+	// make sure to change exec_typ to "Unison". note that we arent writing exec_typ here yet. we are just updating its variable
 	std::string SystemName = PgmCtrl()->getLotInformation(EVX_LotSystemName);
 	if (SystemName.empty() || SystemName.compare("enVision") == 0) m_MIRArgs.ExecTyp = "Unison";
 
 	// we send SDR.HAND_TYP to FAmodule so it can send it to STDF during onlotstart(). this ensures Unison doesn't overwrite it
 	PgmCtrl()->faprocSet("Current Equipment: HAND_TYP", m_SDRArgs.HandTyp.value);
+	PgmCtrl()->faprocSet("Current Equipment: HAND_TYP_REQ", m_SDRArgs.HandTyp.required);
+	PgmCtrl()->faprocSet("Current Equipment: HAND_TYP_OVR", m_SDRArgs.HandTyp.override);
 	std::string hand_typ;
 	PgmCtrl()->faprocGet("Current Equipment: HAND_TYP", hand_typ);
 	if (debug()) std::cout << "[DEBUG] HAND_TYP sent to faproc: " << hand_typ << std::endl;	
 
 	// send GUI_NAM and GUI_REV to FAmodule
 	PgmCtrl()->faprocSet("Current Equipment: GUI_NAM_VAL", m_GDR.gui_nam.value);
+	PgmCtrl()->faprocSet("Current Equipment: GUI_NAM_VAL_REQ", m_GDR.gui_nam.required);
+	PgmCtrl()->faprocSet("Current Equipment: GUI_NAM_VAL_OVR", m_GDR.gui_nam.override);
 	if (debug()) std::cout << "[DEBUG] GUI_NAM_VAL: " << m_GDR.gui_nam.value << " set in FAmodule." << std::endl;
 
 	PgmCtrl()->faprocSet("Current Equipment: GUI_REV_VAL", m_GDR.gui_rev.value);
+	PgmCtrl()->faprocSet("Current Equipment: GUI_REV_VAL_REQ", m_GDR.gui_rev.required);
+	PgmCtrl()->faprocSet("Current Equipment: GUI_REV_VAL_OVR", m_GDR.gui_rev.override);
 	if (debug()) std::cout << "[DEBUG] GUI_REV_VAL: " << m_GDR.gui_rev.value << " set in FAmodule." << std::endl;
 
 	// send GDR.AUTO_NAM to FAmodule
 	PgmCtrl()->faprocSet("Current Equipment: AUTO_NAM_VAL", m_GDR.auto_nam.value);
+	PgmCtrl()->faprocSet("Current Equipment: AUTO_NAM_VAL_REQ", m_GDR.auto_nam.required);
+	PgmCtrl()->faprocSet("Current Equipment: AUTO_NAM_VAL_OVR", m_GDR.auto_nam.override);
 	if (debug()) std::cout << "[DEBUG] AUTO_NAM_VAL: " << m_GDR.auto_nam.value << " set in FAmodule." << std::endl;
 	
 	// send GDR.AUTO_REV to FAmodule
 	PgmCtrl()->faprocSet("Current Equipment: AUTO_VER_VAL", m_GDR.auto_ver.value);
+	PgmCtrl()->faprocSet("Current Equipment: AUTO_VER_VAL_REQ", m_GDR.auto_ver.required);
+	PgmCtrl()->faprocSet("Current Equipment: AUTO_VER_VAL_OVR", m_GDR.auto_ver.override);
 	if (debug()) std::cout << "[DEBUG] AUTO_VER_VAL: " << m_GDR.auto_ver.value << " set in FAmodule." << std::endl;
 
 	// send GDR.TRF-XTRF value to FAmodule
+	// make the value always taken from lotid_flowid, unless TRF_XTRF field in XTRF is "strict" 
 	if (m_GDR.trf_xtrf.value.empty())
 	{
 		if (debug()) std::cout << "[DEBUG] Didn't find TRF-XTRF from XTRF. setting it instead to " << m_MIRArgs.LotId.value << "_" << m_MIRArgs.FlowId.value << " (lotid_flowid)" << std::endl;		
@@ -761,15 +772,31 @@ bool CuserEvxaInterface::updateSTDFAfterProgLoad()
 
 
 	// hard code API_NAM and API_REV. sabine suggest to leave this empty 
-	m_GDR.api_nam.value = "";
 	PgmCtrl()->faprocSet("Current Equipment: API_NAM_VAL", m_GDR.api_nam.value);
+	PgmCtrl()->faprocSet("Current Equipment: API_NAM_VAL_REQ", m_GDR.api_nam.required);
+	PgmCtrl()->faprocSet("Current Equipment: API_NAM_VAL_OVR", m_GDR.api_nam.override);
 	if (debug()) std::cout << "[DEBUG] API_NAM_VAL: " << m_GDR.api_nam.value << " set in FAmodule." << std::endl;
-	m_GDR.api_rev.value = "";
+
 	PgmCtrl()->faprocSet("Current Equipment: API_REV_VAL", m_GDR.api_rev.value);
+	PgmCtrl()->faprocSet("Current Equipment: API_REV_VAL_REQ", m_GDR.api_rev.required);
+	PgmCtrl()->faprocSet("Current Equipment: API_REV_VAL_OVR", m_GDR.api_rev.override);
 	if (debug()) std::cout << "[DEBUG] API_REV_VAL: " << m_GDR.api_rev.value << " set in FAmodule." << std::endl;
+
+	// set DRV_NAM and DRV_REV.
+	PgmCtrl()->faprocSet("Current Equipment: DRV_NAM_VAL", m_GDR.drv_nam.value);
+	PgmCtrl()->faprocSet("Current Equipment: DRV_NAM_VAL_REQ", m_GDR.drv_nam.required);
+	PgmCtrl()->faprocSet("Current Equipment: DRV_NAM_VAL_OVR", m_GDR.drv_nam.override);
+	if (debug()) std::cout << "[DEBUG] DRV_NAM_VAL: " << m_GDR.drv_nam.value << " set in FAmodule." << std::endl;
+
+	PgmCtrl()->faprocSet("Current Equipment: DRV_REV_VAL", m_GDR.drv_rev.value);
+	PgmCtrl()->faprocSet("Current Equipment: DRV_REV_VAL_REQ", m_GDR.drv_rev.required);
+	PgmCtrl()->faprocSet("Current Equipment: DRV_REV_VAL_OVR", m_GDR.drv_rev.override);
+	if (debug()) std::cout << "[DEBUG] DRV_REV_VAL: " << m_GDR.drv_rev.value << " set in FAmodule." << std::endl;
 
 	// send STDF_FRM to FAmodule
 	PgmCtrl()->faprocSet("Current Equipment: STDF_FRM_VAL", m_GDR.stdf_frm.value);
+	PgmCtrl()->faprocSet("Current Equipment: STDF_FRM_VAL_REQ", m_GDR.stdf_frm.required);
+	PgmCtrl()->faprocSet("Current Equipment: STDF_FRM_VAL_OVR", m_GDR.stdf_frm.override);
 	if (debug()) std::cout << "[DEBUG] STDF_FRM_VAL: " << m_GDR.stdf_frm.value << " set in FAmodule." << std::endl;
 
 	// assuming SERL_NUM is to be set as hostname, we do it here. note that this is temporary as we don't know yet what to put here
@@ -827,6 +854,10 @@ bool CuserEvxaInterface::parseGDR(XML_Node *GDRRecord)
 				if (comment.compare("AUTO_NAM_VAL") == 0){ m_GDR.auto_nam.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] AUTO_NAM " << STDFfield->fetchText() << std::endl; }
 				if (comment.compare("AUTO_VER_VAL") == 0){ m_GDR.auto_ver.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] AUTO_VER " << STDFfield->fetchText() << std::endl; }
 				if (comment.compare("STDF_FRM_VAL") == 0){ m_GDR.stdf_frm.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] STD_FRM " << STDFfield->fetchText() << std::endl; }
+				if (comment.compare("API_NAM_VAL") == 0){ m_GDR.api_nam.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] API_NAM " << STDFfield->fetchText() << std::endl; }
+				if (comment.compare("API_REV_VAL") == 0){ m_GDR.api_rev.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] API_REV " << STDFfield->fetchText() << std::endl; }
+				if (comment.compare("DRV_NAM_VAL") == 0){ m_GDR.drv_nam.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] DRV_NAM " << STDFfield->fetchText() << std::endl; }
+				if (comment.compare("DRV_REV_VAL") == 0){ m_GDR.drv_rev.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] DRV_REV " << STDFfield->fetchText() << std::endl; }
 			}	
 		}	
 	}
