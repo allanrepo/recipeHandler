@@ -110,6 +110,12 @@ struct param
 
 class CGDR
 {
+	struct custom
+	{
+		std::string name;
+		std::vector< param > fields;
+	};
+
 public:
 	param auto_nam;
 	param auto_ver;
@@ -125,12 +131,17 @@ public:
 	param drv_rev;
 	param drv_nam;
 
+	std::vector< custom > customs;
+	
+
 public:
 	CGDR();
 	CGDR(const CGDR& ot);
 	CGDR& operator=(const CGDR& ot);
 	virtual ~CGDR();
 	void clear();	
+
+	void addCustom(const std::string& name, const std::string& v, const std::string& r, const std::string o); 
 };
 
 

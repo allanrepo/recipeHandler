@@ -310,7 +310,9 @@ void CuserEvxaInterface::programChange(const EVX_PROGRAM_STATE state, const char
 	if (debug()) std::cout << "programChange: EVX_PROGRAM_READY" << std::endl;
 	break;
     default:
-	// allan //if (debug()) std::cout << "programChange: Not Handled" << state << std::endl;
+	//if (debug()) 
+		std::cout << "programChange: Not Handled" << state << std::endl;
+		if(PgmCtrl()->getStatus() !=  EVXA::OK) std::cout << "ERROR OCCURED!!!!!!!!!!!!!!!!!!!!!!!!!" << std::endl;
 	break;
     }
 
@@ -389,7 +391,11 @@ void CuserEvxaInterface::gemRunning(void)
 void CuserEvxaInterface::alarmChange(const EVX_ALARM_STATE alarm_state, const ALARM_TYPE alarm_type,
                          const FA_LONG time_occurred, const char *description)
 {
-    if (debug()) std::cout << "CuserEvxaInterface::alarmChange" << std::endl;
+    	if (debug())
+	{ 
+		std::cout << "CuserEvxaInterface::alarmChange: "<< description << std::endl;
+		fprintf(stdout, "alarm_state: %d, alarm_type: %d \n", alarm_state, alarm_type);
+	}
 }
 
 void CuserEvxaInterface::testerStateChange(const EVX_TESTER_STATE tester_state)
@@ -810,6 +816,32 @@ bool CuserEvxaInterface::updateSTDFAfterProgLoad()
 		else{ fprintf(stdout, "MIR.SerlNum: %s\n", PgmCtrl()->getLotInformation(EVX_LotTesterSerNum)); }
 	}
 
+	// now let's send custom GDR's to CURI
+	PgmCtrl()->faprocSet("Current Equipment: GDR_CUSTOM_CNT", m_GDR.customs.size());
+	for (unsigned int i = 0; i < m_GDR.customs.size(); i++)
+	{
+		// send size of each custom GDR sets
+		std::stringstream ss;
+		ss << "Current Equipment: GDR_CUSTOM" << i << "_CNT";
+		PgmCtrl()->faprocSet(ss.str(), m_GDR.customs[i].fields.size());
+
+		for (unsigned int j = 0; j < m_GDR.customs[i].fields.size(); j++)
+		{
+			std::stringstream ss;
+			ss << "Current Equipment: GDR_CUSTOM" << i << "_VAL" << j;
+			PgmCtrl()->faprocSet(ss.str(), m_GDR.customs[i].fields[j].value);
+		}
+		
+	}
+
+	// send sublotid from XTRF to FAmodule, if any
+	PgmCtrl()->faprocSet("Current Equipment: SUBLOTID_VAL", m_MIRArgs.SblotId.value);
+	PgmCtrl()->faprocSet("Current Equipment: SUBLOTID_REQ", m_MIRArgs.SblotId.required);
+	PgmCtrl()->faprocSet("Current Equipment: SUBLOTID_OVR", m_MIRArgs.SblotId.override);
+	if (debug()) std::cout << "[DEBUG] SUBLOTID_VAL: " << m_MIRArgs.SblotId.value << " set in FAmodule." << std::endl;
+
+
+
 	return true;
 }
 
@@ -822,6 +854,10 @@ bool CuserEvxaInterface::parseGDR(XML_Node *GDRRecord)
      	bool result = true;
 
 	if (!PgmCtrl()){ std::cout << "[ERROR] CuserEvxaInterface::parseGDR(): Cannot access ProgramControl object." << std::endl; return false; }
+
+	// get custom name of this GDR
+    	std::string customName("");
+    	for (int ii=0; ii<GDRRecord->numAttr(); ii++){ GDRRecord->fetchAttr(ii).compare("customName") == 0? customName = GDRRecord->fetchVal(ii) : customName = ""; }
 
 	// start reading fields from XTRF 
     	XML_Node *STDFfields = GDRRecord->fetchChild("STDFfields");
@@ -848,16 +884,25 @@ bool CuserEvxaInterface::parseGDR(XML_Node *GDRRecord)
 			// we expect only GEN_DATA fields so...
 			if (fieldname.compare("GEN_DATA") == 0)
 			{
-				if (comment.compare("GUI_NAM_VAL") == 0){ m_GDR.gui_nam.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] GUI_NAM " << STDFfield->fetchText() << std::endl; }
-				if (comment.compare("GUI_REV_VAL") == 0){ m_GDR.gui_rev.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] GUI_REV " << STDFfield->fetchText() << std::endl; }
-				if (comment.compare("TRF-XTRF_VAL") == 0){ m_GDR.trf_xtrf.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] TRF_XTRF " << STDFfield->fetchText() << std::endl; }
-				if (comment.compare("AUTO_NAM_VAL") == 0){ m_GDR.auto_nam.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] AUTO_NAM " << STDFfield->fetchText() << std::endl; }
-				if (comment.compare("AUTO_VER_VAL") == 0){ m_GDR.auto_ver.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] AUTO_VER " << STDFfield->fetchText() << std::endl; }
-				if (comment.compare("STDF_FRM_VAL") == 0){ m_GDR.stdf_frm.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] STD_FRM " << STDFfield->fetchText() << std::endl; }
-				if (comment.compare("API_NAM_VAL") == 0){ m_GDR.api_nam.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] API_NAM " << STDFfield->fetchText() << std::endl; }
-				if (comment.compare("API_REV_VAL") == 0){ m_GDR.api_rev.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] API_REV " << STDFfield->fetchText() << std::endl; }
-				if (comment.compare("DRV_NAM_VAL") == 0){ m_GDR.drv_nam.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] DRV_NAM " << STDFfield->fetchText() << std::endl; }
-				if (comment.compare("DRV_REV_VAL") == 0){ m_GDR.drv_rev.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] DRV_REV " << STDFfield->fetchText() << std::endl; }
+				if ( (customName.compare("MIR_ADD") == 0) || (customName.compare("AUTOMATION") == 0) || (customName.compare("REF_DIE") == 0) )
+				{
+					if (comment.compare("GUI_NAM_VAL") == 0){ m_GDR.gui_nam.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] GUI_NAM " << STDFfield->fetchText() << std::endl; }
+					if (comment.compare("GUI_REV_VAL") == 0){ m_GDR.gui_rev.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] GUI_REV " << STDFfield->fetchText() << std::endl; }
+					if (comment.compare("TRF-XTRF_VAL") == 0){ m_GDR.trf_xtrf.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] TRF_XTRF " << STDFfield->fetchText() << std::endl; }
+					if (comment.compare("AUTO_NAM_VAL") == 0){ m_GDR.auto_nam.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] AUTO_NAM " << STDFfield->fetchText() << std::endl; }
+					if (comment.compare("AUTO_VER_VAL") == 0){ m_GDR.auto_ver.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] AUTO_VER " << STDFfield->fetchText() << std::endl; }
+					if (comment.compare("STDF_FRM_VAL") == 0){ m_GDR.stdf_frm.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] STD_FRM " << STDFfield->fetchText() << std::endl; }
+					if (comment.compare("API_NAM_VAL") == 0){ m_GDR.api_nam.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] API_NAM " << STDFfield->fetchText() << std::endl; }
+					if (comment.compare("API_REV_VAL") == 0){ m_GDR.api_rev.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] API_REV " << STDFfield->fetchText() << std::endl; }
+					if (comment.compare("DRV_NAM_VAL") == 0){ m_GDR.drv_nam.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] DRV_NAM " << STDFfield->fetchText() << std::endl; }
+					if (comment.compare("DRV_REV_VAL") == 0){ m_GDR.drv_rev.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] DRV_REV " << STDFfield->fetchText() << std::endl; }
+				}
+				// let's handle GEN_DATA belonging to custom GDR's. note that GDR's that aren't AUTOMATION, MIR_ADD, or REF_DIE are custom GDR's
+				else
+				{
+					m_GDR.addCustom(customName, STDFfield->fetchText(), required, override);
+					if (debug()) std::cout << "[DEBUG] CUSTOM_GDR " << customName << ":" << STDFfield->fetchText() << std::endl; 				
+				}
 			}	
 		}	
 	}
@@ -1331,21 +1376,23 @@ bool CuserEvxaInterface::parseSTDF(XML_Node *stdf)
 bool CuserEvxaInterface::parseSTDFRecord(XML_Node *STDFRecord)
 {
 	if (debug()) std::cout << "[DEBUG] Executing CuserEvxaInterface::parseSTDFRecord()" << std::endl;
-   bool result = true;
+   	bool result = true;
 
-    std::string rname("");
-    for (int ii=0; ii<STDFRecord->numAttr(); ii++) {
-	if (STDFRecord->fetchAttr(ii).compare("recordName") == 0) {
-	    rname = STDFRecord->fetchVal(ii);
-	}
-    }
-    if (debug()) fprintf(stdout,"RecordName: %s\n", rname.c_str());
-    if (rname.compare("MIR") == 0){ result = parseMIR(STDFRecord); }
-    else if (rname.compare("SDR") == 0){ result = parseSDR(STDFRecord); }
-    else if (rname.compare("GDR") == 0){ result = parseGDR(STDFRecord); }
-    else { fprintf(stdout, "[ERROR] parseSTDFRecord unknown recordName: %s\n", rname.c_str()); }
+    	std::string rname("");
+    	for (int ii=0; ii<STDFRecord->numAttr(); ii++) 
+	{
+		if (STDFRecord->fetchAttr(ii).compare("recordName") == 0) 
+		{
+	    		rname = STDFRecord->fetchVal(ii);
+		}
+    	}
+    	if (debug()) fprintf(stdout,"RecordName: %s\n", rname.c_str());
+    	if (rname.compare("MIR") == 0){ result = parseMIR(STDFRecord); }
+    	else if (rname.compare("SDR") == 0){ result = parseSDR(STDFRecord); }
+    	else if (rname.compare("GDR") == 0){ result = parseGDR(STDFRecord); }
+    	else { fprintf(stdout, "[ERROR] parseSTDFRecord unknown recordName: %s\n", rname.c_str()); }
 
-    return result;
+    	return result;
 }
 
 //--------------------------------------------------------------------
@@ -1394,6 +1441,7 @@ bool CuserEvxaInterface::clearAllParams()
     	m_MIRArgs.clear();
     	m_SDRArgs.clear();
 	m_GDR.clear();
+	
     	return true;
 }
 

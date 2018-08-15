@@ -145,6 +145,15 @@ private:
 	bool updateSTDFAfterProgLoad();
  	bool setLotInformation(const EVX_LOTINFO_TYPE type, param& field, const char* label);
 
+	class customGDR 
+	{
+	public:
+		std::string name;
+		std::vector< std::string > fields;
+	};
+
+	std::vector< customGDR > m_customGDRs;
+
 public:
 
     CuserEvxaInterface(void);

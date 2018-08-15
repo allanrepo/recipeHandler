@@ -422,6 +422,43 @@ void CGDR::clear()
 	stdf_frm.clear();
 	drv_rev.clear();
 	drv_nam.clear();
+	customs.clear();
+}
+
+void CGDR::addCustom(const std::string& name, const std::string& v, const std::string& r, const std::string o)
+{
+	// find this customName in our list.
+	int bFound = -1;
+	for (unsigned int i = 0; i < customs.size(); i++)
+	{
+		if( name.compare( customs[i].name ) == 0 )
+		{
+			bFound = i;
+			break;
+		}
+	}	
+
+	// if this customName already exist in our list, let's add the field to it
+	if (bFound >= 0)
+	{
+		param field;
+		field.set(v, r, o);
+		customs[bFound].fields.push_back(field);
+	}
+	else
+	{
+		// add this customName to our list
+		custom cgdr;
+		cgdr.name = name;
+		
+		// now add the field to custom list
+		param field;
+		field.set(v, r, o);
+		cgdr.fields.push_back(field);
+
+		customs.push_back(cgdr);
+	}
+
 }
 
 
