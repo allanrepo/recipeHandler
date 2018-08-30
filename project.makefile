@@ -8,8 +8,6 @@ PROJECT_SOURCES =	recipeHandler.cpp \
 			evxaTester.cpp \
 			recipeSupport.cpp \
 			xmlInterface.cpp \
-			tinyxml2.cpp \
-			xtrf.cpp
 
 
 PROJECT_HEADERS   =	cmdLineSwitches.h \
@@ -18,8 +16,7 @@ PROJECT_HEADERS   =	cmdLineSwitches.h \
 			userInterface.h \
 			recipeSupport.h \
 			xmlInterface.h \
-			tinyxml2.h \
-			xtrf.h
+
 
 EVXA_INCLUDES = -I/ltx/customer/include/
 
