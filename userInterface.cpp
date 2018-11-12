@@ -968,8 +968,8 @@ bool CuserEvxaInterface::parseMIR(XML_Node *MIRRecord)
 	    		else if (fieldname.compare("USER_TXT") == 0){ m_MIRArgs.UserText.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] USER_TXT: " << STDFfield->fetchText() << std::endl; }
 	    		else if (fieldname.compare("ROM_COD") == 0){ m_MIRArgs.RomCod.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] ROM_COD: " << STDFfield->fetchText() << std::endl; }
 	    		else if (fieldname.compare("SERL_NUM") == 0){ m_MIRArgs.SerlNum.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] SERL_NUM: " << STDFfield->fetchText() << std::endl; }
-	    		//else if (fieldname.compare("SPEC_NAM") == 0){ m_MIRArgs.SpecNam.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] SPEC_NAM: " << STDFfield->fetchText() << std::endl; }
-	    		//else if (fieldname.compare("SPEC_VER") == 0){ m_MIRArgs.SpecVer.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] SPEC_VER: " << STDFfield->fetchText() << std::endl; }
+	    		else if (fieldname.compare("SPEC_NAM") == 0){ m_MIRArgs.SpecNam.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] SPEC_NAM: " << STDFfield->fetchText() << std::endl; }
+	    		else if (fieldname.compare("SPEC_VER") == 0){ m_MIRArgs.SpecVer.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] SPEC_VER: " << STDFfield->fetchText() << std::endl; }
 	    		else if (fieldname.compare("TSTR_TYP") == 0){ m_MIRArgs.TstrTyp.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] TSTR_TYP: " << STDFfield->fetchText() << std::endl; }
 	    		else if (fieldname.compare("SUPR_NAM") == 0){ m_MIRArgs.SuprNam.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] SUPR_NAM: " << STDFfield->fetchText() << std::endl; }
 	    		else if (fieldname.compare("PROT_COD") == 0){ m_MIRArgs.ProtCod.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] PROT_COD: " << STDFfield->fetchText() << std::endl; }
@@ -1046,8 +1046,16 @@ bool CuserEvxaInterface::setLotInformation(const EVX_LOTINFO_TYPE type, param& f
 	{
 		//if (!field.required.compare("strict"))
 		{
+			// if override != onEmpty, let's force the value from XTRF to be set here
 			if (field.override.compare("onEmpty")) { status = PgmCtrl()->setLotInformation(type, field.c_str()); }
-			else{ std::string str = PgmCtrl()->getLotInformation(type); if(str.empty()) status = PgmCtrl()->setLotInformation(type, field.c_str()); } 
+
+			// if override == onEmpty, we only put XTRF value if it's empty now
+			else
+			{ 
+				std::string str = PgmCtrl()->getLotInformation(type); 
+				std::cout << "onEmpty " << label << ": " << PgmCtrl()->getLotInformation(type) << std::endl;
+				if(str.empty()) status = PgmCtrl()->setLotInformation(type, field.c_str()); 
+			} 
 		}
 		if (status != EVXA::OK)
 		{
@@ -1056,7 +1064,11 @@ bool CuserEvxaInterface::setLotInformation(const EVX_LOTINFO_TYPE type, param& f
 		}
 		std::cout << "Query " << label << ": " << PgmCtrl()->getLotInformation(type) << std::endl;
    	}
-	else{ std::cout << "Field is empty, will not set " << label << " to Unison." << std::endl; }
+	// if field is empty from XTRF, let's leave this field with whatever its current value is
+	else
+	{ 
+		std::cout << "Field is empty, will not set " << label << " to Unison." << std::endl; 
+	}
 	return true;
 }
 
@@ -1066,6 +1078,31 @@ send MIR fields to STDF
 bool CuserEvxaInterface::sendMIRParams()
 {
 	if (debug()) std::cout << "[DEBUG] Executing CuserEvxaInterface::sendMIRParams()" << std::endl;	
+
+
+	// handle special scenario here where by default we take specnam/var from TestPrgmURI. but later on we update it with value and settings from XTRF
+	// note that testPrgmURI is expected to contain "<progfolder>/<programname.una>" and <progfolder> is stored in m_TPArgs.TPPath
+	if (!m_TPArgs.TPPath.empty())
+	{
+		// TPPath might have subfolders. we're only interested in main folder, so we get rid of subs
+		std::string toSpec( m_TPArgs.TPPath );
+		std::size_t p = toSpec.find_first_of("/");
+		if (p != std::string::npos) toSpec = toSpec.substr(0, p);
+
+		p = toSpec.find_last_of("_");
+		if (p != std::string::npos)
+		{
+			// by default, we set specnam/ver from testPrgmURI values directly to Lot Information
+			// if specnam/ver is set by XTRF, let parseMIR() and sendMIRParams() overwrite this if required
+			PgmCtrl()->setLotInformation(EVX_LotTestSpecName, m_TPArgs.TPPath.substr(0, p).c_str());
+			PgmCtrl()->setLotInformation(EVX_LotTestSpecRev, m_TPArgs.TPPath.substr(p + 1, std::string::npos).c_str());
+
+			if (debug()) std::cout << "MIR.SPEC_NAM from testPrgmURI (default): " << PgmCtrl()->getLotInformation(EVX_LotTestSpecName) << std::endl;
+			if (debug()) std::cout << "MIR.SPEC_VER from testPrgmURI (default): " << PgmCtrl()->getLotInformation(EVX_LotTestSpecRev) << std::endl;
+		}
+	}
+
+	// now let's send all XTRF values to Lot Information
  
 	if ( !setLotInformation(EVX_LotLotID, 		m_MIRArgs.LotId, 	"MIR.LotLotID") ) return false;
 	if ( !setLotInformation(EVX_LotCommandMode, 	m_MIRArgs.CmodCod, 	"MIR.LotCommandMode") ) return false;
@@ -1143,24 +1180,27 @@ bool CuserEvxaInterface::parseTestPrgmLoader(XML_Node *testPrgmLoader)
     	bool result = true;
     	if (debug()){fprintf(stdout, "[DEBUG] <testPrgmLoader> Found %d attributes with %d values in %s tag\n", testPrgmLoader->numAttr(), testPrgmLoader->numVals(), testPrgmLoader->fetchTag().c_str());}
 
+	if (!PgmCtrl()){ std::cout << "[ERROR] CuserEvxaInterface::parseTestPrgmLoader(): Cannot access ProgramControl object." << std::endl; return false; }
+
     	for (int ii=0; ii<testPrgmLoader->numAttr(); ii++) 
 	{
 		if (debug()){ fprintf(stdout, "[DEBUG] <testPrgmLoader> Attr %s: %s\n", testPrgmLoader->fetchAttr(ii).c_str(), testPrgmLoader->fetchVal(ii).c_str()); }	
 		if (testPrgmLoader->fetchAttr(ii).compare("reloadStrategy") == 0) m_TPArgs.ReloadStrategy = testPrgmLoader->fetchVal(ii);
 		if (testPrgmLoader->fetchAttr(ii).compare("downloadStrategy") == 0) m_TPArgs.DownloadStrategy = testPrgmLoader->fetchVal(ii);
-		if (testPrgmLoader->fetchAttr(ii).compare("backToIdleStrategy") == 0) m_TPArgs.BackToIdleStrategy = testPrgmLoader->fetchVal(ii);  
+		if (testPrgmLoader->fetchAttr(ii).compare("back2IdleStrategy") == 0) m_TPArgs.BackToIdleStrategy = testPrgmLoader->fetchVal(ii);  
 
 		/*
 		testPrgmURI is expected to contain "<progfolder>/<programname.una>" and is stored in m_TPArgs.TPName
 		<progfolder> is stored in m_TPArgs.TPPath. it will be referenced in download strategy later
-		*/		
+		*/
+		
 		if (testPrgmLoader->fetchAttr(ii).compare("testPrgmURI") == 0) 
 		{
 			m_TPArgs.TPName = testPrgmLoader->fetchVal(ii);
 			unsigned found = m_TPArgs.TPName.find_first_of("/");
 			if (found != std::string::npos){ m_TPArgs.TPPath = m_TPArgs.TPName.substr(0, found); }
 			else { m_TPArgs.TPPath = ""; }		
-
+/*
 			// try to get mir.spec_nam and mir.spec_ver from TPPath
 			if (!m_TPArgs.TPPath.empty())
 			{
@@ -1172,83 +1212,25 @@ bool CuserEvxaInterface::parseTestPrgmLoader(XML_Node *testPrgmLoader)
 				p = toSpec.find_last_of("_");
 				if (p != std::string::npos)
 				{
-					m_MIRArgs.SpecNam = m_TPArgs.TPPath.substr(0, p);
-					m_MIRArgs.SpecVer = m_TPArgs.TPPath.substr(p + 1, std::string::npos);
-					if (debug()) std::cout << "MIR.SPEC_NAM from testPrgmURI: " << m_MIRArgs.SpecNam.c_str() << std::endl;
-					if (debug()) std::cout << "MIR.SPEC_VER from testPrgmURI: " << m_MIRArgs.SpecVer.c_str() << std::endl;
+					// by default, we set specnam/ver from testPrgmURI values directly to Lot Information
+					// if specnam/ver is set by XTRF, let parseMIR() and sendMIRParams() overwrite this if required
+					PgmCtrl()->setLotInformation(EVX_LotTestSpecName, m_TPArgs.TPPath.substr(0, p).c_str());
+					PgmCtrl()->setLotInformation(EVX_LotTestSpecRev, m_TPArgs.TPPath.substr(p + 1, std::string::npos).c_str());
+
+					//m_MIRArgs.SpecNam = m_TPArgs.TPPath.substr(0, p);
+					//m_MIRArgs.SpecVer = m_TPArgs.TPPath.substr(p + 1, std::string::npos);
+					if (debug()) std::cout << "MIR.SPEC_NAM from testPrgmURI: " << PgmCtrl()->getLotInformation(EVX_LotTestSpecName) << std::endl;
+					if (debug()) std::cout << "MIR.SPEC_VER from testPrgmURI: " << PgmCtrl()->getLotInformation(EVX_LotTestSpecRev) << std::endl;
 				}
-			}				
+			}	
+*/			
 		}
     	}
 
     	return result;
 }
 
-bool CuserEvxaInterface::_parseTestPrgmLoader(XML_Node *testPrgmLoader)
-{
-	if (debug()) std::cout << "[DEBUG] Executing CuserEvxaInterface::_parseTestPrgmLoader()" << std::endl;
-    	bool result = true;
 
-    	if (debug()) 
-	{
-		fprintf(stdout, "%s: %d %d %d \n", 
-				testPrgmLoader->fetchTag().c_str(),
-	    			testPrgmLoader->numAttr(),
-	    			testPrgmLoader->numVals(),
-	    			testPrgmLoader->numChildren());
-    	}
-
-    	for (int ii=0; ii<testPrgmLoader->numAttr(); ii++) 
-	{
-		if (debug()){ fprintf(stdout, "testPrgmLoader Attr %s: %s\n", testPrgmLoader->fetchAttr(ii).c_str(), testPrgmLoader->fetchVal(ii).c_str()); }
-		if (testPrgmLoader->fetchAttr(ii).compare("testPrgmURI") == 0) m_TPArgs.TPName = testPrgmLoader->fetchVal(ii);
-		if (testPrgmLoader->fetchAttr(ii).compare("reloadStrategy") == 0) m_TPArgs.ReloadStrategy = testPrgmLoader->fetchVal(ii);
-		if (testPrgmLoader->fetchAttr(ii).compare("downStrategy") == 0) m_TPArgs.DownloadStrategy = testPrgmLoader->fetchVal(ii);
-		if (testPrgmLoader->fetchAttr(ii).compare("backToIdleStrategy") == 0) m_TPArgs.BackToIdleStrategy = testPrgmLoader->fetchVal(ii);
-    	}
-
-    	int numChildren = testPrgmLoader->numChildren();
-    	if (debug()) fprintf(stdout, "testPrgmLoader numChildren = %d\n", numChildren);
-    	
-	for (int ii=0; ii<numChildren; ii++) 
-	{
-		XML_Node *argumentParameter = testPrgmLoader->fetchChild(ii);
-		if (argumentParameter)
-		{
- 	    		if (debug()) 
-			{
-				fprintf(stdout, "%s: %d %d %d %s %s %s\n", 
-		    			argumentParameter->fetchTag().c_str(),
-		    			argumentParameter->numAttr(),
-		    			argumentParameter->numVals(),
-		    			argumentParameter->numChildren(),
-		    			argumentParameter->fetchAttr(0).c_str(),
-		    			argumentParameter->fetchVal(0).c_str(),
-		   	 		argumentParameter->fetchText().c_str());
-	    		}
-
-	    		std::string temp = argumentParameter->fetchVal(0);
-	    		std::string result = argumentParameter->fetchText();
-	    
-			if (temp.compare("PRIS_TESTPROG_NAME") == 0) m_TPArgs.TPName = result;
-	    		else if (temp.compare("CAM_PRODUCT") == 0) m_TPArgs.Product = result;
-	    		else if (temp.compare("PRIS_DIE_CODE") == 0) m_TPArgs.DieCode = result;
-	    		else if (temp.compare("PRIS_PARALLEL_TEST") == 0) m_TPArgs.Parallelism = result;
-	    		else if (temp.compare("CAM_FLOW") == 0) m_TPArgs.Flow = result;
-	    		else if (temp.compare("CMOD_COD") == 0) m_TPArgs.CmodCode = result;
-	    		else if (temp.compare("LOT_ID") == 0) m_TPArgs.LotId = result;
-	    		else if (temp.compare("FLOW_ID") == 0) m_TPArgs.FlowId = result;
-	    		else if (temp.compare("PRIS_GROSS_DIE") == 0) m_TPArgs.GrossDie = result;
-	    		else if (temp.compare("Active_Controller") == 0) m_TPArgs.ActiveController = result;
-	    		else if (temp.compare("endLot") == 0) m_TPArgs.EndLotEnable = result;
-	    		else if (temp.compare("endWafer") == 0) m_TPArgs.EndWaferEnable = result;
-	    		else if (temp.compare("startLot") == 0) m_TPArgs.StartLotEnable = result;
-	    		else if (temp.compare("startWafer") == 0) m_TPArgs.StartWaferEnable = result;
-		}
-   	 }
-
-    	return result;
-}
 
 bool CuserEvxaInterface::parseTestPrgmCopierLoaderScript(XML_Node *testPrgmCopierLoaderScript)
 {
@@ -1256,14 +1238,7 @@ bool CuserEvxaInterface::parseTestPrgmCopierLoaderScript(XML_Node *testPrgmCopie
      bool result = true;
 
     if (debug()) {
-/*
-	fprintf(stdout, "%s: %d %d %d %s %s\n", testPrgmCopierLoaderScript->fetchTag().c_str(),
-	    testPrgmCopierLoaderScript->numAttr(),
-	    testPrgmCopierLoaderScript->numVals(),
-	    testPrgmCopierLoaderScript->numChildren(),
-	    testPrgmCopierLoaderScript->fetchAttr(0).c_str(),
-	    testPrgmCopierLoaderScript->fetchVal(0).c_str());
-*/
+
 	fprintf(stdout, ">>>>%s: %d %d %d \n", testPrgmCopierLoaderScript->fetchTag().c_str(),
 	    testPrgmCopierLoaderScript->numAttr(),
 	    testPrgmCopierLoaderScript->numVals(),

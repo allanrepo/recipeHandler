@@ -102,7 +102,6 @@ private:
     bool parseTestPrgmIdentifier(XML_Node *testPrgmIdentifier);
     bool parseTestPrgm(XML_Node *testPrgm);
     bool parseTestPrgmLoader(XML_Node *testPrgmLoader);
-    bool _parseTestPrgmLoader(XML_Node *testPrgmLoader);
     bool parseTestPrgmCopierLoaderScript(XML_Node *testPrgmCopierLoaderScript);
     bool parseSTDF(XML_Node *stdf);
     bool parseSTDFRecord(XML_Node *STDFRecord);
