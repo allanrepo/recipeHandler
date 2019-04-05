@@ -11,12 +11,19 @@
 <!--       to the LocalLocation and then be un-tar'd. -->
 
 <RECIPEHANDLER_CONF>
-    <CurrentSiteConfiguration ConfigurationName="ST-TPY-Debug"/>
+    <CurrentSiteConfiguration ConfigurationName="Singapore"/>
 
     <SiteConfiguration ConfigurationName="Singapore">
         <argParameter RemoteLocation="/tmp/remote"/>
         <argParameter LocalLocation="/tmp/local"/>
         <argParameter ProgLocation="/tmp/prog"/>
+       <argParameter PackageType="tar"/>
+    </SiteConfiguration>
+
+    <SiteConfiguration ConfigurationName="localuser">
+        <argParameter RemoteLocation="/home/localuser/Desktop/ST/remote"/>
+        <argParameter LocalLocation="/home/localuser/Desktop/ST/local"/>
+        <argParameter ProgLocation="/home/localuser/Desktop/ST/prog"/>
        <argParameter PackageType="tar"/>
     </SiteConfiguration>
 
@@ -29,9 +36,9 @@
     </SiteConfiguration>
 
     <SiteConfiguration ConfigurationName="ST-TPY-Debug">
-        <argParameter RemoteLocation="/export/home/prod/allan/remote"/>
-        <argParameter LocalLocation="/export/home/prod/allan/local"/>
-        <argParameter ProgLocation="/export/home/prod/allan/prog"/>
+        <argParameter RemoteLocation="/export/home/prod/allan/ST/remote"/>
+        <argParameter LocalLocation="/export/home/prod/allan/ST/local"/>
+        <argParameter ProgLocation="/export/home/prod/allan/ST/prog"/>
         <argParameter PackageType="tar"/>
     </SiteConfiguration>
 

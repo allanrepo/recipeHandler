@@ -3,9 +3,6 @@
 #include <sstream> 
 #include <string>
 
-bool g_bDisableRobot = false;
-
-
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 // try to open file in read mode a number of tries. 
 // once it pass in opening file during the tries, it stops and return true
@@ -26,183 +23,194 @@ bool isFileExist(const char* pFileNamePath, int nAttempt, int nDelaySecond)
 
 struct CMutexLock
 {
-    CMutexLock(pthread_mutex_t & mutex) : m_mutex(mutex)
-    {
+	CMutexLock(pthread_mutex_t & mutex) : m_mutex(mutex)
+	{
 	    pthread_mutex_lock(&m_mutex);
-    }
-    ~CMutexLock()
-    {
+	}
+	~CMutexLock()
+	{
 	    pthread_mutex_unlock(&m_mutex);
-    }
-    pthread_mutex_t & m_mutex;
+	}
+	pthread_mutex_t & m_mutex;
 };
 
 CuserEvxaInterface::CuserEvxaInterface(void) 
 { 
-    commonInit(); 
+    	commonInit(); 
 }
 
 
 CuserEvxaInterface::CuserEvxaInterface(int argc, char *argv[], char *envp[]) : m_args(argc, argv) 
 { 
-    commonInit(); 
+	commonInit(); 
 }
 
 CuserEvxaInterface::CuserEvxaInterface(const std::string& testerName, bool connect) 
 { 
-    commonInit();
-    m_args.testerName(testerName);
-    m_args.testHead(1);
-    if (connect) connectToTester();
+	commonInit();
+	m_args.testerName(testerName);
+	m_args.testHead(1);
+	if (connect) connectToTester();
 }
 
 CuserEvxaInterface::CuserEvxaInterface(const std::string& testerName, FA_ULONG headNumber, bool connect) 
 {
-    commonInit();
-    m_args.testerName(testerName);
-    m_args.testHead(headNumber);
-    if (connect) connectToTester();
+	commonInit();
+	m_args.testerName(testerName);
+	m_args.testHead(headNumber);
+	if (connect) connectToTester();
 }
 
 CuserEvxaInterface::~CuserEvxaInterface() 
 {
-    shutdownTester();
+	shutdownTester();
 }
 
 evxaTester::CevxaTester* CuserEvxaInterface::GetTesterClass() 
 {  
-    return m_tester; 
+    	return m_tester; 
 }
 
 bool CuserEvxaInterface::connectToTester(const std::string& testerName, int headNumber) 
 {
-    m_args.testerName(testerName);
-    m_args.testHead(headNumber);
-    return connectToTester();
+	m_args.testerName(testerName);
+	m_args.testHead(headNumber);
+	return connectToTester();
 }
 
-bool CuserEvxaInterface::connectToTester(void) 
+bool CuserEvxaInterface::connectToTester() 
 {
-    shutdownTester(); // Be on the safe side.
-    if (!args().haveTesterName()) return false;
-    bool ok = (NULL != (m_tester = new evxaTester::CevxaTester(args().testerName(), args().testHead())));
-    if (ok) ok = m_tester->onChange(evxaTester::ConChangeAPI::getPtr());
-    if (ok) ok = m_tester->connect();
-    return ok;
+	shutdownTester(); // Be on the safe side.
+	if (!args().haveTesterName()) return false;
+	bool ok = (NULL != (m_tester = new evxaTester::CevxaTester(args().testerName(), args().testHead())));
+	if (ok) ok = m_tester->onChange(evxaTester::ConChangeAPI::getPtr());
+	if (ok) ok = m_tester->connect();
+	return ok;
 }
 
 bool CuserEvxaInterface::debug(void) 
 { 
-    return args().debug(); 
+	return args().debug(); 
 }
 
 bool CuserEvxaInterface::debug(bool b) 
 {
-    return args().debug(b);
+    	return args().debug(b);
 }
 
 bool CuserEvxaInterface::activeTester(void) 
 {
-    if (NULL != m_tester) return m_tester->haveTestHeadConnection();
-    return false;
+    	if (NULL != m_tester) return m_tester->haveTestHeadConnection();
+    	return false;
 }
 
 void CuserEvxaInterface::setTesterRestart(bool val)
 {
-    m_testerRestart = val;
+    	m_testerRestart = val;
 }
 
 bool CuserEvxaInterface::isTesterRestart()
 {
-    return m_testerRestart;
+    	return m_testerRestart;
 }
 
 bool CuserEvxaInterface::registerCommandNotification(const int arr_size, const EVX_NOTIFY_COMMANDS evx_cmd[]) 
 {
-    bool result = false;
-    if (m_tester)
-    	result = m_tester->registerCommandNotification(arr_size, evx_cmd);
-    return result;
+    	bool result = false;
+    	if (m_tester) result = m_tester->registerCommandNotification(arr_size, evx_cmd);
+    	return result;
 }
 
 const char* CuserEvxaInterface::getRecipeParseStatusName(EVX_RECIPE_PARSE_STATUS state)	
 {
-    if (m_tester)
-	return m_tester->getRecipeParseStatusName(state);
-    else
-	return "";
+    if (m_tester) return m_tester->getRecipeParseStatusName(state);
+    else return "";
 }
 
 void CuserEvxaInterface::shutdownTester(void) 
 {
-    // In case we're waiting for a thread to complete.
-    if (m_currentState != MAX_EVX_STATE) {
-	m_goAway = true;
-	pthread_cond_signal(&m_wakeUp);
-    }
+	// In case we're waiting for a thread to complete.
+	if (m_currentState != MAX_EVX_STATE) 
+	{
+		m_goAway = true;
+		pthread_cond_signal(&m_wakeUp);
+	}
 
-    if (NULL != m_tester) {
-	delete m_tester;
-	m_tester = NULL;
-    }
+	if (NULL != m_tester) 
+	{
+		delete m_tester;
+		m_tester = NULL;
+	}
 }
 
 bool CuserEvxaInterface::getEnvVar(const std::string& token, std::string& value) 
 {
-    bool foundEnv = false;
+	bool foundEnv = false;
 #if (defined(WIN32) || defined(_WINDOWS)) // Might move to header define
-    TCHAR *ev;
-    TCHAR smallBuf[8];
-    DWORD dwLen = GetEnvironmentVariable(token.c_str(), smallBuf, 0);
+	TCHAR *ev;
+	TCHAR smallBuf[8];
+	DWORD dwLen = GetEnvironmentVariable(token.c_str(), smallBuf, 0);
 
-    if (dwLen > 0) { // We have an environment variable, so get it
-	if ((ev = new TCHAR [dwLen+2]) != NULL) {
-	    dwLen = GetEnvironmentVariable(token.c_str(), ev, (dwLen+2));
-	    if (dwLen > 0) {
-		value = ev;
-		foundEnv = true;
-	    }
-	    delete [] ev;
+	// We have an environment variable, so get it
+	if (dwLen > 0) 
+	{ 
+		if ((ev = new TCHAR [dwLen+2]) != NULL) 
+		{
+			dwLen = GetEnvironmentVariable(token.c_str(), ev, (dwLen+2));
+			if (dwLen > 0) 
+			{
+				value = ev;
+				foundEnv = true;
+			}
+			delete [] ev;
+		}
 	}
-    }
 #else
-    char *ev = getenv(token.c_str());
-    if (ev) {
-	value = (const char *) ev;
-	foundEnv = true;
-    }
+	char *ev = getenv(token.c_str());
+	if (ev) 
+	{
+		value = (const char *) ev;
+		foundEnv = true;
+	}
 #endif
-    return foundEnv;
+	return foundEnv;
 }
 
 
 bool CuserEvxaInterface::getTesterDirectories(std::string& mainTesterDir, std::string& pwrupDir, std::string& logDir) 
 {
-    mainTesterDir = "";
-    pwrupDir = "";
-    logDir = "";
+	mainTesterDir = "";
+	pwrupDir = "";
+	logDir = "";
 
-    std::string l_base("/opt/ltx/testers/");
-    l_base += args().testerName();
-    if (0 != access(l_base.c_str(), F_OK)) {
-	if (getEnvVar("HOME", l_base)) { 
-	    l_base += std::string("/synchro_sim/") + args().testerName();
+	std::string l_base("/opt/ltx/testers/");
+	l_base += args().testerName();
+	if (0 != access(l_base.c_str(), F_OK)) 
+	{
+		if (getEnvVar("HOME", l_base)) 
+		{ 
+			l_base += std::string("/synchro_sim/") + args().testerName();
+		}
 	}
-    }
 
-    pwrupDir = l_base + std::string("/pwrup");
-    if (0 == access(pwrupDir.c_str(), F_OK)) {
-	mainTesterDir = l_base;
-	logDir = l_base + std::string("/log");
-    }
-    else pwrupDir = "";
+	pwrupDir = l_base + std::string("/pwrup");
+	if (0 == access(pwrupDir.c_str(), F_OK)) 
+	{
+		mainTesterDir = l_base;
+		logDir = l_base + std::string("/log");
+	}
+	else pwrupDir = "";
 
-    return (pwrupDir.length() > 0);
+	return (pwrupDir.length() > 0);
 }
     
 
 void CuserEvxaInterface::commonInit() 
 {
+	m_Debug.enable = args().debug();
+	m_Debug << "[DEBUG] Running in DEBUG mode..." << CUtil::CLog::endl;
+	m_Log.enable = true;
+	m_bDisableRobot = false;
         m_tester = NULL;
 	m_testerRestart = false;
 	m_goAway = false;
@@ -225,269 +233,189 @@ void CuserEvxaInterface::resetRecipeVars()
 
 ProgramControl *CuserEvxaInterface::PgmCtrl()
 {	
-    if (NULL != m_tester) return m_tester->progCtrl();
-    return NULL;
+	if (NULL != m_tester) return m_tester->progCtrl();
+	return NULL;
 }
 
-void CuserEvxaInterface::dlogChange(const EVX_DLOG_STATE state)
-{
-   if (debug()) std::cout << "CuserEvxaInterface::dlogChange" << std::endl;
-}
+void CuserEvxaInterface::dlogChange(const EVX_DLOG_STATE state){ if (debug()) std::cout << "CuserEvxaInterface::dlogChange" << std::endl; }
+void CuserEvxaInterface::expressionChange(const char *expr_obj_name){ if (debug()) std::cout << "CuserEvxaInterface::expressionChange" << std::endl; }
+void CuserEvxaInterface::expressionChange(const char *expr_obj_name, const char *expr_name, const char *expr_value, int site){ if (debug()) std::cout << "CuserEvxaInterface::expressionChange" << std::endl; }
+void CuserEvxaInterface::objectChange(const XClientMessageEvent xmsg){ if (debug()) std::cout << "CuserEvxaInterface::objectChange" << std::endl; }
 
-void CuserEvxaInterface::expressionChange(const char *expr_obj_name)
-{
-    if (debug()) std::cout << "CuserEvxaInterface::expressionChange" << std::endl;
-}
-
-void CuserEvxaInterface::expressionChange(const char *expr_obj_name, const char *expr_name,
-                              const char *expr_value, int site)
-{
-    if (debug()) std::cout << "CuserEvxaInterface::expressionChange" << std::endl;
-}
-
-void CuserEvxaInterface::objectChange(const XClientMessageEvent xmsg)
-{
-    if (debug()) std::cout << "CuserEvxaInterface::objectChange" << std::endl;
-}
-
-// temporarily comment out logs to quiet it down. return them later
+/* ------------------------------------------------------------------------------------------------------
+evxa event handler for program change state
+------------------------------------------------------------------------------------------------------ */
 void CuserEvxaInterface::programChange(const EVX_PROGRAM_STATE state, const char *text_msg)
 {
-    //allan// if (debug()) std::cout << "CuserEvxaInterface::programChange (state = " << state << ", Message = \"" << text_msg << "\")" << std::endl;
-
-    ProgramControl *pgm = PgmCtrl();
-
-    switch(state)
-    {
-    case EVX_PROGRAM_LOADING:
-	if (debug()) std::cout << "programChange: EVX_PROGRAM_LOADING" << std::endl;
-	break;
-    case EVX_PROGRAM_LOAD_FAILED:
+	m_Debug << "CuserEvxaInterface::programChange (state = " << state << ", Message = \"" << text_msg << "\")" << CUtil::CLog::endl;
+	if (!PgmCtrl()) 
 	{
-	    // if load failed then set the result to false.
-	    m_recipeParseResult = false;
-	}
-	break;
-	case EVX_PROGRAM_LOADED:
+		m_Debug << "No ProgramControl at CuserEvxaInterface::programChange." << CUtil::CLog::endl;
+		return;
+    	}
+	switch(state)
 	{
-	    	if (debug()) std::cout << "programChange: EVX_PROGRAM_LOADED" << std::endl;
-		updateSTDFAfterProgLoad();
+		case EVX_PROGRAM_LOADING:
+			m_Debug << "programChange: EVX_PROGRAM_LOADING" << CUtil::CLog::endl;
+			break;
+		case EVX_PROGRAM_LOAD_FAILED:
+			m_Debug << "programChange: EVX_PROGRAM_LOAD_FAILED" << CUtil::CLog::endl;
+			SendMessageToHost(false, "005", "load failed");
+		    	m_recipeParseResult = false;
+			break;
+		case EVX_PROGRAM_LOADED:
+		    	m_Debug << "programChange: EVX_PROGRAM_LOADED" << CUtil::CLog::endl;
+			SendMessageToHost(true, "003", "loaded");
+			updateSTDFAfterProgLoad();
+			break;
+		case EVX_PROGRAM_START: 
+			m_Debug << "programChange: EVX_PROGRAM_START" << CUtil::CLog::endl;
+			break;
+		case EVX_PROGRAM_RUNNING:
+			m_Debug << "programChange: EVX_PROGRAM_RUNNING" << CUtil::CLog::endl;
+			break;
+		case EVX_PROGRAM_UNLOADING:
+			m_Debug << "programChange: EVX_PROGRAM_UNLOADING" << CUtil::CLog::endl;
+			break;
+		case EVX_PROGRAM_UNLOADED: 
+			SendMessageToHost(true, "004", "unloaded");
+			m_Debug << "programChange: EVX_PROGRAM_UNLOADED" << CUtil::CLog::endl;
+			// If the program was unloaded and not by xtrf then unblock the robots.
+			if (m_recipeParse == false) 
+			{
+			    m_Debug << "programChange: EVX_PROGRAM_UNLOADED UnblockRobot" << CUtil::CLog::endl;
+			    EVXAStatus status = PgmCtrl()->UnblockRobot();
+			    if (status != EVXA::OK) m_Debug << "Error PROGRAM_UNLAODED UnblockRobot(): status: " << status << " " << PgmCtrl()->getStatusBuffer() << CUtil::CLog::endl;
+			}
+			break;
+		case EVX_PROGRAM_ABORT_LOAD:
+			m_Debug << "programChange: EVX_PROGRAM_ABORT_LOAD" << CUtil::CLog::endl;
+			SendMessageToHost(true, "006", "load abort");
+		    	m_recipeParseStatus = EVX_RECIPE_PARSE_ABORT;
+		    	m_recipeParseResult = false;
+			break;
+		case EVX_PROGRAM_READY:
+			m_Debug << "programChange: EVX_PROGRAM_READY" << CUtil::CLog::endl;
+			break;
+		default:
+			//m_Debug << "programChange: Not Handled" << state << CUtil::CLog::endl;
+			if(PgmCtrl()->getStatus() !=  EVXA::OK) m_Log << "ERROR OCCURED!!!!!!!!!!!!!!!!!!!!!!!!!" << CUtil::CLog::endl;
+		break;
 	}
-	break;
-    case EVX_PROGRAM_START:
-	if (debug()) std::cout << "programChange: EVX_PROGRAM_START" << std::endl;
-	break;
-    case EVX_PROGRAM_RUNNING:
-	if (debug()) std::cout << "programChange: EVX_PROGRAM_RUNNING" << std::endl;
-	break;
-    case EVX_PROGRAM_UNLOADING:
-	if (debug()) std::cout << "programChange: EVX_PROGRAM_UNLOADING" << std::endl;
-	break;
-    case EVX_PROGRAM_UNLOADED:
-	if (debug()) std::cout << "programChange: EVX_PROGRAM_UNLOADED" << std::endl;
-	// If the program was unloaded and not by xtrf then unblock the robots.
-	if (m_recipeParse == false) {
-	    if (debug()) std::cout << "programChange: EVX_PROGRAM_UNLOADED UnblockRobot" << std::endl;
-	    EVXAStatus status = pgm->UnblockRobot();
-	    if (status != EVXA::OK)
-		fprintf(stdout, "Error PROGRAM_UNLAODED UnblockRobot(): status:%d %s\n", status, pgm->getStatusBuffer());
-	}
 
-	// let's delete the "auto.xtrf" that we create during program loading (if it exists)
-	unlink("/tmp/gdr_auto.xtrf");
-	if (isFileExist("/tmp/gdr_auto.xtrf")) std::cout << "[ERROR] Failed to delete /tmp/gdr_auto.xtrf during program unload." << std::endl;
-	else { if (debug()) std::cout << "[OK] /tmp/gdr_auto.xtrf does not exist anymore after program unload." << std::endl; }
-
-	break;
-    case EVX_PROGRAM_ABORT_LOAD:
-	{
-	    m_recipeParseStatus = EVX_RECIPE_PARSE_ABORT;
-	    m_recipeParseResult = false;
-
-	}
-	break;
-    case EVX_PROGRAM_READY:
-	if (debug()) std::cout << "programChange: EVX_PROGRAM_READY" << std::endl;
-	break;
-    default:
-	//if (debug()) 
-		std::cout << "programChange: Not Handled" << state << std::endl;
-		if(PgmCtrl()->getStatus() !=  EVXA::OK) std::cout << "ERROR OCCURED!!!!!!!!!!!!!!!!!!!!!!!!!" << std::endl;
-	break;
-    }
-
-    // tell the recipe thread we got the notification.
-    sendNotificationComplete(EVX_PROGRAM_CHANGE, state);
-}
-
-void CuserEvxaInterface::modVarChange(const int id, char *value)
-{
-    if (debug()) std::cout << "CuserEvxaInterface::modVarChange" << std::endl;
+	// tell the recipe thread we got the notific/ation.
+	sendNotificationComplete(EVX_PROGRAM_CHANGE, state);
 }
 
 
-void CuserEvxaInterface::programRunDone(const int array_size,
-                            int site[],
-                            int serial[],
-                            int swbin[],
-                            int hwbin[],
-                            int pass[],
-                            LWORD dsp_status
-                            )
+
+void CuserEvxaInterface::programRunDone(const int array_size, int site[], int serial[], int swbin[], int hwbin[], int pass[], LWORD dsp_status)
 {
-    if (debug()) std::cout << "CuserEvxaInterface::programRunDone" << std::endl;
+	m_Debug << "CuserEvxaInterface::programRunDone" << CUtil::CLog::endl;
 
-
-	if (g_bDisableRobot)
+	if (m_bDisableRobot)
 	{
-    		// wait
-		//sleep(1000);
-
-		// stop robot
 		PgmCtrl()->BlockRobot();
-
-		g_bDisableRobot = false;
+		m_bDisableRobot = false;
 	}	
 }
 
-
-void CuserEvxaInterface::restartTester(void)
+void CuserEvxaInterface::restartTester()
 {
-    if (debug()) std::cout << "CuserEvxaInterface::restartTester" << std::endl;
+    m_Debug << "CuserEvxaInterface::restartTester" << CUtil::CLog::endl;
     m_testerRestart = true;
 }
 
-void CuserEvxaInterface::evtcDisconnected(void)
+void CuserEvxaInterface::modVarChange(const int id, char *value){ m_Debug << "CuserEvxaInterface::modVarChange" << CUtil::CLog::endl; }
+void CuserEvxaInterface::evtcDisconnected(){ m_Debug << "CuserEvxaInterface::evtcDisconnected" << CUtil::CLog::endl; }
+void CuserEvxaInterface::evtcConnected(){ m_Debug << "CuserEvxaInterface::evtcConnected" << CUtil::CLog::endl; }
+void CuserEvxaInterface::streamChange(){ m_Debug << "CuserEvxaInterface::streamChange" << CUtil::CLog::endl; }
+void CuserEvxaInterface::tcBooting(){ m_Debug << "CuserEvxaInterface::tcBooting" << CUtil::CLog::endl; }
+void CuserEvxaInterface::testerReady(){ m_Debug << "CuserEvxaInterface::testerReady" << CUtil::CLog::endl; }
+void CuserEvxaInterface::gemRunning(){ m_Debug << "CuserEvxaInterface::gemRunning" << CUtil::CLog::endl; }
+void CuserEvxaInterface::EvxioMessage(int responseNeeded, int responseAquired, char *evxio_msg){ m_Debug << "[DEBUG] CuserEvxaInterface::EvxioMessage" << CUtil::CLog::endl; }
+
+void CuserEvxaInterface::alarmChange(const EVX_ALARM_STATE alarm_state, const ALARM_TYPE alarm_type, const FA_LONG time_occurred, const char *description)
 {
-    if (debug()) std::cout << "CuserEvxaInterface::evtcDisconnected" << std::endl;
+	m_Debug << "CuserEvxaInterface::alarmChange: "<< description << CUtil::CLog::endl;
+	m_Debug << "alarm_state: " << alarm_state << ", alarm_type: " << alarm_type << CUtil::CLog::endl;
 }
 
-void CuserEvxaInterface::evtcConnected(void)
-{
-    if (debug()) std::cout << "CuserEvxaInterface::evtcConnected" << std::endl;
-}
-
-void CuserEvxaInterface::streamChange(void)
-{
-    if (debug()) std::cout << "CuserEvxaInterface::streamChange" << std::endl;
-
-}
-
-void CuserEvxaInterface::tcBooting(void)
-{
-    if (debug()) std::cout << "CuserEvxaInterface::tcBooting" << std::endl;
-}
-
-void CuserEvxaInterface::testerReady(void)
-{
-    if (debug()) std::cout << "CuserEvxaInterface::testerReady" << std::endl;
-}
-
-void CuserEvxaInterface::gemRunning(void)
-{
-    if (debug()) std::cout << "CuserEvxaInterface::gemRunning" << std::endl;
-}
-
-void CuserEvxaInterface::alarmChange(const EVX_ALARM_STATE alarm_state, const ALARM_TYPE alarm_type,
-                         const FA_LONG time_occurred, const char *description)
-{
-    	if (debug())
-	{ 
-		std::cout << "CuserEvxaInterface::alarmChange: "<< description << std::endl;
-		fprintf(stdout, "alarm_state: %d, alarm_type: %d \n", alarm_state, alarm_type);
-	}
-}
-
+/* ------------------------------------------------------------------------------------------------------
+handles event when unison auto testing is paused/resumed
+------------------------------------------------------------------------------------------------------ */
 void CuserEvxaInterface::testerStateChange(const EVX_TESTER_STATE tester_state)
 {
-    if (debug()) std::cout << "CuserEvxaInterface::testerStateChange" << std::endl;
-    ProgramControl *pgm = PgmCtrl();
-    if (NULL == pgm) {
-	fprintf(stdout, "Error testerStateChange: no ProgramControl\n");
-	return;
-    }
-    EVXAStatus status = EVXA::OK;
-    switch (tester_state) {
-    case EVX_TESTER_PAUSED:
-	g_bDisableRobot = true;
-	fprintf(stdout, "TESTER PAUSED when program is running. robot will stop after EOT.\n");
-	if (!pgm->isProgramRunning())
-	{ 
-		fprintf(stdout, "TESTER PAUSED when program is not running. robot is stopped instantly.\n");
-		status = pgm->BlockRobot(); 
-		g_bDisableRobot = false; 
+	m_Debug << "CuserEvxaInterface::testerStateChange" << CUtil::CLog::endl;
+
+	if (!PgmCtrl()) 
+	{
+		m_Debug << "No ProgramControl at CuserEvxaInterface::testerStateChange." << CUtil::CLog::endl;
+		return;
+    	}
+	EVXAStatus status = EVXA::OK;
+	switch (tester_state) 
+	{
+		case EVX_TESTER_PAUSED:
+			m_bDisableRobot = true;
+			m_Log << "TESTER PAUSED when program is running. robot will stop after EOT." << CUtil::CLog::endl; 
+			if (!PgmCtrl()->isProgramRunning())
+			{ 
+				m_Log << "TESTER PAUSED when program is not running. robot is stopped instantly." << CUtil::CLog::endl;
+				status = PgmCtrl()->BlockRobot(); 
+				m_bDisableRobot = false; 
+			}
+			break;
+		case EVX_TESTER_RESUMED:
+			m_bDisableRobot = false;
+			status = PgmCtrl()->UnblockRobot();
+			m_Log << "TESTER RESUMED. robot is activated instantly." << CUtil::CLog::endl;
+			break;
+		default: break;
 	}
-	break;
-    case EVX_TESTER_RESUMED:
-	g_bDisableRobot = false;
-	status = pgm->UnblockRobot();
-	fprintf(stdout, "TESTER RESUMED. robot is activated instantly.\n");
-	break;
-    default:
-	break;
-    }
-    if (status != EVXA::OK)
-	fprintf(stdout, "Error testerStateChange: status:%d %s\n", status, pgm->getStatusBuffer());
+	if (status != EVXA::OK) m_Log << "Error testerStateChange: status: " << status << " " << PgmCtrl()->getStatusBuffer() << CUtil::CLog::endl;
 }
 
 void CuserEvxaInterface::waferChange(const EVX_WAFER_STATE wafer_state, const char *wafer_id)
 {
-    if (debug()) std::cout << "CuserEvxaInterface::waferChange" << std::endl;
- 
-   // tell the recipe thread we got the notification.
-    sendNotificationComplete(EVX_WAFER_CHANGE, wafer_state);	    
+   	m_Debug << "[DEBUG] CuserEvxaInterface::waferChange" << CUtil::CLog::endl;
+  	sendNotificationComplete(EVX_WAFER_CHANGE, wafer_state);	    
 }
 
 void CuserEvxaInterface::lotChange(const EVX_LOT_STATE lot_state, const char *lot_id)
 {
-    if (debug()) std::cout << "CuserEvxaInterface::lotChange ( state = " << lot_state
-              << ", Lot ID = \"" << lot_id << "\")" << std::endl;
-
-
-    // tell the recipe thread we got the notification.
-    sendNotificationComplete(EVX_LOT_CHANGE, lot_state);
-
-	//handleBackToIdleStrategy();
-	    
-
-}
-
-void CuserEvxaInterface::EvxioMessage(int responseNeeded, int responseAquired, char *evxio_msg)
-{
-    if (debug()) std::cout << "CuserEvxaInterface::EvxioMessage" << std::endl;
+	m_Debug << "[DEBUG] CuserEvxaInterface::lotChange ( state = " << lot_state << ", Lot ID = \"" << lot_id << "\")" << CUtil::CLog::endl;
+	sendNotificationComplete(EVX_LOT_CHANGE, lot_state);
 }
 
 void CuserEvxaInterface::RecipeDecodeAvailable(const char *recipe_text, bool &result)
 {
-  	if (debug()) std::cout << "[DEBUG] Executing CuserEvxaInterface::RecipeDecodeAvailable()" << std::endl;
-
-     resetRecipeVars();
-
-
-
-    //Check the recipe text for the xml header.
-    result = false;
-    if (recipe_text != NULL) {
-	if (strncasecmp("<?xml", recipe_text, strlen("<?xml")) == 0) {
-	    result = true;
+	m_Debug << "[DEBUG] Executing CuserEvxaInterface::RecipeDecodeAvailable()" << CUtil::CLog::endl;
+	resetRecipeVars();
+	
+	//Check the recipe text for the xml header.
+	result = false;
+	if (recipe_text != NULL) 
+	{
+		if (strncasecmp("<?xml", recipe_text, strlen("<?xml")) == 0) result = true;
 	}
-    }
 }
 
+/* ------------------------------------------------------------------------------------------------------
+this event is fired up when a recipe is received by unison via GEM
+------------------------------------------------------------------------------------------------------ */
 void CuserEvxaInterface::RecipeDecode(const char *recipe_text)
 {
-	if (debug()) std::cout << "[DEBUG] Executing CuserEvxaInterface::RecipeDecode()" << std::endl;
-	bool result = true;
+	m_Debug << "[DEBUG] Executing CuserEvxaInterface::RecipeDecode()" << CUtil::CLog::endl;
 
     	// reset recipe variables before starting parsing.
     	resetRecipeVars();
  
     	// parse the xml file.  parseXML opens up a file.
-    	if (recipe_text != NULL) { result = parseXML(recipe_text); }
-    	else{ std::cout << "[ERROR] RecipeDecode recipe_text is NULL" <<  std::endl; result = false; }
+    	bool result = parseXML(recipe_text); 
 
     	// execute load based on reload strategy.
-    	if (result == true) result = updateProgramLoad();
+    	if (result) result = updateProgramLoad();
 
     	// If the program load failed then set the result to fail.
     	if (m_recipeParseResult == false) result = false;
@@ -500,205 +428,417 @@ void CuserEvxaInterface::RecipeDecode(const char *recipe_text)
    	//sendRecipeResultStatus(result);  // parsing failed so just send the result back to cgem.
  }
 
+/* ------------------------------------------------------------------------------------------------------
+send S10F1 to host
+------------------------------------------------------------------------------------------------------ */
+bool CuserEvxaInterface::SendMessageToHost( bool bEvent, const std::string& id, const std::string& msg )
+{
+	std::stringstream ss;
+	ss << "EQ_RH_" << (bEvent? "EV":"ER") << "ID<" << id << ">: TP <" << PgmCtrl()->getProgramName() << "> " << msg;
+	return PgmCtrl()? (PgmCtrl()->gemSendMsgToHost(ss.str()) == EVX_GEM_GOOD? true : false) : false;
+}
 
-
-// USER SPECIFIC CODE FOR XML DATA
-///////////////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////////////
-
-//--------------------------------------------------------------------
-/* This function parses the xml string and finds the program to load.
- It stores the program and stdf information for use at a later time.
-recipe_text is the xml data.
-*/
+/* ------------------------------------------------------------------------------------------------------
+This function parses the xml string and finds the program to load. It stores the program and stdf 
+information for use at a later time. recipe_text is the xml data.
+------------------------------------------------------------------------------------------------------ */
 bool CuserEvxaInterface::parseXML(const char*recipe_text)
 {
-  	if (debug()) std::cout << "[DEBUG] Executing CuserEvxaInterface::parseXML()" << std::endl;
+  	m_Debug << "[DEBUG] Executing CuserEvxaInterface::parseXML()" << CUtil::CLog::endl;
+	if (!PgmCtrl()) 
+	{
+		m_Log << "No ProgramControl at CuserEvxaInterface::parseXML." << CUtil::CLog::endl;
+		return false;
+    	}
 
-    bool result = true;
+	bool result = true;
+	if (!recipe_text)
+	{
+		m_Log << "ERROR: recipe_text is NULL!!" << CUtil::CLog::endl;
+		SendMessageToHost(false, "007", "recipe empty"); 
+		return false;
+	}
 
-    m_recipeParse = true;
-    PgmCtrl()->clearStatus();
-    PgmCtrl()->notifyRecipeStatus(EVX_RECIPE_PARSE_BEGIN);
+	if (!strlen(recipe_text))
+	{
+		m_Log << "ERROR: recipe_text length is 0!!" << CUtil::CLog::endl;
+		SendMessageToHost(false, "007", "recipe empty"); 
+		return false;
+	}
 
-    // clear all parameters that will come from xml
-    result = clearAllParams();
+	m_recipeParse = true;
+	PgmCtrl()->clearStatus();
+	PgmCtrl()->notifyRecipeStatus(EVX_RECIPE_PARSE_BEGIN);
 
-    // create a file
-    std::string xmlFileName("/tmp/loadxml.xml");
-    FILE *fptr = fopen(xmlFileName.c_str(), "w");
-    if (fptr != NULL) {
-	fprintf(fptr, "%s", recipe_text);
-	fclose(fptr);
-    }
+	// clear all parameters that will come from xml
+	result = clearAllParams();
+
+	// dump the recipe content into a temp file. the XML parse library wants a text file instead of a string so...
+	std::string xmlFileName("/tmp/loadxml.xml");
+	FILE *fptr = fopen(xmlFileName.c_str(), "w");
+	if (fptr) 
+	{
+		fprintf(fptr, "%s", recipe_text);
+		fclose(fptr);
+	}
   
-    // Now parse the file.
-    XML_Node *rootNode = new XML_Node (xmlFileName.c_str());
-    if (rootNode) {
-	std::string ptag = rootNode->fetchTag();
-	if (debug()) fprintf(stdout, "rootNode tag: %s\n", ptag.c_str());
+	// now parse the file.
+	XML_Node *rootNode = new XML_Node (xmlFileName.c_str());
+	if (rootNode) 
+	{
+		std::string ptag = rootNode->fetchTag();
+		m_Debug << "[DEBUG] rootNode tag: " << ptag << CUtil::CLog::endl;
 
-	// Add else-if statements for other rootNodes that need parsing
-	// Then add a function to parse that rootNode.
-	if (ptag.compare("testerRecipe") == 0) {
-	    result = parseTesterRecipe(rootNode);
+		// Add else-if statements for other rootNodes that need parsing then add a function to parse that rootNode.
+		if (ptag.compare("testerRecipe") == 0) { result = parseTesterRecipe(rootNode); }
+		else if (ptag.compare("STDFandContextUpdate") == 0){ result = parseSTDFandContextUpdate(rootNode); }
+		else 
+		{
+		    	m_Log << "ERROR: unknown root tag '" << ptag << "' found in XTRF. not parsing." << CUtil::CLog::endl;
+			SendMessageToHost(false, "008", "XTR unknown root tag");
+		    	result = false;
+		}
 	}
-	else if (ptag.compare("STDFandContextUpdate") == 0) {
-	    result = parseSTDFandContextUpdate(rootNode);
-	}
-	else {
-	    fprintf(stdout, "rootNode unkown: %s, Not Parsed\n", ptag.c_str());
-	    result = false;
-	}
-    }
 
-    // delete the file
-    unlink(xmlFileName.c_str());
+	// delete the file
+	unlink(xmlFileName.c_str());
 
-    // delete XML_Node
-    if (rootNode) {
-	delete rootNode;
-	rootNode = NULL;
-    }
-    return result;
+	// delete XML_Node
+	if (rootNode) 
+	{
+		delete rootNode;
+		rootNode = NULL;
+	}
+	return result;
 }
 
+/* ------------------------------------------------------------------------------------------------------
+if root tag <STDFandContextUpdate> is found, parse its contents here
+------------------------------------------------------------------------------------------------------ */
 bool CuserEvxaInterface::parseSTDFandContextUpdate(XML_Node *parseSTDFUpdate)
 {
-  	if (debug()) std::cout << "[DEBUG] Executing CuserEvxaInterface::parseSTDFandContextUpdate()" << std::endl;
-    bool result = true;
+	m_Debug << "[DEBUG] Executing CuserEvxaInterface::parseSTDFandContextUpdate()" << CUtil::CLog::endl;
+	bool result = true;
    
-    int numChildren = parseSTDFUpdate->numChildren();
-    if (debug()) fprintf(stdout, "parseSTDFUpdate numChildren: %d\n", numChildren);
+	m_Debug << "[DEBUG] <STDFandContextUpdate> has " << parseSTDFUpdate->numChildren() << " child tags." << CUtil::CLog::endl;
 
-    // Need to know what Recipe Children you want to parse.ls -
-    // Check for the ones we care about.  
-    for(int ii=0; ii<numChildren; ii++) {
-	XML_Node *childNode = parseSTDFUpdate->fetchChild(ii);
-	if (childNode) {
-	    std::string ptag = childNode->fetchTag();
-	    if (debug()) fprintf(stdout, "parseSTDFUpdate childNode tag: %s\n", ptag.c_str());
+	// read all the child tags from this root tag and process only the ones we want 
+	for( int ii=0; ii < parseSTDFUpdate->numChildren(); ii++ ) 
+	{
+		XML_Node *childNode = parseSTDFUpdate->fetchChild(ii);
+		if (childNode) 
+		{
+			std::string ptag = childNode->fetchTag();
+			m_Debug << "[DEBUG] 	Child Tag: " << ptag << CUtil::CLog::endl;
 
-	    // Add else-if statements for other children that need parsing
-	    // Then add a function to parse that child.
-	    if(ptag.compare("STDF") == 0) {
-		result = parseSTDF(childNode);
-		if (result == false)  // if parsing did not succeed then exit out of for loop.
-		    break; 
-	    }
-	    else {
-		fprintf(stdout, "parseSTDFandContextUpdate unkown child: %s, Not Parsed\n", ptag.c_str());
-	    }
+			// process <STDF> child tag
+			if(ptag.compare("STDF") == 0) 
+			{
+				result = parseSTDF(childNode);
+				if (!result) break; 
+			}
+			// we just ignore unknown child tags
+			else m_Debug << "[DEBUG] 	unknown child tag " << ptag << " found." << CUtil::CLog::endl;
+		}
+		// we ignore empty child tags
+		else m_Debug << "[DEBUG]	empty child tag found. " << CUtil::CLog::endl;
 	}
-	else
-	    fprintf(stdout, "parseSTDFandContextUpdate: childNode is NULL\n");
-    }
-    return result;
+	return result;
 }
 
+/* ------------------------------------------------------------------------------------------------------
+if root tag <testerRecipe> is found, parse its contents here
+------------------------------------------------------------------------------------------------------ */
 bool CuserEvxaInterface::parseTesterRecipe(XML_Node *testerRecipe)
 {
- 	if (debug()) std::cout << "[DEBUG] Executing CuserEvxaInterface::parseTesterRecipe()" << std::endl;
-    bool result = true;
-    
-    int numChildren = testerRecipe->numChildren();
-    if (debug()) fprintf(stdout, "testerRecipe numChildren: %d\n", numChildren);
+	m_Debug << "[DEBUG] Executing CuserEvxaInterface::parseTesterRecipe()" << CUtil::CLog::endl;
+    	bool result = true;
 
-    // Need to know what Recipe Children you want to parse.
-    // Check for the ones we care about.  
-    for(int ii=0; ii<numChildren; ii++) {
-	XML_Node *childNode = testerRecipe->fetchChild(ii);
-	if (childNode) {
-	    std::string ptag = childNode->fetchTag();
-	    if (debug()) fprintf(stdout, "testerRecipe childNode tag: %s\n", ptag.c_str());
+	// read all the child tags from this root tag and process only the ones we want 
+	m_Debug << "[DEBUG] <testerRecipe> has " << testerRecipe->numChildren() << " child tags." << CUtil::CLog::endl;
+	for( int ii = 0; ii < testerRecipe->numChildren(); ii++ ) 
+	{
+		XML_Node *childNode = testerRecipe->fetchChild(ii);
+		if (childNode) 
+		{
+			std::string ptag = childNode->fetchTag();
+			m_Debug << "[DEBUG] 	Child Tag: " << ptag << CUtil::CLog::endl;
 
-	    // Add else-if statements for other children that need parsing
-	    // Then add a function to parse that child.
-	    if (ptag.compare("testPrgmIdentifier") == 0) {
-		result = parseTestPrgmIdentifier(childNode);
-		if (result == false)  // if parsing did not succeed then exit out of for loop.
-		    break; 
-	    }
-	    else if(ptag.compare("STDF") == 0) {
-		result = parseSTDF(childNode);
-		if (result == false)  // if parsing did not succeed then exit out of for loop.
-		    break; 
-	    }
-	    else {
-		fprintf(stdout, "testerRecipe unkown child: %s, Not Parsed\n", ptag.c_str());
-	    }
+			// process <testPrgmIdentifier> child tag
+			if (ptag.compare("testPrgmIdentifier") == 0) 
+			{
+				result = parseTestPrgmIdentifier(childNode);
+				if (!result) break; 
+			}
+			// process <STDF> child tag
+			else if(ptag.compare("STDF") == 0) 
+			{
+				result = parseSTDF(childNode);
+				if (!result) break; 
+			}
+			// we just ignore unknown child tags
+			else  m_Debug << "[DEBUG] 	unknown child tag " << ptag << " found." << CUtil::CLog::endl;
+		}
+		// we ignore empty child tags
+		else m_Debug << "[DEBUG]	empty child tag found. " << CUtil::CLog::endl;
 	}
-	else
-	    fprintf(stdout, "testerRecipe: childNode is NULL\n");
+	return result;
+}
+
+/* ------------------------------------------------------------------------------------------------------
+if root tag <testPrgmIdentifier> is found, parse its contents here
+------------------------------------------------------------------------------------------------------ */
+bool CuserEvxaInterface::parseTestPrgmIdentifier(XML_Node *testPrgmIdentifier)
+{
+ 	m_Debug << "[DEBUG] Executing CuserEvxaInterface::parseTestPrgmIdentifier()" << CUtil::CLog::endl;
+    	bool result = true;
+    
+	m_Debug << "[DEBUG] <testPrgmIdentifier> has " << testPrgmIdentifier->numChildren() << " child tags." << CUtil::CLog::endl;
+	for (int ii = 0; ii < testPrgmIdentifier->numChildren(); ii++) 
+	{
+		XML_Node *childNode = testPrgmIdentifier->fetchChild(ii);
+		if (childNode) 
+		{
+			std::string ptag = childNode->fetchTag();
+			m_Debug << "[DEBUG] 	Child Tag: " << ptag << CUtil::CLog::endl;
+
+			// process <testPrgm> child tag	
+	    		if (ptag.compare("testPrgm") == 0) 
+			{
+				result = parseTestPrgm(childNode);
+				if (!result) break; 
+	    		}
+	    		else m_Debug << "[DEBUG] 	unknown child tag " << ptag << " found." << CUtil::CLog::endl;
+		}
+		else m_Debug << "[DEBUG]	empty child tag found. " << CUtil::CLog::endl;
+     	}    
+    	return result;
+}
+
+/* ------------------------------------------------------------------------------------------------------
+if child tag <testPrgm> is found, parse its contents here.
+------------------------------------------------------------------------------------------------------ */
+bool CuserEvxaInterface::parseTestPrgm(XML_Node *testPrgm)
+{
+	m_Debug << "[DEBUG] Executing CuserEvxaInterface::parseTestPrgm()" << CUtil::CLog::endl;
+    	bool result = true;
+
+	m_Debug << "[DEBUG] <testPrgmIdentifier> has " << testPrgm->numChildren() << " child tags." << CUtil::CLog::endl;
+    	for (int ii = 0; ii < testPrgm->numChildren(); ii++) 
+	{
+		XML_Node *childNode = testPrgm->fetchChild(ii);
+		if (childNode) 
+		{
+	    		std::string ptag = childNode->fetchTag();
+			m_Debug << "[DEBUG] 	Child Tag: " << ptag << CUtil::CLog::endl;
+
+	    		// <testPrgmCopierLoaderScript>
+	    		if (ptag.compare("testPrgmCopierLoaderScript") == 0) 
+			{
+				result = parseTestPrgmCopierLoaderScript(childNode);
+				if (!result) break; 
+	    		}
+			// <testPrgmLoader>, this may contain the test program path+name
+	    		else if (ptag.compare("testPrgmLoader") == 0) 
+			{
+				result = parseTestPrgmLoader(childNode);
+				if (!result) break;
+			}
+	    		else m_Debug << "[DEBUG] 	unknown child tag " << ptag << " found." << CUtil::CLog::endl;
+		}
+		else m_Debug << "[DEBUG]	empty child tag found. " << CUtil::CLog::endl;
+     	}
+      	return result;
+}
+
+/* ------------------------------------------------------------------------------------------------------
+parse <testPrgmLoader> from XTRF
+testPrgmURI attribute 
+- 	holds the folder/program name and will be used to parse mir.spec_nam
+  	and mir.spec_rev
+reloadStrategy, downloadStrategy, and backToIdleStrategy attributes
+------------------------------------------------------------------------------------------------------ */
+bool CuserEvxaInterface::parseTestPrgmLoader(XML_Node *testPrgmLoader)
+{
+	m_Debug << "[DEBUG] Executing CuserEvxaInterface::parseTestPrgmLoader()" << CUtil::CLog::endl;
+
+	if (!PgmCtrl()) 
+	{
+		m_Log << "No ProgramControl at CuserEvxaInterface::parseTestPrgmLoader." << CUtil::CLog::endl;
+		return false;
+    	}
+
+    	bool result = true;
+    	m_Debug << "[DEBUG] <" << testPrgmLoader->fetchTag() << "> Found with " << testPrgmLoader->numAttr() << " attributes, " <<  testPrgmLoader->numVals() << " values." << CUtil::CLog::endl;
+
+	if (!PgmCtrl()){ std::cout << "[ERROR] CuserEvxaInterface::parseTestPrgmLoader(): Cannot access ProgramControl object." << std::endl; return false; }
+
+    	for (int ii=0; ii<testPrgmLoader->numAttr(); ii++) 
+	{
+		if (debug()){ fprintf(stdout, "[DEBUG] <testPrgmLoader> Attr %s: %s\n", testPrgmLoader->fetchAttr(ii).c_str(), testPrgmLoader->fetchVal(ii).c_str()); }	
+		if (testPrgmLoader->fetchAttr(ii).compare("reloadStrategy") == 0) m_TPArgs.ReloadStrategy = testPrgmLoader->fetchVal(ii);
+		if (testPrgmLoader->fetchAttr(ii).compare("downloadStrategy") == 0) m_TPArgs.DownloadStrategy = testPrgmLoader->fetchVal(ii);
+		if (testPrgmLoader->fetchAttr(ii).compare("back2IdleStrategy") == 0) m_TPArgs.BackToIdleStrategy = testPrgmLoader->fetchVal(ii);  
+
+		/*
+		testPrgmURI is expected to contain "<progfolder>/<programname.una>" and is stored in m_TPArgs.TPName
+		<progfolder> is stored in m_TPArgs.TPPath. it will be referenced in download strategy later
+		*/
+		
+		if (testPrgmLoader->fetchAttr(ii).compare("testPrgmURI") == 0) 
+		{
+			m_TPArgs.TPName = testPrgmLoader->fetchVal(ii);
+			unsigned found = m_TPArgs.TPName.find_first_of("/");
+			if (found != std::string::npos){ m_TPArgs.TPPath = m_TPArgs.TPName.substr(0, found); }
+			else { m_TPArgs.TPPath = ""; }		
+/*
+			// try to get mir.spec_nam and mir.spec_ver from TPPath
+			if (!m_TPArgs.TPPath.empty())
+			{
+				// TPPath might have subfolders. we're only interested in main folder, so we get rid of subs
+				std::string toSpec( m_TPArgs.TPPath );
+				std::size_t p = toSpec.find_first_of("/");
+				if (p != std::string::npos) toSpec = toSpec.substr(0, p);
+
+				p = toSpec.find_last_of("_");
+				if (p != std::string::npos)
+				{
+					// by default, we set specnam/ver from testPrgmURI values directly to Lot Information
+					// if specnam/ver is set by XTRF, let parseMIR() and sendMIRParams() overwrite this if required
+					PgmCtrl()->setLotInformation(EVX_LotTestSpecName, m_TPArgs.TPPath.substr(0, p).c_str());
+					PgmCtrl()->setLotInformation(EVX_LotTestSpecRev, m_TPArgs.TPPath.substr(p + 1, std::string::npos).c_str());
+
+					//m_MIRArgs.SpecNam = m_TPArgs.TPPath.substr(0, p);
+					//m_MIRArgs.SpecVer = m_TPArgs.TPPath.substr(p + 1, std::string::npos);
+					if (debug()) std::cout << "MIR.SPEC_NAM from testPrgmURI: " << PgmCtrl()->getLotInformation(EVX_LotTestSpecName) << std::endl;
+					if (debug()) std::cout << "MIR.SPEC_VER from testPrgmURI: " << PgmCtrl()->getLotInformation(EVX_LotTestSpecRev) << std::endl;
+				}
+			}	
+*/			
+		}
+    	}
+
+    	return result;
+}
+
+
+
+bool CuserEvxaInterface::parseTestPrgmCopierLoaderScript(XML_Node *testPrgmCopierLoaderScript)
+{
+	if (debug()) std::cout << "[DEBUG] Executing CuserEvxaInterface::parseTestPrgmCopierLoaderScript()" << std::endl;
+     bool result = true;
+
+    if (debug()) {
+
+	fprintf(stdout, ">>>>%s: %d %d %d \n", testPrgmCopierLoaderScript->fetchTag().c_str(),
+	    testPrgmCopierLoaderScript->numAttr(),
+	    testPrgmCopierLoaderScript->numVals(),
+	    testPrgmCopierLoaderScript->numChildren()
+	);
+    }
+    for (int ii=0; ii<testPrgmCopierLoaderScript->numAttr(); ii++) {
+	if (debug()) {
+	    fprintf(stdout, "testPrgmCopierLoaderScript Attr %s: %s\n", 
+		    testPrgmCopierLoaderScript->fetchAttr(ii).c_str(), testPrgmCopierLoaderScript->fetchVal(ii).c_str());
+	}
+	if (testPrgmCopierLoaderScript->fetchAttr(ii).compare("reloadStrategy") == 0)
+	    m_TPArgs.ReloadStrategy = testPrgmCopierLoaderScript->fetchVal(ii);
+	if (testPrgmCopierLoaderScript->fetchAttr(ii).compare("downloadStrategy") == 0)
+	    m_TPArgs.DownloadStrategy = testPrgmCopierLoaderScript->fetchVal(ii);
+    }
+    int numChildren = testPrgmCopierLoaderScript->numChildren();
+    if (debug()) fprintf(stdout, "testPrgmCopierLoaderScript numChildren = %d\n", numChildren);
+    for (int ii=0; ii<numChildren; ii++) {
+	XML_Node *argumentParameter = testPrgmCopierLoaderScript->fetchChild(ii);
+	if (argumentParameter)
+	{
+ 	    if (debug()) {
+		fprintf(stdout, "%s: %d %d %d %s %s %s\n", 
+		    argumentParameter->fetchTag().c_str(),
+		    argumentParameter->numAttr(),
+		    argumentParameter->numVals(),
+		    argumentParameter->numChildren(),
+		    argumentParameter->fetchAttr(0).c_str(),
+		    argumentParameter->fetchVal(0).c_str(),
+		    argumentParameter->fetchText().c_str());
+	    }
+
+	    std::string temp = argumentParameter->fetchVal(0);
+	    std::string result = argumentParameter->fetchText();
+//	    if (temp.compare("TEST_PROGRAM") == 0)  // allan remove this as we are now looking for other fields to determin test program specifics
+	    if (temp.compare("TEST_PROGRAM_NAME") == 0)
+	    	{ 
+			m_TPArgs.TPName = result; 
+
+			// check if program name as extension
+			unsigned found = m_TPArgs.TPName.find_last_of(".");  
+
+			// check if program name extension = .eva
+			std::string szExt = m_TPArgs.TPName.substr(found+1);
+     			
+			if ((szExt.compare("una") == 0) || (szExt.compare("UNA") == 0)){}
+			else{ m_TPArgs.TPName += ".una"; }
+	    
+			fprintf(stdout, "TEST_PROGRAM_NAME: %s\n", m_TPArgs.TPName.c_str()); 
+		}// allan added
+
+	    if (temp.compare("TEST_PROGRAM_PATH") == 0){ m_TPArgs.TPPath = result; fprintf(stdout, "TEST_PROGRAM_PATH: %s\n", m_TPArgs.TPPath.c_str()); }// allan added
+	    if (temp.compare("TEST_PROGRAM_FILE") == 0){ m_TPArgs.TPFile = result; fprintf(stdout, "TEST_PROGRAM_FILE: %s\n", m_TPArgs.TPFile.c_str()); }// allan added
+	    else if (temp.compare("RcpFileSupport") == 0)
+		m_TPArgs.RcpFileSupport = result;
+	    else if (temp.compare("Flow") == 0)
+		m_TPArgs.Flow = result;
+	    else if (temp.compare("Salestype") == 0)
+		m_TPArgs.Salestype = result;
+	    else if (temp.compare("Temperature") == 0)
+		m_TPArgs.Temperature =  result;
+	    else if (temp.compare("Product") == 0)
+		m_TPArgs.Product = result;
+	    else if (temp.compare("Parallelism") == 0)
+		m_TPArgs.Parallelism = result;
+	    else if (temp.compare("endLot") == 0)
+		m_TPArgs.EndLotEnable = result;
+	    else if (temp.compare("endWafer") == 0)
+		m_TPArgs.EndWaferEnable = result;
+	    else if (temp.compare("startLot") == 0)
+		m_TPArgs.StartLotEnable = result;
+	    else if (temp.compare("startWafer") == 0)
+		m_TPArgs.StartWaferEnable = result;
+	}
     }
     return result;
 }
 
-bool CuserEvxaInterface::parseTestPrgmIdentifier(XML_Node *testPrgmIdentifier)
+bool CuserEvxaInterface::parseSTDF(XML_Node *stdf)
 {
- 	if (debug()) std::cout << "[DEBUG] Executing CuserEvxaInterface::parseTestPrgmIdentifier()" << std::endl;
+	if (debug()) std::cout << "[DEBUG] Executing CuserEvxaInterface::parseSTDF()" << std::endl;
     bool result = true;
-    
-    int numChildren = testPrgmIdentifier->numChildren();
+
+    int numChildren = stdf->numChildren();
     for (int ii=0; ii<numChildren; ii++) {
-	XML_Node *childNode = testPrgmIdentifier->fetchChild(ii);
+	XML_Node *childNode = stdf->fetchChild(ii);
 	if (childNode) {
 	    std::string ptag = childNode->fetchTag();
-	    if (debug()) fprintf(stdout, "testPrgmIdentifier childNode tag: %s\n", ptag.c_str());
+	    if (debug()) fprintf(stdout, "stdf childNode tag: %s\n", ptag.c_str());
 
 	    // Add else-if statements for other children that need parsing
 	    // Then add a function to parse that child.
-	    if (ptag.compare("testPrgm") == 0) {
-		result = parseTestPrgm(childNode);
+	    if (ptag.compare("STDFrecord") == 0) {
+		result = parseSTDFRecord(childNode);
 		if (result == false)  // if parsing did not succeed then exit out of for loop.
 		    break; 
 	    }
 	    else {
-		fprintf(stdout, "testPrgmIdentifier unknown child: %s, Not Parsed\n", ptag.c_str());
-	    }
+		fprintf(stdout, "stdf unkown child: %s, Not Parsed\n", ptag.c_str());
+	    }	      
 	}
 	else
-	    fprintf(stdout, "testPrgmIdentifier: childNode is NULL\n");
+	    fprintf(stdout, "stdf: childNode is NULL\n");
      }
-    
+
     return result;
 }
 
-bool CuserEvxaInterface::parseTestPrgm(XML_Node *testPrgm)
-{
-	if (debug()) std::cout << "[DEBUG] Executing CuserEvxaInterface::parseTestPrgm()" << std::endl;
-    bool result = true;
-
-    int numChildren = testPrgm->numChildren();
-    for (int ii=0; ii<numChildren; ii++) {
-	XML_Node *childNode = testPrgm->fetchChild(ii);
-	if (childNode) {
-	    std::string ptag = childNode->fetchTag();
-	    if (debug()) fprintf(stdout, "testPrgm childNode tag: %s\n", ptag.c_str());
-
-	    // Add else-if statements for other children that need parsing
-	    // Then add a function to parse that child.
-	    if (ptag.compare("testPrgmCopierLoaderScript") == 0) {
-		result = parseTestPrgmCopierLoaderScript(childNode);
-		if (result == false)  // if parsing did not succeed then exit out of for loop.
-		    break; 
-	    }
-	    else if (ptag.compare("testPrgmLoader") == 0) {
-		result = parseTestPrgmLoader(childNode);
-		if (result == false)  // if parsing did not succeed then exit out of for loop.
-		    break; 
-	    }
-	    else {
-		fprintf(stdout, "testPrgm unknown child: %s, Not Parsed\n", ptag.c_str());
-	    }
-	}
-	else
-	    fprintf(stdout, "testPrgmIdentifier: childNode is NULL\n");
-     }
-    
-    return result;
-
-}
 
 /*---------------------------------------------------------------------------------
 any STDF field to be set by evxa (e.g. XTRF not available, info from tester)
@@ -706,9 +846,13 @@ is done here. this is called after program is loaded
 ---------------------------------------------------------------------------------*/
 bool CuserEvxaInterface::updateSTDFAfterProgLoad()
 {
-	if (debug()) std::cout << "[DEBUG] Executing CuserEvxaInterface::updateSTDFAfterProgLoad()" << std::endl;
+	m_Debug << "[DEBUG] Executing CuserEvxaInterface::updateSTDFAfterProgLoad()" << CUtil::CLog::endl;
 
-	if (!PgmCtrl()){ std::cout << "[ERROR] CuserEvxaInterface::updateSTDFAfterProgLoad(): Cannot access ProgramControl object." << std::endl; return false; }
+	if (!PgmCtrl()) 
+	{
+		m_Log << "No ProgramControl at CuserEvxaInterface::updateSTDFAfterProgLoad." << CUtil::CLog::endl;
+		return false;
+    	}
 
 	// make sure to change exec_typ to "Unison". note that we arent writing exec_typ here yet. we are just updating its variable
 	std::string SystemName = PgmCtrl()->getLotInformation(EVX_LotSystemName);
@@ -720,100 +864,97 @@ bool CuserEvxaInterface::updateSTDFAfterProgLoad()
 	PgmCtrl()->faprocSet("Current Equipment: HAND_TYP_OVR", m_SDRArgs.HandTyp.override);
 	std::string hand_typ;
 	PgmCtrl()->faprocGet("Current Equipment: HAND_TYP", hand_typ);
-	if (debug()) std::cout << "[DEBUG] HAND_TYP sent to faproc: " << hand_typ << std::endl;	
+	m_Debug << "[DEBUG] HAND_TYP sent to faproc: " << hand_typ << CUtil::CLog::endl;	
 
 	// send GUI_NAM and GUI_REV to FAmodule
 	PgmCtrl()->faprocSet("Current Equipment: GUI_NAM_VAL", m_GDR.gui_nam.value);
 	PgmCtrl()->faprocSet("Current Equipment: GUI_NAM_VAL_REQ", m_GDR.gui_nam.required);
 	PgmCtrl()->faprocSet("Current Equipment: GUI_NAM_VAL_OVR", m_GDR.gui_nam.override);
-	if (debug()) std::cout << "[DEBUG] GUI_NAM_VAL: " << m_GDR.gui_nam.value << " set in FAmodule." << std::endl;
+	m_Debug << "[DEBUG] GUI_NAM_VAL: " << m_GDR.gui_nam.value << " set in FAmodule." << CUtil::CLog::endl;
 
 	PgmCtrl()->faprocSet("Current Equipment: GUI_REV_VAL", m_GDR.gui_rev.value);
 	PgmCtrl()->faprocSet("Current Equipment: GUI_REV_VAL_REQ", m_GDR.gui_rev.required);
 	PgmCtrl()->faprocSet("Current Equipment: GUI_REV_VAL_OVR", m_GDR.gui_rev.override);
-	if (debug()) std::cout << "[DEBUG] GUI_REV_VAL: " << m_GDR.gui_rev.value << " set in FAmodule." << std::endl;
+	m_Debug << "[DEBUG] GUI_REV_VAL: " << m_GDR.gui_rev.value << " set in FAmodule." << CUtil::CLog::endl;
 
 	// send GDR.AUTO_NAM to FAmodule
 	PgmCtrl()->faprocSet("Current Equipment: AUTO_NAM_VAL", m_GDR.auto_nam.value);
 	PgmCtrl()->faprocSet("Current Equipment: AUTO_NAM_VAL_REQ", m_GDR.auto_nam.required);
 	PgmCtrl()->faprocSet("Current Equipment: AUTO_NAM_VAL_OVR", m_GDR.auto_nam.override);
-	if (debug()) std::cout << "[DEBUG] AUTO_NAM_VAL: " << m_GDR.auto_nam.value << " set in FAmodule." << std::endl;
+	m_Debug << "[DEBUG] AUTO_NAM_VAL: " << m_GDR.auto_nam.value << " set in FAmodule." << CUtil::CLog::endl;
 	
 	// send GDR.AUTO_REV to FAmodule
 	PgmCtrl()->faprocSet("Current Equipment: AUTO_VER_VAL", m_GDR.auto_ver.value);
 	PgmCtrl()->faprocSet("Current Equipment: AUTO_VER_VAL_REQ", m_GDR.auto_ver.required);
 	PgmCtrl()->faprocSet("Current Equipment: AUTO_VER_VAL_OVR", m_GDR.auto_ver.override);
-	if (debug()) std::cout << "[DEBUG] AUTO_VER_VAL: " << m_GDR.auto_ver.value << " set in FAmodule." << std::endl;
+	m_Debug << "[DEBUG] AUTO_VER_VAL: " << m_GDR.auto_ver.value << " set in FAmodule." << CUtil::CLog::endl;
 
 	// send GDR.TRF-XTRF value to FAmodule
 	// make the value always taken from lotid_flowid, unless TRF_XTRF field in XTRF is "strict" 
 	if (m_GDR.trf_xtrf.value.empty())
 	{
-		if (debug()) std::cout << "[DEBUG] Didn't find TRF-XTRF from XTRF. setting it instead to " << m_MIRArgs.LotId.value << "_" << m_MIRArgs.FlowId.value << " (lotid_flowid)" << std::endl;		
+		m_Debug << "[DEBUG] Didn't find TRF-XTRF from XTRF. setting it instead to " << m_MIRArgs.LotId.value << "_" << m_MIRArgs.FlowId.value << " (lotid_flowid)" << CUtil::CLog::endl;		
 		std::stringstream ssTrfXtrf; 
 		ssTrfXtrf << m_MIRArgs.LotId.value << "_" << m_MIRArgs.FlowId.value;
 		m_GDR.trf_xtrf.value = ssTrfXtrf.str();
 	}
 	PgmCtrl()->faprocSet("Current Equipment: TRF-XTRF_VAL", m_GDR.trf_xtrf.value);
-	if (debug()) std::cout << "[DEBUG] TRF-XTRF_VAL: " << m_GDR.trf_xtrf.value << " set in FAmodule." << std::endl;
+	m_Debug << "[DEBUG] TRF-XTRF_VAL: " << m_GDR.trf_xtrf.value << " set in FAmodule." << CUtil::CLog::endl;
 	
 	// send GDR.AUTOMATION.SG_STATUS to FAmodule
 	EVX_GemControlState gemCtrlState = PgmCtrl()->gemGetControlState();
-	if (gemCtrlState == EVX_controlDisabled)	{ m_GDR.sg_status.value = "DISABLED"; if (debug()) std::cout << "[DEBUG] GemCtrlState: DISABLED" << std::endl; }
-	if (gemCtrlState == EVX_equipOffline)		{ m_GDR.sg_status.value = "OFFLINE";  if (debug()) std::cout << "[DEBUG] GemCtrlState: OFFLINE" << std::endl; }
-	if (gemCtrlState == EVX_attemptOnline)		{ m_GDR.sg_status.value = "ATTEMPONLINE";  if (debug()) std::cout << "[DEBUG] GemCtrlState: ATTEMPONLINE" << std::endl; }
-	if (gemCtrlState == EVX_onlineLocal)		{ m_GDR.sg_status.value = "LOCAL"; if (debug()) std::cout << "[DEBUG] GemCtrlState: LOCAL" << std::endl; }
-	if (gemCtrlState == EVX_onlineRemote)		{ m_GDR.sg_status.value = "REMOTE"; if (debug()) std::cout << "[DEBUG] GemCtrlState: REMOTE" << std::endl; }
-	if (gemCtrlState == EVX_controlNoConnect)	{ m_GDR.sg_status.value = "NOCONNECT"; if (debug()) std::cout << "[DEBUG] GemCtrlState: NOCONNECT" << std::endl; }
+	if (gemCtrlState == EVX_controlDisabled)	{ m_GDR.sg_status.value = "DISABLED"; 		m_Debug << "[DEBUG] GemCtrlState: DISABLED" << CUtil::CLog::endl; }
+	if (gemCtrlState == EVX_equipOffline)		{ m_GDR.sg_status.value = "OFFLINE"; 		m_Debug << "[DEBUG] GemCtrlState: OFFLINE" << CUtil::CLog::endl; }
+	if (gemCtrlState == EVX_attemptOnline)		{ m_GDR.sg_status.value = "ATTEMPONLINE"; 	m_Debug << "[DEBUG] GemCtrlState: ATTEMPONLINE" << CUtil::CLog::endl; }
+	if (gemCtrlState == EVX_onlineLocal)		{ m_GDR.sg_status.value = "LOCAL"; 		m_Debug << "[DEBUG] GemCtrlState: LOCAL" << CUtil::CLog::endl; }
+	if (gemCtrlState == EVX_onlineRemote)		{ m_GDR.sg_status.value = "REMOTE"; 		m_Debug << "[DEBUG] GemCtrlState: REMOTE" << CUtil::CLog::endl; }
+	if (gemCtrlState == EVX_controlNoConnect)	{ m_GDR.sg_status.value = "NOCONNECT"; 		m_Debug << "[DEBUG] GemCtrlState: NOCONNECT" << CUtil::CLog::endl; }
 	PgmCtrl()->faprocSet("Current Equipment: SG_STATUS_VAL", m_GDR.sg_status.value);
-	if (debug()) std::cout << "[DEBUG] SG_STATUS_VAL: " << m_GDR.sg_status.value << " set in FAmodule." << std::endl;
+	m_Debug << "[DEBUG] SG_STATUS_VAL: " << m_GDR.sg_status.value << " set in FAmodule." << CUtil::CLog::endl;
 
 	// hard code CGEM information
 	m_GDR.sg_nam.value = "CGEM";
 	PgmCtrl()->faprocSet("Current Equipment: SG_NAM_VAL", m_GDR.sg_nam.value);
-	if (debug()) std::cout << "[DEBUG] SG_NAM_VAL: " << m_GDR.sg_nam.value << " set in FAmodule." << std::endl;
+	m_Debug << "[DEBUG] SG_NAM_VAL: " << m_GDR.sg_nam.value << " set in FAmodule." << CUtil::CLog::endl;
 	m_GDR.sg_rev.value = "1.0";
 	PgmCtrl()->faprocSet("Current Equipment: SG_REV_VAL", m_GDR.sg_rev.value);
-	if (debug()) std::cout << "[DEBUG] SG_REV_VAL: " << m_GDR.sg_rev.value << " set in FAmodule." << std::endl;
+	m_Debug << "[DEBUG] SG_REV_VAL: " << m_GDR.sg_rev.value << " set in FAmodule." << CUtil::CLog::endl;
 
 
 	// hard code API_NAM and API_REV. sabine suggest to leave this empty 
 	PgmCtrl()->faprocSet("Current Equipment: API_NAM_VAL", m_GDR.api_nam.value);
 	PgmCtrl()->faprocSet("Current Equipment: API_NAM_VAL_REQ", m_GDR.api_nam.required);
 	PgmCtrl()->faprocSet("Current Equipment: API_NAM_VAL_OVR", m_GDR.api_nam.override);
-	if (debug()) std::cout << "[DEBUG] API_NAM_VAL: " << m_GDR.api_nam.value << " set in FAmodule." << std::endl;
+	m_Debug << "[DEBUG] API_NAM_VAL: " << m_GDR.api_nam.value << " set in FAmodule." << CUtil::CLog::endl;
 
 	PgmCtrl()->faprocSet("Current Equipment: API_REV_VAL", m_GDR.api_rev.value);
 	PgmCtrl()->faprocSet("Current Equipment: API_REV_VAL_REQ", m_GDR.api_rev.required);
 	PgmCtrl()->faprocSet("Current Equipment: API_REV_VAL_OVR", m_GDR.api_rev.override);
-	if (debug()) std::cout << "[DEBUG] API_REV_VAL: " << m_GDR.api_rev.value << " set in FAmodule." << std::endl;
+	m_Debug << "[DEBUG] API_REV_VAL: " << m_GDR.api_rev.value << " set in FAmodule." << CUtil::CLog::endl;
 
 	// set DRV_NAM and DRV_REV.
 	PgmCtrl()->faprocSet("Current Equipment: DRV_NAM_VAL", m_GDR.drv_nam.value);
 	PgmCtrl()->faprocSet("Current Equipment: DRV_NAM_VAL_REQ", m_GDR.drv_nam.required);
 	PgmCtrl()->faprocSet("Current Equipment: DRV_NAM_VAL_OVR", m_GDR.drv_nam.override);
-	if (debug()) std::cout << "[DEBUG] DRV_NAM_VAL: " << m_GDR.drv_nam.value << " set in FAmodule." << std::endl;
+	m_Debug << "[DEBUG] DRV_NAM_VAL: " << m_GDR.drv_nam.value << " set in FAmodule." << CUtil::CLog::endl;
 
 	PgmCtrl()->faprocSet("Current Equipment: DRV_REV_VAL", m_GDR.drv_rev.value);
 	PgmCtrl()->faprocSet("Current Equipment: DRV_REV_VAL_REQ", m_GDR.drv_rev.required);
 	PgmCtrl()->faprocSet("Current Equipment: DRV_REV_VAL_OVR", m_GDR.drv_rev.override);
-	if (debug()) std::cout << "[DEBUG] DRV_REV_VAL: " << m_GDR.drv_rev.value << " set in FAmodule." << std::endl;
+	m_Debug << "[DEBUG] DRV_REV_VAL: " << m_GDR.drv_rev.value << " set in FAmodule." << CUtil::CLog::endl;
 
 	// send STDF_FRM to FAmodule
 	PgmCtrl()->faprocSet("Current Equipment: STDF_FRM_VAL", m_GDR.stdf_frm.value);
 	PgmCtrl()->faprocSet("Current Equipment: STDF_FRM_VAL_REQ", m_GDR.stdf_frm.required);
 	PgmCtrl()->faprocSet("Current Equipment: STDF_FRM_VAL_OVR", m_GDR.stdf_frm.override);
-	if (debug()) std::cout << "[DEBUG] STDF_FRM_VAL: " << m_GDR.stdf_frm.value << " set in FAmodule." << std::endl;
+	m_Debug << "[DEBUG] STDF_FRM_VAL: " << m_GDR.stdf_frm.value << " set in FAmodule." << CUtil::CLog::endl;
 
 	// assuming SERL_NUM is to be set as hostname, we do it here. note that this is temporary as we don't know yet what to put here
 	if (m_MIRArgs.SerlNum.empty())
 	{
 		m_MIRArgs.SerlNum = PgmCtrl()->getLotInformation(EVX_LotTcName);
-		if ( PgmCtrl()->setLotInformation(EVX_LotTesterSerNum, m_MIRArgs.SerlNum.c_str()) != EVXA::OK )
-		{
-			fprintf(stdout, "[ERROR] CuserEvxaInterface::updateSTDFAfterProgLoad() setting EVX_LotTesterSerNum: %s\n", PgmCtrl()->getStatusBuffer());
-		}
-		else{ fprintf(stdout, "MIR.SerlNum: %s\n", PgmCtrl()->getLotInformation(EVX_LotTesterSerNum)); }
+		PgmCtrl()->setLotInformation(EVX_LotTesterSerNum, m_MIRArgs.SerlNum.c_str());
+		m_Debug << "MIR.SerlNum is set to " << PgmCtrl()->getLotInformation(EVX_LotTesterSerNum) << " (copied from hostname) because it is empty." << CUtil::CLog::endl;
 	}
 
 	// now let's send custom GDR's to CURI
@@ -838,9 +979,89 @@ bool CuserEvxaInterface::updateSTDFAfterProgLoad()
 	PgmCtrl()->faprocSet("Current Equipment: SUBLOTID_VAL", m_MIRArgs.SblotId.value);
 	PgmCtrl()->faprocSet("Current Equipment: SUBLOTID_REQ", m_MIRArgs.SblotId.required);
 	PgmCtrl()->faprocSet("Current Equipment: SUBLOTID_OVR", m_MIRArgs.SblotId.override);
-	if (debug()) std::cout << "[DEBUG] SUBLOTID_VAL: " << m_MIRArgs.SblotId.value << " set in FAmodule." << std::endl;
+	m_Debug << "[DEBUG] SUBLOTID_VAL: " << m_MIRArgs.SblotId.value << " set in FAmodule." << CUtil::CLog::endl;
 
+	return true;
+}
 
+/*---------------------------------------------------------------------------------
+using wsConfig command, try to get unison version
+---------------------------------------------------------------------------------*/
+bool CuserEvxaInterface::getUnisonVersion()
+{
+	// call command and store output to temp file
+	system("wsConfig -d -v LTXC |grep -i core > /tmp/unison.ver" );
+
+	// read temp file and dump to string variable
+	std::ifstream f;
+	f.open("/tmp/unison.ver");
+	std::stringstream buf;
+	buf << f.rdbuf();	
+	f.close();
+	std::string s(buf.str());
+	
+	// check if this line contain unison version
+	std::string::size_type c = s.find("LTXC:unison");
+
+	// if we found it
+	if (c != std::string::npos)
+	{
+		// set l to now contain the unison version		
+		std::string unisonVer = s.substr(s.find("LTXC:") + 5);		
+
+		// if there's EOL on l, remove it
+		//l.erase(std::remove(l.begin(), l.end(), '\n'), l.end());
+
+		for (unsigned int i = 0; i < unisonVer.size(); i++)
+		{
+			if (unisonVer[i] == '\n') unisonVer[i] = '\0';
+			if (unisonVer[i] == '\0') unisonVer[i] = '\0';
+		}
+
+		std::cout << "UNISON VERSION: " << unisonVer << "-- " << std::endl;
+
+		PgmCtrl()->faprocSet("Current Equipment: UNISON_VERSION_WSCONFIG", unisonVer);
+		std::string out;
+		PgmCtrl()->faprocGet("Current Equipment: UNISON_VERSION_WSCONFIG", out);
+		if (debug()) std::cout << "[DEBUG] UNISON VERSION (wsConfig): '" << out << "' set in FAmodule." << std::endl;
+	}
+
+	return true;
+/*
+	
+
+	std::string unisonVer = "Unison_Version_Null";
+	while (s.size())
+	{
+		if (s.find('u') == std::string::npos) std::cout << "found a EOF" << std::endl;
+		else std::cout << "found EOL: '" << s.find('u') << "'" << std::endl;
+
+		// get the line
+		std::string l = s.substr(0, s.find('\n'));
+		//std::string l = s.substr(0, std::string::npos);
+
+		std::cout << l;
+
+		// remove this line from the full string
+		s = s.substr(l.size());
+
+		// check if this line contain unison version
+		std::string::size_type c = l.find("LTXC:unison-U1709-core");
+		// if we found it
+		if (c != std::string::npos)
+		{
+			// set l to now contain the unison version		
+			unisonVer = l.substr(s.find("LTXC:"));		
+
+			// if there's EOL on l, remove it
+			//l.erase(std::remove(l.begin(), l.end(), '\n'), l.end());
+
+			std::cout << "UNISON VERSION: " << l << std::endl;
+			break;
+		}
+
+	}
+*/
 
 	return true;
 }
@@ -1167,186 +1388,6 @@ bool CuserEvxaInterface::sendSDRParams()
 }
 
 
-/*---------------------------------------------------------------------------------
-parse <testPrgmLoader> from XTRF
-testPrgmURI attribute 
-- holds the folder/program name and will be used to parse mir.spec_nam
-  and mir.spec_rev
-reloadStrategy, downloadStrategy, and backToIdleStrategy attributes		
----------------------------------------------------------------------------------*/
-bool CuserEvxaInterface::parseTestPrgmLoader(XML_Node *testPrgmLoader)
-{
-	if (debug()) std::cout << "[DEBUG] Executing CuserEvxaInterface::parseTestPrgmLoader()" << std::endl;
-    	bool result = true;
-    	if (debug()){fprintf(stdout, "[DEBUG] <testPrgmLoader> Found %d attributes with %d values in %s tag\n", testPrgmLoader->numAttr(), testPrgmLoader->numVals(), testPrgmLoader->fetchTag().c_str());}
-
-	if (!PgmCtrl()){ std::cout << "[ERROR] CuserEvxaInterface::parseTestPrgmLoader(): Cannot access ProgramControl object." << std::endl; return false; }
-
-    	for (int ii=0; ii<testPrgmLoader->numAttr(); ii++) 
-	{
-		if (debug()){ fprintf(stdout, "[DEBUG] <testPrgmLoader> Attr %s: %s\n", testPrgmLoader->fetchAttr(ii).c_str(), testPrgmLoader->fetchVal(ii).c_str()); }	
-		if (testPrgmLoader->fetchAttr(ii).compare("reloadStrategy") == 0) m_TPArgs.ReloadStrategy = testPrgmLoader->fetchVal(ii);
-		if (testPrgmLoader->fetchAttr(ii).compare("downloadStrategy") == 0) m_TPArgs.DownloadStrategy = testPrgmLoader->fetchVal(ii);
-		if (testPrgmLoader->fetchAttr(ii).compare("back2IdleStrategy") == 0) m_TPArgs.BackToIdleStrategy = testPrgmLoader->fetchVal(ii);  
-
-		/*
-		testPrgmURI is expected to contain "<progfolder>/<programname.una>" and is stored in m_TPArgs.TPName
-		<progfolder> is stored in m_TPArgs.TPPath. it will be referenced in download strategy later
-		*/
-		
-		if (testPrgmLoader->fetchAttr(ii).compare("testPrgmURI") == 0) 
-		{
-			m_TPArgs.TPName = testPrgmLoader->fetchVal(ii);
-			unsigned found = m_TPArgs.TPName.find_first_of("/");
-			if (found != std::string::npos){ m_TPArgs.TPPath = m_TPArgs.TPName.substr(0, found); }
-			else { m_TPArgs.TPPath = ""; }		
-/*
-			// try to get mir.spec_nam and mir.spec_ver from TPPath
-			if (!m_TPArgs.TPPath.empty())
-			{
-				// TPPath might have subfolders. we're only interested in main folder, so we get rid of subs
-				std::string toSpec( m_TPArgs.TPPath );
-				std::size_t p = toSpec.find_first_of("/");
-				if (p != std::string::npos) toSpec = toSpec.substr(0, p);
-
-				p = toSpec.find_last_of("_");
-				if (p != std::string::npos)
-				{
-					// by default, we set specnam/ver from testPrgmURI values directly to Lot Information
-					// if specnam/ver is set by XTRF, let parseMIR() and sendMIRParams() overwrite this if required
-					PgmCtrl()->setLotInformation(EVX_LotTestSpecName, m_TPArgs.TPPath.substr(0, p).c_str());
-					PgmCtrl()->setLotInformation(EVX_LotTestSpecRev, m_TPArgs.TPPath.substr(p + 1, std::string::npos).c_str());
-
-					//m_MIRArgs.SpecNam = m_TPArgs.TPPath.substr(0, p);
-					//m_MIRArgs.SpecVer = m_TPArgs.TPPath.substr(p + 1, std::string::npos);
-					if (debug()) std::cout << "MIR.SPEC_NAM from testPrgmURI: " << PgmCtrl()->getLotInformation(EVX_LotTestSpecName) << std::endl;
-					if (debug()) std::cout << "MIR.SPEC_VER from testPrgmURI: " << PgmCtrl()->getLotInformation(EVX_LotTestSpecRev) << std::endl;
-				}
-			}	
-*/			
-		}
-    	}
-
-    	return result;
-}
-
-
-
-bool CuserEvxaInterface::parseTestPrgmCopierLoaderScript(XML_Node *testPrgmCopierLoaderScript)
-{
-	if (debug()) std::cout << "[DEBUG] Executing CuserEvxaInterface::parseTestPrgmCopierLoaderScript()" << std::endl;
-     bool result = true;
-
-    if (debug()) {
-
-	fprintf(stdout, ">>>>%s: %d %d %d \n", testPrgmCopierLoaderScript->fetchTag().c_str(),
-	    testPrgmCopierLoaderScript->numAttr(),
-	    testPrgmCopierLoaderScript->numVals(),
-	    testPrgmCopierLoaderScript->numChildren()
-	);
-    }
-    for (int ii=0; ii<testPrgmCopierLoaderScript->numAttr(); ii++) {
-	if (debug()) {
-	    fprintf(stdout, "testPrgmCopierLoaderScript Attr %s: %s\n", 
-		    testPrgmCopierLoaderScript->fetchAttr(ii).c_str(), testPrgmCopierLoaderScript->fetchVal(ii).c_str());
-	}
-	if (testPrgmCopierLoaderScript->fetchAttr(ii).compare("reloadStrategy") == 0)
-	    m_TPArgs.ReloadStrategy = testPrgmCopierLoaderScript->fetchVal(ii);
-	if (testPrgmCopierLoaderScript->fetchAttr(ii).compare("downloadStrategy") == 0)
-	    m_TPArgs.DownloadStrategy = testPrgmCopierLoaderScript->fetchVal(ii);
-    }
-    int numChildren = testPrgmCopierLoaderScript->numChildren();
-    if (debug()) fprintf(stdout, "testPrgmCopierLoaderScript numChildren = %d\n", numChildren);
-    for (int ii=0; ii<numChildren; ii++) {
-	XML_Node *argumentParameter = testPrgmCopierLoaderScript->fetchChild(ii);
-	if (argumentParameter)
-	{
- 	    if (debug()) {
-		fprintf(stdout, "%s: %d %d %d %s %s %s\n", 
-		    argumentParameter->fetchTag().c_str(),
-		    argumentParameter->numAttr(),
-		    argumentParameter->numVals(),
-		    argumentParameter->numChildren(),
-		    argumentParameter->fetchAttr(0).c_str(),
-		    argumentParameter->fetchVal(0).c_str(),
-		    argumentParameter->fetchText().c_str());
-	    }
-
-	    std::string temp = argumentParameter->fetchVal(0);
-	    std::string result = argumentParameter->fetchText();
-//	    if (temp.compare("TEST_PROGRAM") == 0)  // allan remove this as we are now looking for other fields to determin test program specifics
-	    if (temp.compare("TEST_PROGRAM_NAME") == 0)
-	    	{ 
-			m_TPArgs.TPName = result; 
-
-			// check if program name as extension
-			unsigned found = m_TPArgs.TPName.find_last_of(".");  
-
-			// check if program name extension = .eva
-			std::string szExt = m_TPArgs.TPName.substr(found+1);
-     			
-			if ((szExt.compare("una") == 0) || (szExt.compare("UNA") == 0)){}
-			else{ m_TPArgs.TPName += ".una"; }
-	    
-			fprintf(stdout, "TEST_PROGRAM_NAME: %s\n", m_TPArgs.TPName.c_str()); 
-		}// allan added
-
-	    if (temp.compare("TEST_PROGRAM_PATH") == 0){ m_TPArgs.TPPath = result; fprintf(stdout, "TEST_PROGRAM_PATH: %s\n", m_TPArgs.TPPath.c_str()); }// allan added
-	    if (temp.compare("TEST_PROGRAM_FILE") == 0){ m_TPArgs.TPFile = result; fprintf(stdout, "TEST_PROGRAM_FILE: %s\n", m_TPArgs.TPFile.c_str()); }// allan added
-	    else if (temp.compare("RcpFileSupport") == 0)
-		m_TPArgs.RcpFileSupport = result;
-	    else if (temp.compare("Flow") == 0)
-		m_TPArgs.Flow = result;
-	    else if (temp.compare("Salestype") == 0)
-		m_TPArgs.Salestype = result;
-	    else if (temp.compare("Temperature") == 0)
-		m_TPArgs.Temperature =  result;
-	    else if (temp.compare("Product") == 0)
-		m_TPArgs.Product = result;
-	    else if (temp.compare("Parallelism") == 0)
-		m_TPArgs.Parallelism = result;
-	    else if (temp.compare("endLot") == 0)
-		m_TPArgs.EndLotEnable = result;
-	    else if (temp.compare("endWafer") == 0)
-		m_TPArgs.EndWaferEnable = result;
-	    else if (temp.compare("startLot") == 0)
-		m_TPArgs.StartLotEnable = result;
-	    else if (temp.compare("startWafer") == 0)
-		m_TPArgs.StartWaferEnable = result;
-	}
-    }
-    return result;
-}
-
-bool CuserEvxaInterface::parseSTDF(XML_Node *stdf)
-{
-	if (debug()) std::cout << "[DEBUG] Executing CuserEvxaInterface::parseSTDF()" << std::endl;
-    bool result = true;
-
-    int numChildren = stdf->numChildren();
-    for (int ii=0; ii<numChildren; ii++) {
-	XML_Node *childNode = stdf->fetchChild(ii);
-	if (childNode) {
-	    std::string ptag = childNode->fetchTag();
-	    if (debug()) fprintf(stdout, "stdf childNode tag: %s\n", ptag.c_str());
-
-	    // Add else-if statements for other children that need parsing
-	    // Then add a function to parse that child.
-	    if (ptag.compare("STDFrecord") == 0) {
-		result = parseSTDFRecord(childNode);
-		if (result == false)  // if parsing did not succeed then exit out of for loop.
-		    break; 
-	    }
-	    else {
-		fprintf(stdout, "stdf unkown child: %s, Not Parsed\n", ptag.c_str());
-	    }	      
-	}
-	else
-	    fprintf(stdout, "stdf: childNode is NULL\n");
-     }
-
-    return result;
-}
 
 bool CuserEvxaInterface::parseSTDFRecord(XML_Node *STDFRecord)
 {
@@ -1894,7 +1935,7 @@ bool CuserEvxaInterface::loadProgram(const std::string &szProgFullPath)
 	if(debug()) std::cout << "[DEBUG] loading test program " <<  szProgFullPath << "..." << std::endl;
 	EVX_PROGRAM_STATE states[] = { EVX_PROGRAM_LOADED, EVX_PROGRAM_LOAD_FAILED, EVX_PROGRAM_UNLOADED, MAX_EVX_PROGRAM_STATE };
 	setupProgramNotification(states);
-	status = PgmCtrl()->load(szProgFullPath.c_str(), EVXA::NO_WAIT, EVXA::NO_DISPLAY);
+	status = PgmCtrl()->load(szProgFullPath.c_str(), EVXA::NO_WAIT, EVXA::DISPLAY);
 
 	if (EVXA::OK == status)
 	{ 

@@ -10,6 +10,11 @@
 #include <fstream>
 //#include <xtrf.h>
 #include <sstream> 
+#include <utility.h>
+
+// S10F1 terminal message list
+#define S10F1_Loaded "EQ_RH_EVID<003>: TP <TP Name> loaded"
+#define S10F1_Unloaded "EQ_RH_EVID<004>: TP <TP Name> unloaded"
 
 
 template < typename T >
@@ -37,6 +42,12 @@ std::string num2stdstring(T value) {
 class XML_Node; // forward declaration.
 class CuserEvxaInterface : public evxaTester::ConChangeAPI  {
 private:
+
+	// debug logger
+	CUtil::CLog m_Debug; 
+	CUtil::CLog m_Log; 
+
+	bool m_bDisableRobot;
 
     CuserCmdSwitches m_args;
     evxaTester::CevxaTester *m_tester;
@@ -234,6 +245,11 @@ public:
     // check that all params of the configuration file have been parsed.
     bool checkConfigParams();
     bool checkProgLocation();
+
+	bool getUnisonVersion();
+
+	bool SendMessageToHost( bool bEvent, const std::string& id, const std::string& msg );
+
 };
 
 #define _CGEM_EVXA_HEADER_INCLUDED_

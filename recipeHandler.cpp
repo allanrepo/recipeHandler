@@ -35,6 +35,8 @@ int main (int argc, char *argv[], char *envp[])
 	// create our main object
 	CuserEvxaInterface l_evxaDemo(argc, argv, envp);
 
+
+
 	// if we don't have tester name, let's make up one
 	if (!l_evxaDemo.args().haveTesterName()) 
 	{
@@ -58,7 +60,11 @@ int main (int argc, char *argv[], char *envp[])
 	if (l_evxaDemo.args().isSet("version")) {std::cout << EVXA_DEMO_VERSION << std::endl;return 0;} 
 
 	// if we're in debug mode...
-	if (!l_evxaDemo.args().debug()){std::string str("");if (l_evxaDemo.getEnvVar("LTX_EVXA_DEMO_DEBUG", str)) l_evxaDemo.args().debug(true);}
+	if (!l_evxaDemo.args().debug())
+	{
+		std::string str("");
+		if (l_evxaDemo.getEnvVar("LTX_EVXA_DEMO_DEBUG", str)) l_evxaDemo.args().debug(true);
+	}
 
 
 	// make sure there's a config file, if not, let's GTFO
@@ -123,6 +129,7 @@ int mainEvxaUserLoop(CuserEvxaInterface& evxaTester)
 
 	    // Stay in this loop while the tester is running.
 	    fprintf(stderr, "Tester is running\n");
+
 	    evxaTester.setTesterRestart(false); // explicitly set this to false
 	    while (!evxaTester.isTesterRestart())
 	    {
