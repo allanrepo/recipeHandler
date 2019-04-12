@@ -18,6 +18,7 @@
         <argParameter LocalLocation="/tmp/local"/>
         <argParameter ProgLocation="/tmp/prog"/>
        <argParameter PackageType="tar"/>
+       <argParameter S10F1="true"/>
     </SiteConfiguration>
 
     <SiteConfiguration ConfigurationName="localuser">
@@ -25,7 +26,8 @@
         <argParameter LocalLocation="/home/localuser/Desktop/ST/local"/>
         <argParameter ProgLocation="/home/localuser/Desktop/ST/prog"/>
        <argParameter PackageType="tar"/>
-    </SiteConfiguration>
+        <argParameter S10F1="true"/>
+   </SiteConfiguration>
 
 
     <SiteConfiguration ConfigurationName="ST-TPY">
@@ -33,13 +35,15 @@
         <argParameter LocalLocation="/export/home/prod/locallib"/>
         <argParameter ProgLocation="/export/home/prod/locallib"/>
         <argParameter PackageType="tar"/>
-    </SiteConfiguration>
+         <argParameter S10F1="true"/>
+   </SiteConfiguration>
 
     <SiteConfiguration ConfigurationName="ST-TPY-Debug">
         <argParameter RemoteLocation="/export/home/prod/allan/ST/remote"/>
         <argParameter LocalLocation="/export/home/prod/allan/ST/local"/>
         <argParameter ProgLocation="/export/home/prod/allan/ST/prog"/>
         <argParameter PackageType="tar"/>
+        <argParameter S10F1="true"/>
     </SiteConfiguration>
 
 

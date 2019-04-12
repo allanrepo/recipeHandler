@@ -22,6 +22,7 @@ class CRecipeConfig
     std::string ProgLocation;   // Local Location of test program be downloaded extracted to.
     std::string PackageType;     // package type of download.  Supported values: tar.
     std::string ConfigurationName;
+    std::string S10F1;
 
 	bool checkProgLocation()
 	{ 

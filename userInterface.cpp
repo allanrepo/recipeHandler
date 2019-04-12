@@ -495,7 +495,7 @@ bool CuserEvxaInterface::parseXML(const char*recipe_text)
 		else 
 		{
 		    	m_Log << "ERROR: unknown root tag '" << ptag << "' found in XTRF. not parsing." << CUtil::CLog::endl;
-			SendMessageToHost(false, "008", "XTR unknown root tag");
+			SendMessageToHost(false, "008", "XTRF unknown tag");
 		    	result = false;
 		}
 	}
@@ -538,7 +538,11 @@ bool CuserEvxaInterface::parseSTDFandContextUpdate(XML_Node *parseSTDFUpdate)
 				if (!result) break; 
 			}
 			// we just ignore unknown child tags
-			else m_Debug << "[DEBUG] 	unknown child tag " << ptag << " found." << CUtil::CLog::endl;
+			else 
+			{
+				m_Debug << "[DEBUG] 	unknown child tag " << ptag << " found." << CUtil::CLog::endl;
+				SendMessageToHost(false, "008", "XTRF unknown tag");
+			}
 		}
 		// we ignore empty child tags
 		else m_Debug << "[DEBUG]	empty child tag found. " << CUtil::CLog::endl;
@@ -577,7 +581,11 @@ bool CuserEvxaInterface::parseTesterRecipe(XML_Node *testerRecipe)
 				if (!result) break; 
 			}
 			// we just ignore unknown child tags
-			else  m_Debug << "[DEBUG] 	unknown child tag " << ptag << " found." << CUtil::CLog::endl;
+			else  
+			{
+				m_Debug << "[DEBUG] 	unknown child tag " << ptag << " found." << CUtil::CLog::endl;
+				SendMessageToHost(false, "008", "XTRF unknown tag");
+			}
 		}
 		// we ignore empty child tags
 		else m_Debug << "[DEBUG]	empty child tag found. " << CUtil::CLog::endl;
@@ -608,7 +616,11 @@ bool CuserEvxaInterface::parseTestPrgmIdentifier(XML_Node *testPrgmIdentifier)
 				result = parseTestPrgm(childNode);
 				if (!result) break; 
 	    		}
-	    		else m_Debug << "[DEBUG] 	unknown child tag " << ptag << " found." << CUtil::CLog::endl;
+	    		else 
+			{
+				m_Debug << "[DEBUG] 	unknown child tag " << ptag << " found." << CUtil::CLog::endl;
+				SendMessageToHost(false, "008", "XTRF unknown tag");
+			}
 		}
 		else m_Debug << "[DEBUG]	empty child tag found. " << CUtil::CLog::endl;
      	}    
@@ -644,7 +656,11 @@ bool CuserEvxaInterface::parseTestPrgm(XML_Node *testPrgm)
 				result = parseTestPrgmLoader(childNode);
 				if (!result) break;
 			}
-	    		else m_Debug << "[DEBUG] 	unknown child tag " << ptag << " found." << CUtil::CLog::endl;
+	    		else 
+			{
+				m_Debug << "[DEBUG] 	unknown child tag " << ptag << " found." << CUtil::CLog::endl;
+				SendMessageToHost(false, "008", "XTRF unknown tag");		
+			}
 		}
 		else m_Debug << "[DEBUG]	empty child tag found. " << CUtil::CLog::endl;
      	}
@@ -654,8 +670,8 @@ bool CuserEvxaInterface::parseTestPrgm(XML_Node *testPrgm)
 /* ------------------------------------------------------------------------------------------------------
 parse <testPrgmLoader> from XTRF
 testPrgmURI attribute 
-- 	holds the folder/program name and will be used to parse mir.spec_nam
-  	and mir.spec_rev
+- 	holds the folder/program name and may be used to parse mir.spec_nam
+  	and mir.spec_rev if necessary
 reloadStrategy, downloadStrategy, and backToIdleStrategy attributes
 ------------------------------------------------------------------------------------------------------ */
 bool CuserEvxaInterface::parseTestPrgmLoader(XML_Node *testPrgmLoader)
@@ -671,174 +687,189 @@ bool CuserEvxaInterface::parseTestPrgmLoader(XML_Node *testPrgmLoader)
     	bool result = true;
     	m_Debug << "[DEBUG] <" << testPrgmLoader->fetchTag() << "> Found with " << testPrgmLoader->numAttr() << " attributes, " <<  testPrgmLoader->numVals() << " values." << CUtil::CLog::endl;
 
-	if (!PgmCtrl()){ std::cout << "[ERROR] CuserEvxaInterface::parseTestPrgmLoader(): Cannot access ProgramControl object." << std::endl; return false; }
-
-    	for (int ii=0; ii<testPrgmLoader->numAttr(); ii++) 
+	// loop through <testPrgmloader> attributes and find program path/name, loading strategy
+    	for (int ii=0; ii < testPrgmLoader->numAttr(); ii++) 
 	{
-		if (debug()){ fprintf(stdout, "[DEBUG] <testPrgmLoader> Attr %s: %s\n", testPrgmLoader->fetchAttr(ii).c_str(), testPrgmLoader->fetchVal(ii).c_str()); }	
-		if (testPrgmLoader->fetchAttr(ii).compare("reloadStrategy") == 0) m_TPArgs.ReloadStrategy = testPrgmLoader->fetchVal(ii);
-		if (testPrgmLoader->fetchAttr(ii).compare("downloadStrategy") == 0) m_TPArgs.DownloadStrategy = testPrgmLoader->fetchVal(ii);
-		if (testPrgmLoader->fetchAttr(ii).compare("back2IdleStrategy") == 0) m_TPArgs.BackToIdleStrategy = testPrgmLoader->fetchVal(ii);  
+		m_Debug << "[DEBUG] <" << testPrgmLoader->fetchTag() << ">> Attr " << testPrgmLoader->fetchAttr(ii) << ": " << testPrgmLoader->fetchVal(ii) << CUtil::CLog::endl;
+		if (testPrgmLoader->fetchAttr(ii).compare("reloadStrategy") == 0){ m_TPArgs.ReloadStrategy = testPrgmLoader->fetchVal(ii); continue; }
+		if (testPrgmLoader->fetchAttr(ii).compare("downloadStrategy") == 0){ m_TPArgs.DownloadStrategy = testPrgmLoader->fetchVal(ii); continue; }
+		if (testPrgmLoader->fetchAttr(ii).compare("back2IdleStrategy") == 0){ m_TPArgs.BackToIdleStrategy = testPrgmLoader->fetchVal(ii); continue; }
 
-		/*
-		testPrgmURI is expected to contain "<progfolder>/<programname.una>" and is stored in m_TPArgs.TPName
-		<progfolder> is stored in m_TPArgs.TPPath. it will be referenced in download strategy later
-		*/
-		
+		// testPrgmURI is expected to contain "<progfolder>/<programname.una>" and is stored in m_TPArgs.TPName
+		// <progfolder> is stored in m_TPArgs.TPPath. it will be referenced in download strategy later		
 		if (testPrgmLoader->fetchAttr(ii).compare("testPrgmURI") == 0) 
 		{
 			m_TPArgs.TPName = testPrgmLoader->fetchVal(ii);
-			unsigned found = m_TPArgs.TPName.find_first_of("/");
-			if (found != std::string::npos){ m_TPArgs.TPPath = m_TPArgs.TPName.substr(0, found); }
-			else { m_TPArgs.TPPath = ""; }		
-/*
-			// try to get mir.spec_nam and mir.spec_ver from TPPath
-			if (!m_TPArgs.TPPath.empty())
-			{
-				// TPPath might have subfolders. we're only interested in main folder, so we get rid of subs
-				std::string toSpec( m_TPArgs.TPPath );
-				std::size_t p = toSpec.find_first_of("/");
-				if (p != std::string::npos) toSpec = toSpec.substr(0, p);
-
-				p = toSpec.find_last_of("_");
-				if (p != std::string::npos)
-				{
-					// by default, we set specnam/ver from testPrgmURI values directly to Lot Information
-					// if specnam/ver is set by XTRF, let parseMIR() and sendMIRParams() overwrite this if required
-					PgmCtrl()->setLotInformation(EVX_LotTestSpecName, m_TPArgs.TPPath.substr(0, p).c_str());
-					PgmCtrl()->setLotInformation(EVX_LotTestSpecRev, m_TPArgs.TPPath.substr(p + 1, std::string::npos).c_str());
-
-					//m_MIRArgs.SpecNam = m_TPArgs.TPPath.substr(0, p);
-					//m_MIRArgs.SpecVer = m_TPArgs.TPPath.substr(p + 1, std::string::npos);
-					if (debug()) std::cout << "MIR.SPEC_NAM from testPrgmURI: " << PgmCtrl()->getLotInformation(EVX_LotTestSpecName) << std::endl;
-					if (debug()) std::cout << "MIR.SPEC_VER from testPrgmURI: " << PgmCtrl()->getLotInformation(EVX_LotTestSpecRev) << std::endl;
-				}
-			}	
-*/			
+			unsigned found = m_TPArgs.TPName.find_first_of("/");			
+			m_TPArgs.TPPath = (m_TPArgs.TPName.find_first_of("/") != std::string::npos)? m_TPArgs.TPName.substr(0, found) : "";
+			continue;		
 		}
+
+		// if you reach this point, then it's an unknown attribute. we're not going to stop the application ut we'll let host know
+		m_Debug << "[DEBUG] 	unknown attribute found in <" << testPrgmLoader->fetchTag() << ">: " << testPrgmLoader->fetchAttr(ii) << CUtil::CLog::endl;
+		SendMessageToHost(false, "009", "XTRF unknown attribute");		
     	}
 
     	return result;
 }
 
 
+/* ------------------------------------------------------------------------------------------------------
 
+------------------------------------------------------------------------------------------------------ */
 bool CuserEvxaInterface::parseTestPrgmCopierLoaderScript(XML_Node *testPrgmCopierLoaderScript)
 {
-	if (debug()) std::cout << "[DEBUG] Executing CuserEvxaInterface::parseTestPrgmCopierLoaderScript()" << std::endl;
-     bool result = true;
+	m_Debug << "[DEBUG] Executing CuserEvxaInterface::parseTestPrgmCopierLoaderScript()" << CUtil::CLog::endl;
 
-    if (debug()) {
-
-	fprintf(stdout, ">>>>%s: %d %d %d \n", testPrgmCopierLoaderScript->fetchTag().c_str(),
-	    testPrgmCopierLoaderScript->numAttr(),
-	    testPrgmCopierLoaderScript->numVals(),
-	    testPrgmCopierLoaderScript->numChildren()
-	);
-    }
-    for (int ii=0; ii<testPrgmCopierLoaderScript->numAttr(); ii++) {
-	if (debug()) {
-	    fprintf(stdout, "testPrgmCopierLoaderScript Attr %s: %s\n", 
-		    testPrgmCopierLoaderScript->fetchAttr(ii).c_str(), testPrgmCopierLoaderScript->fetchVal(ii).c_str());
-	}
-	if (testPrgmCopierLoaderScript->fetchAttr(ii).compare("reloadStrategy") == 0)
-	    m_TPArgs.ReloadStrategy = testPrgmCopierLoaderScript->fetchVal(ii);
-	if (testPrgmCopierLoaderScript->fetchAttr(ii).compare("downloadStrategy") == 0)
-	    m_TPArgs.DownloadStrategy = testPrgmCopierLoaderScript->fetchVal(ii);
-    }
-    int numChildren = testPrgmCopierLoaderScript->numChildren();
-    if (debug()) fprintf(stdout, "testPrgmCopierLoaderScript numChildren = %d\n", numChildren);
-    for (int ii=0; ii<numChildren; ii++) {
-	XML_Node *argumentParameter = testPrgmCopierLoaderScript->fetchChild(ii);
-	if (argumentParameter)
+	if (!PgmCtrl()) 
 	{
- 	    if (debug()) {
-		fprintf(stdout, "%s: %d %d %d %s %s %s\n", 
-		    argumentParameter->fetchTag().c_str(),
-		    argumentParameter->numAttr(),
-		    argumentParameter->numVals(),
-		    argumentParameter->numChildren(),
-		    argumentParameter->fetchAttr(0).c_str(),
-		    argumentParameter->fetchVal(0).c_str(),
-		    argumentParameter->fetchText().c_str());
-	    }
+		m_Log << "No ProgramControl at CuserEvxaInterface::parseTestPrgmCopierLoaderScript." << CUtil::CLog::endl;
+		return false;
+    	}
 
-	    std::string temp = argumentParameter->fetchVal(0);
-	    std::string result = argumentParameter->fetchText();
-//	    if (temp.compare("TEST_PROGRAM") == 0)  // allan remove this as we are now looking for other fields to determin test program specifics
-	    if (temp.compare("TEST_PROGRAM_NAME") == 0)
-	    	{ 
-			m_TPArgs.TPName = result; 
+     	bool result = true;
+    	m_Debug << "[DEBUG] <" << testPrgmCopierLoaderScript->fetchTag() << "> Found with " << testPrgmCopierLoaderScript->numAttr() << " attributes, ";
+	m_Debug <<  testPrgmCopierLoaderScript->numVals() << " values, " <<  testPrgmCopierLoaderScript->numChildren() << " children." << CUtil::CLog::endl;
 
-			// check if program name as extension
-			unsigned found = m_TPArgs.TPName.find_last_of(".");  
+	// read the attributes of <testPrgmCopierLoaderScript>
+    	for (int ii = 0; ii < testPrgmCopierLoaderScript->numAttr(); ii++) 
+	{
+		m_Debug << "[DEBUG] <" << testPrgmCopierLoaderScript->fetchTag() << ">> Attr " << testPrgmCopierLoaderScript->fetchAttr(ii);
+		m_Debug << ": " << testPrgmCopierLoaderScript->fetchVal(ii) << CUtil::CLog::endl;
 
-			// check if program name extension = .eva
-			std::string szExt = m_TPArgs.TPName.substr(found+1);
-     			
-			if ((szExt.compare("una") == 0) || (szExt.compare("UNA") == 0)){}
-			else{ m_TPArgs.TPName += ".una"; }
+		if (testPrgmCopierLoaderScript->fetchAttr(ii).compare("reloadStrategy") == 0){ m_TPArgs.ReloadStrategy = testPrgmCopierLoaderScript->fetchVal(ii); continue; }
+		if (testPrgmCopierLoaderScript->fetchAttr(ii).compare("downloadStrategy") == 0){ m_TPArgs.DownloadStrategy = testPrgmCopierLoaderScript->fetchVal(ii); continue; }
+
+		// if you reach this point, then it's an unknown attribute. we're not going to stop the application ut we'll let host know
+		m_Debug << "[DEBUG] 	unknown attribute found in <" << testPrgmCopierLoaderScript->fetchTag() << ">: " << testPrgmCopierLoaderScript->fetchAttr(ii) << CUtil::CLog::endl;
+		SendMessageToHost(false, "009", "XTRF unknown attribute");		
+    	}
+
+	// read the child tags of <testPrgmCopierLoaderScript>
+	m_Debug << "[DEBUG] <" << testPrgmCopierLoaderScript->fetchTag() << "> has " << testPrgmCopierLoaderScript->numChildren() << " child tags." << CUtil::CLog::endl;
+	for (int ii = 0; ii< testPrgmCopierLoaderScript->numChildren(); ii++) 
+	{
+		XML_Node *argumentParameter = testPrgmCopierLoaderScript->fetchChild(ii);
+		if (argumentParameter)
+		{
+			m_Debug << "[DEBUG]	" << argumentParameter->fetchTag() << ": ";
+			m_Debug << argumentParameter->numAttr() << " attributes, ";
+			m_Debug << argumentParameter->numVals() << " values, ";
+			m_Debug << argumentParameter->numChildren() << " children, ";
+			m_Debug << argumentParameter->fetchAttr(0) << " ";
+			m_Debug << argumentParameter->fetchVal(0) << " ";
+			m_Debug << argumentParameter->fetchText() << CUtil::CLog::endl;
+
+	    		std::string temp = argumentParameter->fetchVal(0);
+	    		std::string result = argumentParameter->fetchText();
+		    	if (temp.compare("TEST_PROGRAM_NAME") == 0)
+	    		{ 
+				m_TPArgs.TPName = result; 
+
+				// check if program name as extension
+				unsigned found = m_TPArgs.TPName.find_last_of(".");  
+
+				// check if program name extension = .eva
+				std::string szExt = m_TPArgs.TPName.substr(found+1);
+	     			
+				if ((szExt.compare("una") == 0) || (szExt.compare("UNA") == 0)){}
+				else{ m_TPArgs.TPName += ".una"; }
 	    
-			fprintf(stdout, "TEST_PROGRAM_NAME: %s\n", m_TPArgs.TPName.c_str()); 
-		}// allan added
+				m_Log << "TEST_PROGRAM_NAME: " << m_TPArgs.TPName << CUtil::CLog::endl; 
+			}// allan added
 
-	    if (temp.compare("TEST_PROGRAM_PATH") == 0){ m_TPArgs.TPPath = result; fprintf(stdout, "TEST_PROGRAM_PATH: %s\n", m_TPArgs.TPPath.c_str()); }// allan added
-	    if (temp.compare("TEST_PROGRAM_FILE") == 0){ m_TPArgs.TPFile = result; fprintf(stdout, "TEST_PROGRAM_FILE: %s\n", m_TPArgs.TPFile.c_str()); }// allan added
-	    else if (temp.compare("RcpFileSupport") == 0)
-		m_TPArgs.RcpFileSupport = result;
-	    else if (temp.compare("Flow") == 0)
-		m_TPArgs.Flow = result;
-	    else if (temp.compare("Salestype") == 0)
-		m_TPArgs.Salestype = result;
-	    else if (temp.compare("Temperature") == 0)
-		m_TPArgs.Temperature =  result;
-	    else if (temp.compare("Product") == 0)
-		m_TPArgs.Product = result;
-	    else if (temp.compare("Parallelism") == 0)
-		m_TPArgs.Parallelism = result;
-	    else if (temp.compare("endLot") == 0)
-		m_TPArgs.EndLotEnable = result;
-	    else if (temp.compare("endWafer") == 0)
-		m_TPArgs.EndWaferEnable = result;
-	    else if (temp.compare("startLot") == 0)
-		m_TPArgs.StartLotEnable = result;
-	    else if (temp.compare("startWafer") == 0)
-		m_TPArgs.StartWaferEnable = result;
+			if (temp.compare("TEST_PROGRAM_PATH") == 0){ m_TPArgs.TPPath = result; m_Log << "TEST_PROGRAM_PATH: " << m_TPArgs.TPPath << CUtil::CLog::endl; }// allan added
+			if (temp.compare("TEST_PROGRAM_FILE") == 0){ m_TPArgs.TPFile = result; m_Log << "TEST_PROGRAM_FILE: " << m_TPArgs.TPFile << CUtil::CLog::endl; }// allan added
+			else if (temp.compare("RcpFileSupport") == 0) 	m_TPArgs.RcpFileSupport = result;
+			else if (temp.compare("Flow") == 0) 		m_TPArgs.Flow = result;
+			else if (temp.compare("Salestype") == 0) 	m_TPArgs.Salestype = result;
+			else if (temp.compare("Temperature") == 0) 	m_TPArgs.Temperature =  result;
+			else if (temp.compare("Product") == 0) 		m_TPArgs.Product = result;
+			else if (temp.compare("Parallelism") == 0) 	m_TPArgs.Parallelism = result;
+			else if (temp.compare("endLot") == 0) 		m_TPArgs.EndLotEnable = result;
+			else if (temp.compare("endWafer") == 0) 	m_TPArgs.EndWaferEnable = result;
+			else if (temp.compare("startLot") == 0) 	m_TPArgs.StartLotEnable = result;
+			else if (temp.compare("startWafer") == 0) 	m_TPArgs.StartWaferEnable = result;
+		}
 	}
-    }
-    return result;
+	return result;
 }
 
+/* ------------------------------------------------------------------------------------------------------
+parse the <stdf> tag
+------------------------------------------------------------------------------------------------------ */
 bool CuserEvxaInterface::parseSTDF(XML_Node *stdf)
 {
-	if (debug()) std::cout << "[DEBUG] Executing CuserEvxaInterface::parseSTDF()" << std::endl;
-    bool result = true;
+	m_Debug << "[DEBUG] Executing CuserEvxaInterface::parseSTDF()" << CUtil::CLog::endl;
 
-    int numChildren = stdf->numChildren();
-    for (int ii=0; ii<numChildren; ii++) {
-	XML_Node *childNode = stdf->fetchChild(ii);
-	if (childNode) {
-	    std::string ptag = childNode->fetchTag();
-	    if (debug()) fprintf(stdout, "stdf childNode tag: %s\n", ptag.c_str());
+	if (!PgmCtrl()) 
+	{
+		m_Log << "No ProgramControl at CuserEvxaInterface::parseSTDF." << CUtil::CLog::endl;
+		return false;
+    	}
 
-	    // Add else-if statements for other children that need parsing
-	    // Then add a function to parse that child.
-	    if (ptag.compare("STDFrecord") == 0) {
-		result = parseSTDFRecord(childNode);
-		if (result == false)  // if parsing did not succeed then exit out of for loop.
-		    break; 
-	    }
-	    else {
-		fprintf(stdout, "stdf unkown child: %s, Not Parsed\n", ptag.c_str());
-	    }	      
-	}
-	else
-	    fprintf(stdout, "stdf: childNode is NULL\n");
-     }
+	// read the child tags of <stdf>
+    	bool result = true;
+	m_Debug << "[DEBUG] <" << stdf->fetchTag() << "> has " << stdf->numChildren() << " child tags." << CUtil::CLog::endl;
+    	for (int ii = 0; ii < stdf->numChildren(); ii++) 
+	{
+		XML_Node *childNode = stdf->fetchChild(ii);
+		if (childNode) 
+		{
+			std::string ptag = childNode->fetchTag();
+			m_Debug << "[DEBUG]	child tag: " << ptag << CUtil::CLog::endl;
 
-    return result;
+		    	// if found a record, let's parse it
+		    	if (ptag.compare("STDFrecord") == 0) 
+			{
+				if (!parseSTDFRecord(childNode)) break;
+		    	}
+		    	else 
+			{
+				m_Debug << "[DEBUG] 	unknown child tag " << ptag << " found." << CUtil::CLog::endl;
+				SendMessageToHost(false, "008", "XTRF unknown tag");	
+		   	}	      
+		}
+		else m_Debug << "[DEBUG]	empty child tag found. " << CUtil::CLog::endl;
+     	}
+
+    	return result;
 }
 
+
+/*---------------------------------------------------------------------------------
+parse <STDFRecord>
+---------------------------------------------------------------------------------*/
+bool CuserEvxaInterface::parseSTDFRecord(XML_Node *STDFRecord)
+{
+	m_Debug << "[DEBUG] Executing CuserEvxaInterface::parseSTDFRecord()" << CUtil::CLog::endl;
+
+   	bool result = true;
+
+	// let's look for "recordName" as attribute. if unknown attribute is found, we ignore it but tell host about it
+    	std::string rname("");
+    	for (int ii = 0; ii < STDFRecord->numAttr(); ii++) 
+	{
+		if (STDFRecord->fetchAttr(ii).compare("recordName") == 0) rname = STDFRecord->fetchVal(ii); 
+		else 
+		{
+			m_Debug << "[DEBUG] 	unknown attribute found in <" << STDFRecord->fetchTag() << ">: " << STDFRecord->fetchAttr(ii) << CUtil::CLog::endl;
+			SendMessageToHost(false, "009", "XTRF unknown attribute");		
+		}    	
+	}
+    	m_Debug << "Record Name: " << rname << CUtil::CLog::endl;
+
+    	if (rname.compare("MIR") == 0){ result = parseMIR(STDFRecord); }
+    	else if (rname.compare("SDR") == 0){ result = parseSDR(STDFRecord); }
+    	else if (rname.compare("GDR") == 0){ result = parseGDR(STDFRecord); }
+    	else 
+	{ 	
+		m_Log << "[ERROR] parseSTDFRecord unknown recordName: " << rname << CUtil::CLog::endl;
+		SendMessageToHost(false, "010", "XTRF unknown attribute value");		
+	}
+
+    	return result;
+}
 
 /*---------------------------------------------------------------------------------
 any STDF field to be set by evxa (e.g. XTRF not available, info from tester)
@@ -1071,14 +1102,22 @@ parse GDR
 ---------------------------------------------------------------------------------*/
 bool CuserEvxaInterface::parseGDR(XML_Node *GDRRecord)
 {
-	if (debug()) std::cout << "[DEBUG] Executing CuserEvxaInterface::parseGDR()" << std::endl;
-     	bool result = true;
+	m_Debug << "[DEBUG] Executing CuserEvxaInterface::parseGDR()" << CUtil::CLog::endl;
 
-	if (!PgmCtrl()){ std::cout << "[ERROR] CuserEvxaInterface::parseGDR(): Cannot access ProgramControl object." << std::endl; return false; }
+	if (!PgmCtrl()) 
+	{
+		m_Log << "No ProgramControl at CuserEvxaInterface::parseGDR." << CUtil::CLog::endl;
+		return false;
+    	}
+
+     	bool result = true;
 
 	// get custom name of this GDR
     	std::string customName("");
-    	for (int ii=0; ii<GDRRecord->numAttr(); ii++){ GDRRecord->fetchAttr(ii).compare("customName") == 0? customName = GDRRecord->fetchVal(ii) : customName = ""; }
+    	for (int ii = 0; ii < GDRRecord->numAttr(); ii++)
+	{ 
+		GDRRecord->fetchAttr(ii).compare("customName") == 0? customName = GDRRecord->fetchVal(ii) : customName = ""; 
+	}
 
 	// start reading fields from XTRF 
     	XML_Node *STDFfields = GDRRecord->fetchChild("STDFfields");
@@ -1107,22 +1146,22 @@ bool CuserEvxaInterface::parseGDR(XML_Node *GDRRecord)
 			{
 				if ( (customName.compare("MIR_ADD") == 0) || (customName.compare("AUTOMATION") == 0) || (customName.compare("REF_DIE") == 0) )
 				{
-					if (comment.compare("GUI_NAM_VAL") == 0){ m_GDR.gui_nam.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] GUI_NAM " << STDFfield->fetchText() << std::endl; }
-					if (comment.compare("GUI_REV_VAL") == 0){ m_GDR.gui_rev.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] GUI_REV " << STDFfield->fetchText() << std::endl; }
-					if (comment.compare("TRF-XTRF_VAL") == 0){ m_GDR.trf_xtrf.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] TRF_XTRF " << STDFfield->fetchText() << std::endl; }
-					if (comment.compare("AUTO_NAM_VAL") == 0){ m_GDR.auto_nam.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] AUTO_NAM " << STDFfield->fetchText() << std::endl; }
-					if (comment.compare("AUTO_VER_VAL") == 0){ m_GDR.auto_ver.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] AUTO_VER " << STDFfield->fetchText() << std::endl; }
-					if (comment.compare("STDF_FRM_VAL") == 0){ m_GDR.stdf_frm.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] STD_FRM " << STDFfield->fetchText() << std::endl; }
-					if (comment.compare("API_NAM_VAL") == 0){ m_GDR.api_nam.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] API_NAM " << STDFfield->fetchText() << std::endl; }
-					if (comment.compare("API_REV_VAL") == 0){ m_GDR.api_rev.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] API_REV " << STDFfield->fetchText() << std::endl; }
-					if (comment.compare("DRV_NAM_VAL") == 0){ m_GDR.drv_nam.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] DRV_NAM " << STDFfield->fetchText() << std::endl; }
-					if (comment.compare("DRV_REV_VAL") == 0){ m_GDR.drv_rev.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] DRV_REV " << STDFfield->fetchText() << std::endl; }
+					if (comment.compare("GUI_NAM_VAL") == 0){ m_GDR.gui_nam.set( STDFfield->fetchText(), required, override); m_Debug << "[DEBUG] GUI_NAM " << STDFfield->fetchText() << CUtil::CLog::endl; }
+					if (comment.compare("GUI_REV_VAL") == 0){ m_GDR.gui_rev.set( STDFfield->fetchText(), required, override); m_Debug << "[DEBUG] GUI_REV " << STDFfield->fetchText() << CUtil::CLog::endl; }
+					if (comment.compare("TRF-XTRF_VAL") == 0){ m_GDR.trf_xtrf.set( STDFfield->fetchText(), required, override); m_Debug << "[DEBUG] TRF_XTRF " << STDFfield->fetchText() << CUtil::CLog::endl; }
+					if (comment.compare("AUTO_NAM_VAL") == 0){ m_GDR.auto_nam.set( STDFfield->fetchText(), required, override); m_Debug << "[DEBUG] AUTO_NAM " << STDFfield->fetchText() << CUtil::CLog::endl; }
+					if (comment.compare("AUTO_VER_VAL") == 0){ m_GDR.auto_ver.set( STDFfield->fetchText(), required, override); m_Debug << "[DEBUG] AUTO_VER " << STDFfield->fetchText() << CUtil::CLog::endl; }
+					if (comment.compare("STDF_FRM_VAL") == 0){ m_GDR.stdf_frm.set( STDFfield->fetchText(), required, override); m_Debug << "[DEBUG] STD_FRM " << STDFfield->fetchText() << CUtil::CLog::endl; }
+					if (comment.compare("API_NAM_VAL") == 0){ m_GDR.api_nam.set( STDFfield->fetchText(), required, override); m_Debug << "[DEBUG] API_NAM " << STDFfield->fetchText() << CUtil::CLog::endl; }
+					if (comment.compare("API_REV_VAL") == 0){ m_GDR.api_rev.set( STDFfield->fetchText(), required, override); m_Debug << "[DEBUG] API_REV " << STDFfield->fetchText() << CUtil::CLog::endl; }
+					if (comment.compare("DRV_NAM_VAL") == 0){ m_GDR.drv_nam.set( STDFfield->fetchText(), required, override); m_Debug << "[DEBUG] DRV_NAM " << STDFfield->fetchText() << CUtil::CLog::endl; }
+					if (comment.compare("DRV_REV_VAL") == 0){ m_GDR.drv_rev.set( STDFfield->fetchText(), required, override); m_Debug << "[DEBUG] DRV_REV " << STDFfield->fetchText() << CUtil::CLog::endl; }
 				}
 				// let's handle GEN_DATA belonging to custom GDR's. note that GDR's that aren't AUTOMATION, MIR_ADD, or REF_DIE are custom GDR's
 				else
 				{
 					m_GDR.addCustom(customName, STDFfield->fetchText(), required, override);
-					if (debug()) std::cout << "[DEBUG] CUSTOM_GDR " << customName << ":" << STDFfield->fetchText() << std::endl; 				
+					m_Debug << "[DEBUG] CUSTOM_GDR " << customName << ":" << STDFfield->fetchText() << CUtil::CLog::endl;				
 				}
 			}	
 		}	
@@ -1136,7 +1175,7 @@ parse MIR
 ---------------------------------------------------------------------------------*/
 bool CuserEvxaInterface::parseMIR(XML_Node *MIRRecord)
 {
-	if (debug()) std::cout << "[DEBUG] Executing CuserEvxaInterface::parseMIR()" << std::endl;
+	m_Debug << "[DEBUG] Executing CuserEvxaInterface::parseMIR()" << CUtil::CLog::endl;
     	bool result = true;
 
 	// start reading fields from XTRF 
@@ -1161,40 +1200,44 @@ bool CuserEvxaInterface::parseMIR(XML_Node *MIRRecord)
 				if (STDFfield->fetchAttr(ii).compare("override") == 0){ override = STDFfield->fetchVal(ii); }
 			}
 			
-	    		if (fieldname.compare("LOT_ID") == 0){ m_MIRArgs.LotId.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] LOT_ID: " << STDFfield->fetchText() << std::endl; }
-	    		else if (fieldname.compare("CMOD_COD") == 0){ m_MIRArgs.CmodCod.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] CMOD_COD: " << STDFfield->fetchText() << std::endl; }
-	    		else if (fieldname.compare("FLOW_ID") == 0){ m_MIRArgs.FlowId.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] FLOW_ID: " << STDFfield->fetchText() << std::endl; }
-	    		else if (fieldname.compare("DSGN_REV") == 0){ m_MIRArgs.DsgnRev.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] DSGN_REV: " << STDFfield->fetchText() << std::endl; }
-	    		else if (fieldname.compare("DATE_COD") == 0){ m_MIRArgs.DateCod.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] DATE_COD: " << STDFfield->fetchText() << std::endl; }
-	    		else if (fieldname.compare("OPER_FRQ") == 0){ m_MIRArgs.OperFrq.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] OPER_FRQ: " << STDFfield->fetchText() << std::endl; }
-	    		else if (fieldname.compare("OPER_NAM") == 0){ m_MIRArgs.OperNam.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] OPER_NAM: " << STDFfield->fetchText() << std::endl; }
-	    		else if (fieldname.compare("NODE_NAM") == 0){ m_MIRArgs.NodeNam.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] NODE_NAM: " << STDFfield->fetchText() << std::endl; }
-	   		else if (fieldname.compare("PART_TYP") == 0){ m_MIRArgs.PartTyp.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] PART_TYP: " << STDFfield->fetchText() << std::endl; }
-			else if (fieldname.compare("ENG_ID") == 0){ m_MIRArgs.EngId.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] ENG_ID: " << STDFfield->fetchText() << std::endl; }
-	    		else if (fieldname.compare("TST_TEMP") == 0){ m_MIRArgs.TestTmp.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] TST_TEMP: " << STDFfield->fetchText() << std::endl; }
-	    		else if (fieldname.compare("FACIL_ID") == 0){ m_MIRArgs.FacilId.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] FACIL_ID: " << STDFfield->fetchText() << std::endl; }
-	    		else if (fieldname.compare("FLOOR_ID") == 0){ m_MIRArgs.FloorId.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] FLOOR_ID: " << STDFfield->fetchText() << std::endl; }
-	    		else if (fieldname.compare("STAT_NUM") == 0){ m_MIRArgs.StatNum.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] STAT_NUM: " << STDFfield->fetchText() << std::endl; }
-	    		else if (fieldname.compare("PROC_ID") == 0){ m_MIRArgs.ProcId.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] PROC_ID: " << STDFfield->fetchText() << std::endl; }
-	    		else if (fieldname.compare("MODE_COD") == 0){ m_MIRArgs.ModCod.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] MODE_COD: " << STDFfield->fetchText() << std::endl; }
-	    		else if (fieldname.compare("FAMLY_ID") == 0){ m_MIRArgs.FamilyId.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] FAMLY_ID: " << STDFfield->fetchText() << std::endl; }
-	   	 	else if (fieldname.compare("PKG_TYP") == 0){ m_MIRArgs.PkgTyp.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] PKG_TYP: " << STDFfield->fetchText() << std::endl; }
-	    		else if (fieldname.compare("SBLOT_ID") == 0){ m_MIRArgs.SblotId.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] SBLOT_ID: " << STDFfield->fetchText() << std::endl; }
-			else if (fieldname.compare("JOB_NAM") == 0){ m_MIRArgs.JobNam.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] JOB_NAM: " << STDFfield->fetchText() << std::endl; }
-	    		else if (fieldname.compare("SETUP_ID") == 0){ m_MIRArgs.SetupId.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] SETUP_ID: " << STDFfield->fetchText() << std::endl; }
-	    		else if (fieldname.compare("JOB_REV") == 0){ m_MIRArgs.JobRev.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] JOB_REV: " << STDFfield->fetchText() << std::endl; }
-	    		else if (fieldname.compare("AUX_FILE") == 0){ m_MIRArgs.AuxFile.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] AUX_FILE: " << STDFfield->fetchText() << std::endl; }
-	    		else if (fieldname.compare("RTST_COD") == 0){ m_MIRArgs.RtstCod.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] RTST_COD: " << STDFfield->fetchText() << std::endl; }
-	    		else if (fieldname.compare("TEST_COD") == 0){ m_MIRArgs.TestCod.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] TEST_COD: " << STDFfield->fetchText() << std::endl; }
-	    		else if (fieldname.compare("USER_TXT") == 0){ m_MIRArgs.UserText.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] USER_TXT: " << STDFfield->fetchText() << std::endl; }
-	    		else if (fieldname.compare("ROM_COD") == 0){ m_MIRArgs.RomCod.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] ROM_COD: " << STDFfield->fetchText() << std::endl; }
-	    		else if (fieldname.compare("SERL_NUM") == 0){ m_MIRArgs.SerlNum.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] SERL_NUM: " << STDFfield->fetchText() << std::endl; }
-	    		else if (fieldname.compare("SPEC_NAM") == 0){ m_MIRArgs.SpecNam.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] SPEC_NAM: " << STDFfield->fetchText() << std::endl; }
-	    		else if (fieldname.compare("SPEC_VER") == 0){ m_MIRArgs.SpecVer.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] SPEC_VER: " << STDFfield->fetchText() << std::endl; }
-	    		else if (fieldname.compare("TSTR_TYP") == 0){ m_MIRArgs.TstrTyp.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] TSTR_TYP: " << STDFfield->fetchText() << std::endl; }
-	    		else if (fieldname.compare("SUPR_NAM") == 0){ m_MIRArgs.SuprNam.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] SUPR_NAM: " << STDFfield->fetchText() << std::endl; }
-	    		else if (fieldname.compare("PROT_COD") == 0){ m_MIRArgs.ProtCod.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] PROT_COD: " << STDFfield->fetchText() << std::endl; }
-	    		else fprintf(stdout, "parseMIR unknown field: %s\n", fieldname.c_str());
+	    		if (fieldname.compare("LOT_ID") == 0){ m_MIRArgs.LotId.set( STDFfield->fetchText(), required, override); m_Debug << "[DEBUG] LOT_ID: " << STDFfield->fetchText() << CUtil::CLog::endl; }
+	    		else if (fieldname.compare("CMOD_COD") == 0){ m_MIRArgs.CmodCod.set( STDFfield->fetchText(), required, override); m_Debug << "[DEBUG] CMOD_COD: " << STDFfield->fetchText() << CUtil::CLog::endl; }
+	    		else if (fieldname.compare("FLOW_ID") == 0){ m_MIRArgs.FlowId.set( STDFfield->fetchText(), required, override); m_Debug << "[DEBUG] FLOW_ID: " << STDFfield->fetchText() << CUtil::CLog::endl; }
+	    		else if (fieldname.compare("DSGN_REV") == 0){ m_MIRArgs.DsgnRev.set( STDFfield->fetchText(), required, override); m_Debug << "[DEBUG] DSGN_REV: " << STDFfield->fetchText() << CUtil::CLog::endl; }
+	    		else if (fieldname.compare("DATE_COD") == 0){ m_MIRArgs.DateCod.set( STDFfield->fetchText(), required, override); m_Debug << "[DEBUG] DATE_COD: " << STDFfield->fetchText() << CUtil::CLog::endl; }
+	    		else if (fieldname.compare("OPER_FRQ") == 0){ m_MIRArgs.OperFrq.set( STDFfield->fetchText(), required, override); m_Debug << "[DEBUG] OPER_FRQ: " << STDFfield->fetchText() << CUtil::CLog::endl; }
+	    		else if (fieldname.compare("OPER_NAM") == 0){ m_MIRArgs.OperNam.set( STDFfield->fetchText(), required, override); m_Debug << "[DEBUG] OPER_NAM: " << STDFfield->fetchText() << CUtil::CLog::endl; }
+	    		else if (fieldname.compare("NODE_NAM") == 0){ m_MIRArgs.NodeNam.set( STDFfield->fetchText(), required, override); m_Debug << "[DEBUG] NODE_NAM: " << STDFfield->fetchText() << CUtil::CLog::endl; }
+	   		else if (fieldname.compare("PART_TYP") == 0){ m_MIRArgs.PartTyp.set( STDFfield->fetchText(), required, override); m_Debug << "[DEBUG] PART_TYP: " << STDFfield->fetchText() << CUtil::CLog::endl; }
+			else if (fieldname.compare("ENG_ID") == 0){ m_MIRArgs.EngId.set( STDFfield->fetchText(), required, override); m_Debug << "[DEBUG] ENG_ID: " << STDFfield->fetchText() << CUtil::CLog::endl; }
+	    		else if (fieldname.compare("TST_TEMP") == 0){ m_MIRArgs.TestTmp.set( STDFfield->fetchText(), required, override); m_Debug << "[DEBUG] TST_TEMP: " << STDFfield->fetchText() << CUtil::CLog::endl; }
+	    		else if (fieldname.compare("FACIL_ID") == 0){ m_MIRArgs.FacilId.set( STDFfield->fetchText(), required, override); m_Debug << "[DEBUG] FACIL_ID: " << STDFfield->fetchText() << CUtil::CLog::endl; }
+	    		else if (fieldname.compare("FLOOR_ID") == 0){ m_MIRArgs.FloorId.set( STDFfield->fetchText(), required, override); m_Debug << "[DEBUG] FLOOR_ID: " << STDFfield->fetchText() << CUtil::CLog::endl; }
+	    		else if (fieldname.compare("STAT_NUM") == 0){ m_MIRArgs.StatNum.set( STDFfield->fetchText(), required, override); m_Debug << "[DEBUG] STAT_NUM: " << STDFfield->fetchText() << CUtil::CLog::endl; }
+	    		else if (fieldname.compare("PROC_ID") == 0){ m_MIRArgs.ProcId.set( STDFfield->fetchText(), required, override); m_Debug << "[DEBUG] PROC_ID: " << STDFfield->fetchText() << CUtil::CLog::endl; }
+	    		else if (fieldname.compare("MODE_COD") == 0){ m_MIRArgs.ModCod.set( STDFfield->fetchText(), required, override); m_Debug << "[DEBUG] MODE_COD: " << STDFfield->fetchText() << CUtil::CLog::endl; }
+	    		else if (fieldname.compare("FAMLY_ID") == 0){ m_MIRArgs.FamilyId.set( STDFfield->fetchText(), required, override); m_Debug << "[DEBUG] FAMLY_ID: " << STDFfield->fetchText() << CUtil::CLog::endl; }
+	   	 	else if (fieldname.compare("PKG_TYP") == 0){ m_MIRArgs.PkgTyp.set( STDFfield->fetchText(), required, override); m_Debug << "[DEBUG] PKG_TYP: " << STDFfield->fetchText() << CUtil::CLog::endl; }
+	    		else if (fieldname.compare("SBLOT_ID") == 0){ m_MIRArgs.SblotId.set( STDFfield->fetchText(), required, override); m_Debug << "[DEBUG] SBLOT_ID: " << STDFfield->fetchText() << CUtil::CLog::endl; }
+			else if (fieldname.compare("JOB_NAM") == 0){ m_MIRArgs.JobNam.set( STDFfield->fetchText(), required, override); m_Debug << "[DEBUG] JOB_NAM: " << STDFfield->fetchText() << CUtil::CLog::endl; }
+	    		else if (fieldname.compare("SETUP_ID") == 0){ m_MIRArgs.SetupId.set( STDFfield->fetchText(), required, override); m_Debug << "[DEBUG] SETUP_ID: " << STDFfield->fetchText() << CUtil::CLog::endl; }
+	    		else if (fieldname.compare("JOB_REV") == 0){ m_MIRArgs.JobRev.set( STDFfield->fetchText(), required, override); m_Debug << "[DEBUG] JOB_REV: " << STDFfield->fetchText() << CUtil::CLog::endl; }
+	    		else if (fieldname.compare("AUX_FILE") == 0){ m_MIRArgs.AuxFile.set( STDFfield->fetchText(), required, override); m_Debug << "[DEBUG] AUX_FILE: " << STDFfield->fetchText() << CUtil::CLog::endl; }
+	    		else if (fieldname.compare("RTST_COD") == 0){ m_MIRArgs.RtstCod.set( STDFfield->fetchText(), required, override); m_Debug << "[DEBUG] RTST_COD: " << STDFfield->fetchText() << CUtil::CLog::endl; }
+	    		else if (fieldname.compare("TEST_COD") == 0){ m_MIRArgs.TestCod.set( STDFfield->fetchText(), required, override); m_Debug << "[DEBUG] TEST_COD: " << STDFfield->fetchText() << CUtil::CLog::endl; }
+	    		else if (fieldname.compare("USER_TXT") == 0){ m_MIRArgs.UserText.set( STDFfield->fetchText(), required, override); m_Debug << "[DEBUG] USER_TXT: " << STDFfield->fetchText() << CUtil::CLog::endl; }
+	    		else if (fieldname.compare("ROM_COD") == 0){ m_MIRArgs.RomCod.set( STDFfield->fetchText(), required, override); m_Debug << "[DEBUG] ROM_COD: " << STDFfield->fetchText() << CUtil::CLog::endl; }
+	    		else if (fieldname.compare("SERL_NUM") == 0){ m_MIRArgs.SerlNum.set( STDFfield->fetchText(), required, override); m_Debug << "[DEBUG] SERL_NUM: " << STDFfield->fetchText() << CUtil::CLog::endl; }
+	    		else if (fieldname.compare("SPEC_NAM") == 0){ m_MIRArgs.SpecNam.set( STDFfield->fetchText(), required, override); m_Debug << "[DEBUG] SPEC_NAM: " << STDFfield->fetchText() << CUtil::CLog::endl; }
+	    		else if (fieldname.compare("SPEC_VER") == 0){ m_MIRArgs.SpecVer.set( STDFfield->fetchText(), required, override); m_Debug << "[DEBUG] SPEC_VER: " << STDFfield->fetchText() << CUtil::CLog::endl; }
+	    		else if (fieldname.compare("TSTR_TYP") == 0){ m_MIRArgs.TstrTyp.set( STDFfield->fetchText(), required, override); m_Debug << "[DEBUG] TSTR_TYP: " << STDFfield->fetchText() << CUtil::CLog::endl; }
+	    		else if (fieldname.compare("SUPR_NAM") == 0){ m_MIRArgs.SuprNam.set( STDFfield->fetchText(), required, override); m_Debug << "[DEBUG] SUPR_NAM: " << STDFfield->fetchText() << CUtil::CLog::endl; }
+	    		else if (fieldname.compare("PROT_COD") == 0){ m_MIRArgs.ProtCod.set( STDFfield->fetchText(), required, override); m_Debug << "[DEBUG] PROT_COD: " << STDFfield->fetchText() << CUtil::CLog::endl; }
+	    		else 
+			{
+				m_Log << "[ERROR] parseMIR unknown field: " << fieldname << CUtil::CLog::endl;
+				SendMessageToHost(false, "009", "XTRF unknown attribute");		
+			}
 		}
     	}			    
     	return result;
@@ -1205,7 +1248,7 @@ parse SDR
 ---------------------------------------------------------------------------------*/
 bool CuserEvxaInterface::parseSDR(XML_Node *SDRRecord)
 {
-	if (debug()) std::cout << "[DEBUG] Executing CuserEvxaInterface::parseSDR()" << std::endl;
+	m_Debug << "[DEBUG] Executing CuserEvxaInterface::parseSDR()" << CUtil::CLog::endl;
     	bool result = true;
 
 	// start reading fields from XTRF 
@@ -1230,23 +1273,27 @@ bool CuserEvxaInterface::parseSDR(XML_Node *SDRRecord)
 				if (STDFfield->fetchAttr(ii).compare("override") == 0){ override = STDFfield->fetchVal(ii); }
 			}
 
-			if (fieldname.compare("HAND_TYP") == 0){ m_SDRArgs.HandTyp.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] HAND_TYP: " << STDFfield->fetchText() << std::endl; }
-			else if (fieldname.compare("CARD_ID") == 0){ m_SDRArgs.CardId.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] CARD_ID: " << STDFfield->fetchText() << std::endl; }
-			else if (fieldname.compare("LOAD_ID") == 0){ m_SDRArgs.LoadId.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] LOAD_ID: " << STDFfield->fetchText() << std::endl; }
-			else if (fieldname.compare("HAND_ID") == 0){ m_SDRArgs.PHId.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] HAND_ID: " << STDFfield->fetchText() << std::endl; }	
-			else if (fieldname.compare("DIB_TYP") == 0){ m_SDRArgs.DibTyp.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] DIB_TYP: " << STDFfield->fetchText() << std::endl; }
-			else if (fieldname.compare("CABL_ID") == 0){ m_SDRArgs.CableId.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] CABL_ID: " << STDFfield->fetchText() << std::endl; }
-			else if (fieldname.compare("CONT_TYP") == 0){ m_SDRArgs.ContTyp.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] CONT_TYP: " << STDFfield->fetchText() << std::endl; }
-			else if (fieldname.compare("LOAD_TYP") == 0){ m_SDRArgs.LoadTyp.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] LOAD_TYP: " << STDFfield->fetchText() << std::endl; }
-			else if (fieldname.compare("CONT_ID") == 0){ m_SDRArgs.ContId.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] CONT_ID: " << STDFfield->fetchText() << std::endl; }
-			else if (fieldname.compare("LASR_TYP") == 0){ m_SDRArgs.LaserTyp.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] LASR_TYP: " << STDFfield->fetchText() << std::endl; }
-			else if (fieldname.compare("LASR_ID") == 0){ m_SDRArgs.LaserId.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] LASR_ID: " << STDFfield->fetchText() << std::endl; }
-			else if (fieldname.compare("EXTR_TYP") == 0){ m_SDRArgs.ExtrTyp.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] EXTR_TYP: " << STDFfield->fetchText() << std::endl; }
-			else if (fieldname.compare("EXTR_ID") == 0){ m_SDRArgs.ExtrId.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] EXTR_ID: " << STDFfield->fetchText() << std::endl; }
-			else if (fieldname.compare("DIB_ID") == 0){ m_SDRArgs.DibId.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] DIB_ID: " << STDFfield->fetchText() << std::endl; }
-			else if (fieldname.compare("CARD_TYP") == 0){ m_SDRArgs.CardTyp.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] CARD_TYP: " << STDFfield->fetchText() << std::endl; }
-			else if (fieldname.compare("CABL_TYP") == 0){ m_SDRArgs.CableTyp.set( STDFfield->fetchText(), required, override); if (debug()) std::cout << "[DEBUG] CABL_TYP: " << STDFfield->fetchText() << std::endl; }
-			else fprintf(stdout, "parseSDR unknown field: %s\n", fieldname.c_str());
+			if (fieldname.compare("HAND_TYP") == 0){ m_SDRArgs.HandTyp.set( STDFfield->fetchText(), required, override); m_Debug << "[DEBUG] HAND_TYP: " << STDFfield->fetchText() << CUtil::CLog::endl; }
+			else if (fieldname.compare("CARD_ID") == 0){ m_SDRArgs.CardId.set( STDFfield->fetchText(), required, override); m_Debug << "[DEBUG] CARD_ID: " << STDFfield->fetchText() << CUtil::CLog::endl; }
+			else if (fieldname.compare("LOAD_ID") == 0){ m_SDRArgs.LoadId.set( STDFfield->fetchText(), required, override); m_Debug << "[DEBUG] LOAD_ID: " << STDFfield->fetchText() << CUtil::CLog::endl; }
+			else if (fieldname.compare("HAND_ID") == 0){ m_SDRArgs.PHId.set( STDFfield->fetchText(), required, override); m_Debug << "[DEBUG] HAND_ID: " << STDFfield->fetchText() << CUtil::CLog::endl; }	
+			else if (fieldname.compare("DIB_TYP") == 0){ m_SDRArgs.DibTyp.set( STDFfield->fetchText(), required, override); m_Debug << "[DEBUG] DIB_TYP: " << STDFfield->fetchText() << CUtil::CLog::endl; }
+			else if (fieldname.compare("CABL_ID") == 0){ m_SDRArgs.CableId.set( STDFfield->fetchText(), required, override); m_Debug << "[DEBUG] CABL_ID: " << STDFfield->fetchText() << CUtil::CLog::endl; }
+			else if (fieldname.compare("CONT_TYP") == 0){ m_SDRArgs.ContTyp.set( STDFfield->fetchText(), required, override); m_Debug << "[DEBUG] CONT_TYP: " << STDFfield->fetchText() << CUtil::CLog::endl; }
+			else if (fieldname.compare("LOAD_TYP") == 0){ m_SDRArgs.LoadTyp.set( STDFfield->fetchText(), required, override); m_Debug << "[DEBUG] LOAD_TYP: " << STDFfield->fetchText() << CUtil::CLog::endl; }
+			else if (fieldname.compare("CONT_ID") == 0){ m_SDRArgs.ContId.set( STDFfield->fetchText(), required, override); m_Debug << "[DEBUG] CONT_ID: " << STDFfield->fetchText() << CUtil::CLog::endl; }
+			else if (fieldname.compare("LASR_TYP") == 0){ m_SDRArgs.LaserTyp.set( STDFfield->fetchText(), required, override); m_Debug << "[DEBUG] LASR_TYP: " << STDFfield->fetchText() << CUtil::CLog::endl; }
+			else if (fieldname.compare("LASR_ID") == 0){ m_SDRArgs.LaserId.set( STDFfield->fetchText(), required, override); m_Debug << "[DEBUG] LASR_ID: " << STDFfield->fetchText() << CUtil::CLog::endl; }
+			else if (fieldname.compare("EXTR_TYP") == 0){ m_SDRArgs.ExtrTyp.set( STDFfield->fetchText(), required, override); m_Debug << "[DEBUG] EXTR_TYP: " << STDFfield->fetchText() << CUtil::CLog::endl; }
+			else if (fieldname.compare("EXTR_ID") == 0){ m_SDRArgs.ExtrId.set( STDFfield->fetchText(), required, override); m_Debug << "[DEBUG] EXTR_ID: " << STDFfield->fetchText() << CUtil::CLog::endl; }
+			else if (fieldname.compare("DIB_ID") == 0){ m_SDRArgs.DibId.set( STDFfield->fetchText(), required, override); m_Debug << "[DEBUG] DIB_ID: " << STDFfield->fetchText() << CUtil::CLog::endl; }
+			else if (fieldname.compare("CARD_TYP") == 0){ m_SDRArgs.CardTyp.set( STDFfield->fetchText(), required, override); m_Debug << "[DEBUG] CARD_TYP: " << STDFfield->fetchText() << CUtil::CLog::endl; }
+			else if (fieldname.compare("CABL_TYP") == 0){ m_SDRArgs.CableTyp.set( STDFfield->fetchText(), required, override); m_Debug << "[DEBUG] CABL_TYP: " << STDFfield->fetchText() << CUtil::CLog::endl; }
+	    		else 
+			{
+				m_Log << "[ERROR] parseSDR unknown field: " << fieldname << CUtil::CLog::endl;
+				SendMessageToHost(false, "009", "XTRF unknown attribute");		
+			}
 		}
     	}			    
     	return result;
@@ -1260,7 +1307,11 @@ we only set this field into STDF if current value in STDF is empty
 ---------------------------------------------------------------------------------*/
 bool CuserEvxaInterface::setLotInformation(const EVX_LOTINFO_TYPE type, param& field, const char* label)
 {
-	if (!PgmCtrl()){ std::cout << "[ERROR] CuserEvxaInterface::setLotInformation(): Cannot access ProgramControl object." << std::endl; return false; }
+	if (!PgmCtrl()) 
+	{
+		m_Log << "No ProgramControl at CuserEvxaInterface::setLotInformation." << CUtil::CLog::endl;
+		return false;
+    	}
 	EVXAStatus status = EVXA::OK;
 
    	if (!field.empty()) 
@@ -1274,21 +1325,21 @@ bool CuserEvxaInterface::setLotInformation(const EVX_LOTINFO_TYPE type, param& f
 			else
 			{ 
 				std::string str = PgmCtrl()->getLotInformation(type); 
-				std::cout << "onEmpty " << label << ": " << PgmCtrl()->getLotInformation(type) << std::endl;
+				m_Debug << "onEmpty " << label << ": " << PgmCtrl()->getLotInformation(type) << CUtil::CLog::endl;
 				if(str.empty()) status = PgmCtrl()->setLotInformation(type, field.c_str()); 
 			} 
 		}
 		if (status != EVXA::OK)
 		{
-			std::cout << "[ERROR] sending " << label << " to Unison." << std::endl;
+			m_Log << "[ERROR] sending " << label << " to Unison." << CUtil::CLog::endl;
 			return false;
 		}
-		std::cout << "Query " << label << ": " << PgmCtrl()->getLotInformation(type) << std::endl;
+		m_Log << "Query " << label << ": " << PgmCtrl()->getLotInformation(type) << CUtil::CLog::endl;
    	}
 	// if field is empty from XTRF, let's leave this field with whatever its current value is
 	else
 	{ 
-		std::cout << "Field is empty, will not set " << label << " to Unison." << std::endl; 
+		m_Log << "Field is empty, will not set " << label << " to Unison." << CUtil::CLog::endl; 
 	}
 	return true;
 }
@@ -1298,8 +1349,13 @@ send MIR fields to STDF
 ---------------------------------------------------------------------------------*/
 bool CuserEvxaInterface::sendMIRParams()
 {
-	if (debug()) std::cout << "[DEBUG] Executing CuserEvxaInterface::sendMIRParams()" << std::endl;	
+	m_Debug << "[DEBUG] Executing CuserEvxaInterface::sendMIRParams()" << CUtil::CLog::endl;
 
+	if (!PgmCtrl()) 
+	{
+		m_Log << "No ProgramControl at CuserEvxaInterface::sendMIRParams." << CUtil::CLog::endl;
+		return false;
+    	}
 
 	// handle special scenario here where by default we take specnam/var from TestPrgmURI. but later on we update it with value and settings from XTRF
 	// note that testPrgmURI is expected to contain "<progfolder>/<programname.una>" and <progfolder> is stored in m_TPArgs.TPPath
@@ -1318,8 +1374,8 @@ bool CuserEvxaInterface::sendMIRParams()
 			PgmCtrl()->setLotInformation(EVX_LotTestSpecName, m_TPArgs.TPPath.substr(0, p).c_str());
 			PgmCtrl()->setLotInformation(EVX_LotTestSpecRev, m_TPArgs.TPPath.substr(p + 1, std::string::npos).c_str());
 
-			if (debug()) std::cout << "MIR.SPEC_NAM from testPrgmURI (default): " << PgmCtrl()->getLotInformation(EVX_LotTestSpecName) << std::endl;
-			if (debug()) std::cout << "MIR.SPEC_VER from testPrgmURI (default): " << PgmCtrl()->getLotInformation(EVX_LotTestSpecRev) << std::endl;
+			m_Debug << "MIR.SPEC_NAM from testPrgmURI (default): " << PgmCtrl()->getLotInformation(EVX_LotTestSpecName) << CUtil::CLog::endl;
+			m_Debug << "MIR.SPEC_VER from testPrgmURI (default): " << PgmCtrl()->getLotInformation(EVX_LotTestSpecRev) << CUtil::CLog::endl;
 		}
 	}
 
@@ -1366,7 +1422,7 @@ send MIR fields to STDF
 ---------------------------------------------------------------------------------*/
 bool CuserEvxaInterface::sendSDRParams()
 {
-	if (debug()) std::cout << "[DEBUG] Executing CuserEvxaInterface::sendSDRParams()" << std::endl;	
+	m_Debug << "[DEBUG] Executing CuserEvxaInterface::sendSDRParams()" << CUtil::CLog::endl;	
  
 	if ( !setLotInformation(EVX_LotHandlerType, 	m_SDRArgs.HandTyp, 	"SDR.LotHandlerType") ) return false;
 	if ( !setLotInformation(EVX_LotCardId, 		m_SDRArgs.CardId, 	"SDR.LotCardId") ) return false;
@@ -1387,78 +1443,64 @@ bool CuserEvxaInterface::sendSDRParams()
     	return true;
 }
 
+/*---------------------------------------------------------------------------------
 
-
-bool CuserEvxaInterface::parseSTDFRecord(XML_Node *STDFRecord)
-{
-	if (debug()) std::cout << "[DEBUG] Executing CuserEvxaInterface::parseSTDFRecord()" << std::endl;
-   	bool result = true;
-
-    	std::string rname("");
-    	for (int ii=0; ii<STDFRecord->numAttr(); ii++) 
-	{
-		if (STDFRecord->fetchAttr(ii).compare("recordName") == 0) 
-		{
-	    		rname = STDFRecord->fetchVal(ii);
-		}
-    	}
-    	if (debug()) fprintf(stdout,"RecordName: %s\n", rname.c_str());
-    	if (rname.compare("MIR") == 0){ result = parseMIR(STDFRecord); }
-    	else if (rname.compare("SDR") == 0){ result = parseSDR(STDFRecord); }
-    	else if (rname.compare("GDR") == 0){ result = parseGDR(STDFRecord); }
-    	else { fprintf(stdout, "[ERROR] parseSTDFRecord unknown recordName: %s\n", rname.c_str()); }
-
-    	return result;
-}
-
-//--------------------------------------------------------------------
+---------------------------------------------------------------------------------*/
 void CuserEvxaInterface::sendRecipeResultStatus(bool result)
 {
-	if (debug()) std::cout << "[DEBUG] Executing CuserEvxaInterface::sendRecipeResultStatus()" << std::endl;
-     if ((m_recipeParse == true) && (m_statusResultsHaveBeenSent == false)) {
-	m_recipeParse = false;
-	ProgramControl *pgm = PgmCtrl();
-	if (NULL == pgm) {
-	    fprintf(stdout, "Error sendRecipeResultStatus: no ProgramControl\n");
-	    return;
-	}
-	pgm->clearStatus();
-	EVXAStatus status = EVXA::OK;
-	// result = false;
-	// If m_recipeParseStatus was set during parsing then use it 
-	// because it was set earlier in the process.
-	// Otherwise look at the result flag.
-	if (m_recipeParseStatus != EVX_RECIPE_PARSE_BEGIN) {
-	    if (debug()) fprintf(stdout, "sendRecipeResultStatus %s\n", getRecipeParseStatusName(m_recipeParseStatus));
-	    status = pgm->notifyRecipeStatus(m_recipeParseStatus);
-	}	
-	else if (true == result) {
-	    if (debug()) fprintf(stdout, "sendRecipeResultStatus EVX_RECIPE_PARSE_COMPLETE\n");
-	    status = pgm->notifyRecipeStatus(EVX_RECIPE_PARSE_COMPLETE);
-	}
-	else {
-	    if (debug()) fprintf(stdout, "sendRecipeResultStatus EVX_RECIPE_PARSE_FAIL\n");
-	    status = pgm->notifyRecipeStatus(EVX_RECIPE_PARSE_FAIL);
-	}
+	m_Debug << "[DEBUG] Executing CuserEvxaInterface::sendRecipeResultStatus()" << CUtil::CLog::endl;
 
-	if (status != EVXA::OK) {
-	    fprintf(stdout, "Error notifyRecipeStatus: status:%d %s\n", status, pgm->getStatusBuffer());
-	}
-    }
+	if (!PgmCtrl()) 
+	{
+		m_Log << "No ProgramControl at CuserEvxaInterface::sendRecipeResultStatus." << CUtil::CLog::endl;
+		return;
+    	}
 
-    // Mark that results have been sent so we don't send them again until the next recipe parse.
-    m_statusResultsHaveBeenSent = true;	
+     	if (m_recipeParse && !m_statusResultsHaveBeenSent ) 
+	{
+		m_recipeParse = false;
+
+		PgmCtrl()->clearStatus();
+		EVXAStatus status = EVXA::OK;
+
+		// result = false;
+		// If m_recipeParseStatus was set during parsing then use it 
+		// because it was set earlier in the process.
+		// Otherwise look at the result flag.
+		if (m_recipeParseStatus != EVX_RECIPE_PARSE_BEGIN) 
+		{
+			m_Debug << "sendRecipeResultStatus  " << getRecipeParseStatusName(m_recipeParseStatus) << CUtil::CLog::endl;
+		    	status = PgmCtrl()->notifyRecipeStatus(m_recipeParseStatus);
+		}	
+		else if (true == result) 
+		{
+		    	m_Debug << "sendRecipeResultStatus EVX_RECIPE_PARSE_COMPLETE" << CUtil::CLog::endl;
+		    	status = PgmCtrl()->notifyRecipeStatus(EVX_RECIPE_PARSE_COMPLETE);
+		}
+		else 
+		{
+		    	m_Debug <<  "sendRecipeResulttatus EVX_RECIPE_PARSE_FAIL" << CUtil::CLog::endl;
+		    	status = PgmCtrl()->notifyRecipeStatus(EVX_RECIPE_PARSE_FAIL);
+		}
+
+		if (status != EVXA::OK) 
+		{
+		    m_Debug <<  "Error notifyRecipeStatus: status: " << status << " " << PgmCtrl()->getStatusBuffer() << CUtil::CLog::endl;
+		}
+    	}
+
+    	// Mark that results have been sent so we don't send them again until the next recipe parse.
+    	m_statusResultsHaveBeenSent = true;	
 }
 
 //--------------------------------------------------------------------
 bool CuserEvxaInterface::clearAllParams()
 {
-    	m_TPArgs.clearParams();
-    	m_MIRArgs.clear();
-    	m_SDRArgs.clear();
+	m_TPArgs.clearParams();
+	m_MIRArgs.clear();
+	m_SDRArgs.clear();
 	m_GDR.clear();
-	
-    	return true;
+	return true;
 }
 
 //--------------------------------------------------------------------
@@ -1470,52 +1512,44 @@ bool CuserEvxaInterface::clearAllParams()
 /* This function takes the TP parameters and sends them to 
    The Test Program.
 */
+
+/*---------------------------------------------------------------------------------
+
+---------------------------------------------------------------------------------*/
 bool CuserEvxaInterface::sendTPParams()
 {
-	if (debug()) std::cout << "[DEBUG] Executing CuserEvxaInterface::sendTPParams()" << std::endl;
-  
-    ProgramControl *pgm = PgmCtrl();
-    if (NULL == pgm) {
-	fprintf(stdout, "Error sendTPParams: no ProgramControl\n");
-	return false;
-    }
+	m_Debug << "[DEBUG] Executing CuserEvxaInterface::sendTPParams()" << CUtil::CLog::endl;
 
-    // Not sure what these parameters are used for.  
-    // Check with ST>
+	if (!PgmCtrl()) 
+	{
+		m_Log << "No ProgramControl at CuserEvxaInterface::sendTPParams." << CUtil::CLog::endl;
+		return false;
+    	}
 
-    // ReloadStrategy;
-    // DownloadStrategy
-    // TPName;
-    // RcpFileSupport;
-    // Flow;
-    // Salestype;
-    // Temperature;
-    // Product;
-    // Parallelism;
-
-
-    // Here's what I think should happen with some of them.
-
-    EVXAStatus status = EVXA::OK;
-    bool result = true;
-    // Set the Active Flow to the Flow parameter.
-    if (!m_TPArgs.Flow.empty()) {
-	if (status == EVXA::OK) status = pgm->setActiveObject(EVX_ActiveFlow, m_TPArgs.Flow.c_str());
-	if (status != EVXA::OK) {
-	    fprintf(stdout, "Error sendTPParams set Flow: %s\n", pgm->getStatusBuffer());
-	    result = false;
+	EVXAStatus status = EVXA::OK;
+	bool result = true;
+	// Set the Active Flow to the Flow parameter.
+	if (!m_TPArgs.Flow.empty()) 
+	{
+		if (status == EVXA::OK) status = PgmCtrl()->setActiveObject(EVX_ActiveFlow, m_TPArgs.Flow.c_str());
+		if (status != EVXA::OK) 
+		{
+			m_Log << "[Error] sendTPParams set Flow: " << PgmCtrl()->getStatusBuffer() << CUtil::CLog::endl;
+			result = false;
+		}
 	}
-   }
-    // Set the Lot ID to the LotId paramter.
-    if (!m_TPArgs.LotId.empty()) {
-	if (status == EVXA::OK) status = pgm->setLotInformation(EVX_LotLotID, m_TPArgs.LotId.c_str());
- 	if (status != EVXA::OK) {
-	    fprintf(stdout, "Error sendTPParams set LotID: %s\n", pgm->getStatusBuffer());
-	    result = false;
+	// Set the Lot ID to the LotId paramter.
+	if (!m_TPArgs.LotId.empty()) 
+	{
+		if (status == EVXA::OK) status = PgmCtrl()->setLotInformation(EVX_LotLotID, m_TPArgs.LotId.c_str());
+		if (status != EVXA::OK) 
+		{
+			m_Log << "[Error] sendTPParams set LotID: " << PgmCtrl()->getStatusBuffer() << CUtil::CLog::endl;
+			result = false;
+		}
 	}
-    }
-    
-    return result;
+	    
+    	return result;
 }
 
 //--------------------------------------------------------------------
@@ -2514,6 +2548,9 @@ bool CuserEvxaInterface::parseSiteConfiguration(XML_Node *siteConfig)
 		    }
 		    else if (childNode->fetchAttr(ii).compare("PackageType") == 0) {
 			m_ConfigArgs.PackageType = childNode->fetchVal(ii);
+		    }
+		    else if (childNode->fetchAttr(ii).compare("S10F1") == 0) {
+			m_ConfigArgs.S10F1 = childNode->fetchVal(ii);
 		    }
 		    else
 			fprintf(stdout, "Unknown SiteConfig Parameter: %s: %s\n", childNode->fetchAttr(ii).c_str(), childNode->fetchVal(ii).c_str());

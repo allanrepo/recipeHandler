@@ -4,7 +4,7 @@
 ///////////////////////////////////////////////////////
 // recipeConfig
 
-CRecipeConfig::CRecipeConfig(): RemoteLocation(), LocalLocation(), ProgLocation(), PackageType(), ConfigurationName()
+CRecipeConfig::CRecipeConfig(): RemoteLocation(), LocalLocation(), ProgLocation(), PackageType(), ConfigurationName(), S10F1()
 {
 }
 
@@ -12,7 +12,8 @@ CRecipeConfig::CRecipeConfig(const CRecipeConfig& ot): RemoteLocation(ot. Remote
 						       LocalLocation(ot.LocalLocation), 
 						       ProgLocation(ot.ProgLocation), 
 						       PackageType(ot.PackageType),
-						       ConfigurationName(ot.ConfigurationName)
+						       ConfigurationName(ot.ConfigurationName),
+							S10F1(ot.S10F1)
 {
 }
 
@@ -23,6 +24,7 @@ CRecipeConfig& CRecipeConfig::operator=(const CRecipeConfig& ot)
     ProgLocation = ot.ProgLocation;
     PackageType = ot.ProgLocation;
     ConfigurationName = ot.ConfigurationName;
+    S10F1 = ot.S10F1;
     return *this;
 }
 
@@ -32,12 +34,13 @@ CRecipeConfig::~CRecipeConfig()
 
 bool CRecipeConfig::clearConfigParams()
 {
-    RemoteLocation.clear();
-    LocalLocation.clear();
-    ProgLocation.clear();
-    PackageType.clear();
-    ConfigurationName.clear();
-    return true;   
+	RemoteLocation.clear();
+	LocalLocation.clear();
+	ProgLocation.clear();
+	PackageType.clear();
+	ConfigurationName.clear();
+	S10F1.clear();
+	return true;   
 }
 
 bool CRecipeConfig::checkConfigParams()
@@ -63,6 +66,11 @@ bool CRecipeConfig::checkConfigParams()
 	std::cout << "[ERROR] ConfigurationName is empty, correct configuration file." << std::endl;
 	result = false;
     }
+    if (S10F1.empty() == true) {
+	std::cout << "[ERROR] S10F1 is empty, correct configuration file." << std::endl;
+	result = false;
+    }
+
     return result;
 }
 
@@ -73,6 +81,7 @@ bool CRecipeConfig::printConfigParams()
     std::cout << "[LocalLocation]: " << LocalLocation << std::endl;
     std::cout << "[ProgLocation]: " << ProgLocation << std::endl;
     std::cout << "[PackageType]: " << PackageType << std::endl;
+    std::cout << "[S10F1]: " << S10F1 << std::endl;
     return true;
 }
 
