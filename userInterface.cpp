@@ -433,6 +433,8 @@ send S10F1 to host
 ------------------------------------------------------------------------------------------------------ */
 bool CuserEvxaInterface::SendMessageToHost( bool bEvent, const std::string& id, const std::string& msg )
 {
+	if ( !m_args.s10f1() && m_ConfigArgs.S10F1.compare("true") ) return true;
+
 	std::stringstream ss;
 	ss << "EQ_RH_" << (bEvent? "EV":"ER") << "ID<" << id << ">: TP <" << PgmCtrl()->getProgramName() << "> " << msg;
 	return PgmCtrl()? (PgmCtrl()->gemSendMsgToHost(ss.str()) == EVX_GEM_GOOD? true : false) : false;
@@ -1552,147 +1554,144 @@ bool CuserEvxaInterface::sendTPParams()
     	return result;
 }
 
-//--------------------------------------------------------------------
-/* This function will send end of lot to the tester if enabled 
-*/
+/*---------------------------------------------------------------------------------
+event handler for start-of-lot
+---------------------------------------------------------------------------------*/
 bool CuserEvxaInterface::sendStartOfLot()
 {
-    if (debug()) fprintf(stdout, "sendStartOfLot\n");
+	m_Debug << "[DEBUG] Executing CuserEvxaInterface::sendStartOfLot()" << CUtil::CLog::endl;
+	if (!PgmCtrl()) 
+	{
+		m_Log << "No ProgramControl at CuserEvxaInterface::sendStartOfLot." << CUtil::CLog::endl;
+		return false;
+    	}
 
-    ProgramControl *pgm = PgmCtrl();
-    if (NULL == pgm) {
-	fprintf(stdout, "Error sendStartOfLot: no ProgramControl\n");
-	return false;
-    }
-
-    bool result = true;
-    if ((m_TPArgs.StartLotEnable.compare("true") == 0) ||
-	(m_TPArgs.StartLotEnable.compare("TRUE") == 0)) {
-	setupWaitForNotification(EVX_LOT_CHANGE, EVX_LOT_START);	    
-	    EVXAStatus status = pgm->setStartOfLot();
-	    if (status == EVXA::OK) {
-		waitForNotification();
-	    }
-	    else {
-		fprintf(stdout, "Error sendStartOfLot setStartOfLot failed: %s\n", pgm->getStatusBuffer());
-		result = false;
-
-	    }
-    }
-    
-    return result;
+    	bool result = true;
+    	if ((m_TPArgs.StartLotEnable.compare("true") == 0) || (m_TPArgs.StartLotEnable.compare("TRUE") == 0)) 
+	{
+		setupWaitForNotification(EVX_LOT_CHANGE, EVX_LOT_START);	    
+	    	EVXAStatus status = PgmCtrl()->setStartOfLot();
+	    	if (status == EVXA::OK) 
+		{
+			waitForNotification();
+	    	}
+	    	else 	
+		{
+			m_Log << "[Error] sendStartOfLot setStartOfLot failed: " << PgmCtrl()->getStatusBuffer() << CUtil::CLog::endl;
+			result = false;
+		}
+    	}
+      	return result;
 }
 
-//--------------------------------------------------------------------
-/* This function will send end of lot to the tester if enabled 
-*/
+/*---------------------------------------------------------------------------------
+
+---------------------------------------------------------------------------------*/
 bool CuserEvxaInterface::sendEndOfLot()
 {
-    if (debug()) fprintf(stdout, "sendEndOfLot\n");
+	m_Debug << "[DEBUG] Executing CuserEvxaInterface::sendEndOfLot()" << CUtil::CLog::endl;
+	if (!PgmCtrl()) 
+	{
+		m_Log << "No ProgramControl at CuserEvxaInterface::sendEndOfLot." << CUtil::CLog::endl;
+		return false;
+    	}
 
-    ProgramControl *pgm = PgmCtrl();
-    if (NULL == pgm) {
-	fprintf(stdout, "Error sendEndOfLot: no ProgramControl\n");
-	return false;
-    }
-
-    bool result = true;
-    if ((m_TPArgs.EndLotEnable.compare("true") == 0) ||
-	(m_TPArgs.EndLotEnable.compare("TRUE") == 0)) {
-	setupWaitForNotification(EVX_LOT_CHANGE, EVX_LOT_END);	    
-	    EVXAStatus status = pgm->setEndOfLot(true);  // true is to send final summary.
-	    if (status == EVXA::OK) {
-		waitForNotification();
-	    }
-	    else {
-		fprintf(stdout, "Error sendEndOfLot setEndOfLot failed: %s\n", pgm->getStatusBuffer());
-		result = false;
-	    }
-	    if (status == EVXA::OK) status = pgm->setLotInformation(EVX_LotNextSerial, "1"); // reset the serial number to 1.
-	    if (status != EVXA::OK) {
-		fprintf(stdout, "Error sendEndOfLot setLotINformation failed: %s\n", pgm->getStatusBuffer());
-	    }
-    }
+    	bool result = true;
+    	if ((m_TPArgs.EndLotEnable.compare("true") == 0) || (m_TPArgs.EndLotEnable.compare("TRUE") == 0)) 
+	{
+		setupWaitForNotification(EVX_LOT_CHANGE, EVX_LOT_END);	    
+	    	EVXAStatus status = PgmCtrl()->setEndOfLot(true);  // true is to send final summary.
+	    	if (status == EVXA::OK) 
+		{
+			waitForNotification();
+	    	}
+	    	else 
+		{
+			m_Log <<  "[Error] sendEndOfLot setEndOfLot failed: " << PgmCtrl()->getStatusBuffer() << CUtil::CLog::endl;
+			result = false;
+	    	}
+	    	if (status == EVXA::OK) status = PgmCtrl()->setLotInformation(EVX_LotNextSerial, "1"); // reset the serial number to 1.
+	    	if (status != EVXA::OK) 
+		{
+			m_Log << "Error sendEndOfLot setLotINformation failed: " << PgmCtrl()->getStatusBuffer() << CUtil::CLog::endl;
+	    	}
+    	}
     
-    return result;
+    	return result;
 }
 
-//--------------------------------------------------------------------
-/* This function will send end of wafer to the tester if enabled 
-*/
+/*---------------------------------------------------------------------------------
+
+---------------------------------------------------------------------------------*/
 bool CuserEvxaInterface::sendStartOfWafer()
 {
-    if (debug()) fprintf(stdout, "sendStartOfWafer\n");
+	m_Debug << "[DEBUG] Executing CuserEvxaInterface::sendStartOfWafer()" << CUtil::CLog::endl;
+	if (!PgmCtrl()) 
+	{
+		m_Log << "No ProgramControl at CuserEvxaInterface::sendStartOfWafer." << CUtil::CLog::endl;
+		return false;
+    	}
 
-    ProgramControl *pgm = PgmCtrl();
-    if (NULL == pgm) {
-	fprintf(stdout, "Error sendStartOfWafer: no ProgramControl\n");
-	return false;
-    }
-
-    bool result = true;
-    if ((m_TPArgs.StartWaferEnable.compare("true") == 0) ||
-	(m_TPArgs.StartWaferEnable.compare("TRUE") == 0)) {
-	setupWaitForNotification(EVX_WAFER_CHANGE, EVX_WAFER_START);	    
-	EVXAStatus status = pgm->setStartOfWafer();  
-	if (status == EVXA::OK) {
-	    waitForNotification();
-	}
-	else {
-	    fprintf(stdout, "Error sendStartOfWafer setStartOfWafer failed: %s\n", pgm->getStatusBuffer());
-	    result = false;
-	}
-    }
-    
-
-    return result;
+   	 bool result = true;
+    	if ((m_TPArgs.StartWaferEnable.compare("true") == 0) || (m_TPArgs.StartWaferEnable.compare("TRUE") == 0)) 
+	{
+		setupWaitForNotification(EVX_WAFER_CHANGE, EVX_WAFER_START);	    
+		EVXAStatus status = PgmCtrl()->setStartOfWafer();  
+		if (status == EVXA::OK) 
+		{
+	    		waitForNotification();
+		}
+		else 
+		{
+	    		m_Log << "Error sendStartOfWafer setStartOfWafer failed: " << PgmCtrl()->getStatusBuffer() << CUtil::CLog::endl;
+	    		result = false;
+		}
+    	}
+    	return result;
 }
 
-//--------------------------------------------------------------------
-/* This function will send end of wafer to the tester if enabled 
-*/
+/*---------------------------------------------------------------------------------
+
+---------------------------------------------------------------------------------*/
 bool CuserEvxaInterface::sendEndOfWafer()
 {
-    if (debug()) fprintf(stdout, "sendEndOfWafer\n");
+	m_Debug << "[DEBUG] Executing CuserEvxaInterface::sendEndOfWafer()" << CUtil::CLog::endl;
+	if (!PgmCtrl()) 
+	{
+		m_Log << "No ProgramControl at CuserEvxaInterface::sendEndOfWafer." << CUtil::CLog::endl;
+		return false;
+    	}
 
-    ProgramControl *pgm = PgmCtrl();
-    if (NULL == pgm) {
-	fprintf(stdout, "Error sendEndOfWafer: no ProgramControl\n");
-	return false;
-    }
-
-    bool result = true;
-    if ((m_TPArgs.EndWaferEnable.compare("true") == 0) ||
-	(m_TPArgs.EndWaferEnable.compare("TRUE") == 0)) {
-	setupWaitForNotification(EVX_WAFER_CHANGE, EVX_WAFER_END);	    
-	EVXAStatus status = pgm->setEndOfWafer();  
-	if (status == EVXA::OK) {
-	    waitForNotification();
+    	bool result = true;
+    	if ((m_TPArgs.EndWaferEnable.compare("true") == 0) || (m_TPArgs.EndWaferEnable.compare("TRUE") == 0)) 
+	{
+		setupWaitForNotification(EVX_WAFER_CHANGE, EVX_WAFER_END);	    
+		EVXAStatus status = PgmCtrl()->setEndOfWafer();  
+		if (status == EVXA::OK) 
+		{
+	 		waitForNotification();
+		}
+		else 
+		{
+		    	m_Log << "[Error] sendEndOfWafer setEndOfWafer failed: " << PgmCtrl()->getStatusBuffer() <<CUtil::CLog::endl;
+		    	result = false;
+		}
 	}
-	else {
-	    fprintf(stdout, "Error sendEndOfWafer setEndOfWafer failed: %s\n", pgm->getStatusBuffer());
-	    result = false;
-	}
-    }
-    
-
-    return result;
+	return result;
 }
 
-//--------------------------------------------------------------------
-/* This function updates the tester with what came from the recipe. 
-This is called from recipeDecode after parsing.
-And if a program is loadced this is called from programChange.
-*/ 
+/*---------------------------------------------------------------------------------
+
+---------------------------------------------------------------------------------*/
 bool CuserEvxaInterface::updateProgramLoad()
 {
-   	if (debug()) fprintf(stdout, "[DEBUG] Executing CuserEvxaInterface::updateProgramLoad() m_recipeParse:%d\n", m_recipeParse);
+   	m_Debug << "[DEBUG] Executing CuserEvxaInterface::updateProgramLoad() m_recipeParse: " << m_recipeParse << CUtil::CLog::endl;
 	bool result = true; // set to false when something bad occurs.
 
     	// If there was a recipe to parse then do the work.
     	if (m_recipeParse == false)
 	{
-		if (debug()) std::cout << "No recipe to load." << std::endl;
+		m_Debug << "[DEBUG] No recipe to load." << CUtil::CLog::endl;
 		return result;
 	}
 
@@ -1700,47 +1699,47 @@ bool CuserEvxaInterface::updateProgramLoad()
     	// check the reload strategy and load accordingly
     	if (m_TPArgs.TPName.empty() == false) 
 	{
-		if (debug()) fprintf(stdout, "[DEBUG] Test Program to be loaded: %s\n",  m_TPArgs.TPName.c_str());
+		m_Debug << "[DEBUG] Test Program to be loaded: " << m_TPArgs.TPName.c_str() << CUtil::CLog::endl;
 		if (result == true) result = executeRecipeReload();
     	}
-	else{std::cout << "No test program name to load." << std::endl;}
+	else{ m_Log << "No test program name to load." << CUtil::CLog::endl;}
 
     	return result;
 }
 
-//--------------------------------------------------------------------
-/* This function updates the test program data.
-*/ 
+/*---------------------------------------------------------------------------------
+This function updates the test program data.
+---------------------------------------------------------------------------------*/
 bool CuserEvxaInterface::updateTestProgramData()
 {
-    // If ABORT_LOAD occurred during this function then m_recipeParseResult would be false
-    // and don't continue with the rest of the function.
-    bool result = true;
-/*
-    if (m_recipeParseResult == false) result = false;
-    if (result == true) result = sendEndOfWafer();
+	// If ABORT_LOAD occurred during this function then m_recipeParseResult would be false
+	// and don't continue with the rest of the function.
+	bool result = true;
+	/*
+	if (m_recipeParseResult == false) result = false;
+	if (result == true) result = sendEndOfWafer();
 
-    if (m_recipeParseResult == false) result = false;
-    if (result == true) result = sendEndOfLot();
+	if (m_recipeParseResult == false) result = false;
+	if (result == true) result = sendEndOfLot();
 
-    if (m_recipeParseResult == false) result = false;
-    if (result == true) result = sendStartOfLot();
+	if (m_recipeParseResult == false) result = false;
+	if (result == true) result = sendStartOfLot();
 
-    if (m_recipeParseResult == false) result = false;
-    if (result == true) result = sendStartOfWafer();
-*/
+	if (m_recipeParseResult == false) result = false;
+	if (result == true) result = sendStartOfWafer();
+	*/
 
-    if (m_recipeParseResult == false) result = false;
-    if (result == true) result = sendTPParams();
+	if (m_recipeParseResult == false) result = false;
+	if (result == true) result = sendTPParams();
 
-    if (m_recipeParseResult == false) result = false;
-    if (result == true) result = sendMIRParams();
+	if (m_recipeParseResult == false) result = false;
+	if (result == true) result = sendMIRParams();
 
-    if (m_recipeParseResult == false) result = false;
-    if (result == true) result = sendSDRParams();
+	if (m_recipeParseResult == false) result = false;
+	if (result == true) result = sendSDRParams();
 
-    if (m_recipeParseResult == false) result = false;
-    return result;
+	if (m_recipeParseResult == false) result = false;
+	return result;
 }
 
 //--------------------------------------------------------------------
@@ -1838,28 +1837,21 @@ Indifferent	 |       Attempt	     If requested TP is available remotely
 */ 
 bool CuserEvxaInterface::executeRecipeReload()
 {
-  	if (debug()) std::cout << "[DEBUG] Executing CuserEvxaInterface::executeRecipeReload()" << std::endl;
-	bool result = true;
-   	EVXAStatus status = EVXA::OK;
+	m_Debug << "[DEBUG] Executing CuserEvxaInterface::executeRecipeReload()" << CUtil::CLog::endl;
+	if (!PgmCtrl()) 
+	{
+		m_Log << "No ProgramControl at CuserEvxaInterface::executeRecipeReload." << CUtil::CLog::endl;
+		return false;
+    	}
 
-    	ProgramControl *pgm = PgmCtrl();
-    	if (NULL == pgm) 
-	{
-		fprintf(stdout, "[ERROR] executeRecipeReload: no ProgramControl\n");
-		return false;
-    	}
+ 	bool result = true;
     	
-	bool pgmLoaded = pgm->isProgramLoaded();
-    	if (EVXA::OK != status) 
-	{
-		fprintf(stdout, "[ERROR] error on call to isProgramLoaded(): %s\n", pgm->getStatusBuffer());
-		return false;
-    	}
-    	
+	// check if program is already loaded in unison
+	bool pgmLoaded = PgmCtrl()->isProgramLoaded();    	
 	if (pgmLoaded == true) 
 	{
-		std::string temp = pgm->getProgramPath();
-		std::cout << "[OK] Test program already loaded with full path name: " << temp << std::endl;
+		std::string temp = PgmCtrl()->getProgramPath();
+		m_Log << "[OK] A test program is already loaded with full path name: " << temp << CUtil::CLog::endl;
 		m_TPArgs.CurrentProgName = temp;
 		//unsigned found = temp.find_last_of("/");
 		//if (found != std::string::npos) m_TPArgs.CurrentProgName = temp.substr(found+1);
@@ -1869,8 +1861,8 @@ bool CuserEvxaInterface::executeRecipeReload()
 
 	std::string dload(m_TPArgs.DownloadStrategy);
 	std::string rload(m_TPArgs.ReloadStrategy);
-	if(debug()) std::cout << "[DEBUG] download strategy: " << dload.c_str() << std::endl;
-	if(debug()) std::cout << "[DEBUG] reload strategy: " << rload.c_str() << std::endl;
+	m_Debug << "[DEBUG] download strategy: " << dload.c_str() << CUtil::CLog::endl;
+	m_Debug << "[DEBUG] reload strategy: " << rload.c_str() << CUtil::CLog::endl;
 
 	// download = force, reload = doesn't matter
 	// look for TP in remote folder and download it, move to program folder, and unpack
@@ -1913,7 +1905,7 @@ bool CuserEvxaInterface::handleBackToIdleStrategy()
 	// unload TP but keep TP files in and test folder untouched
 	if((m_TPArgs.BackToIdleStrategy.compare("unloadAndRetain") == 0) || (m_TPArgs.BackToIdleStrategy.compare("UnloadAndRetain") == 0))
 	{ 
-		if (! unloadProgram(m_TPArgs.FullTPName, false)) return false;
+		if (!unloadProgram(m_TPArgs.FullTPName, false)) return false;
 		else return true;		
 	}
 
@@ -1921,16 +1913,16 @@ bool CuserEvxaInterface::handleBackToIdleStrategy()
 	// unload TP and delete TP files in test folder
 	if((m_TPArgs.BackToIdleStrategy.compare("unloadAndDelete") == 0) || (m_TPArgs.BackToIdleStrategy.compare("UnloadAndDelete") == 0))
 	{ 
-		if (! unloadProgram(m_TPArgs.FullTPName, false)) return false;
+		if (!unloadProgram(m_TPArgs.FullTPName, false)) return false;
 				
 		// SAFELY delete TP files in test folder. make sure this string is not empty before proceeding
 		if (!m_ConfigArgs.ProgLocation.empty()) 
 		{
 		    std::stringstream rmCmd;
 		    rmCmd << "/bin/rm -rf " << m_ConfigArgs.ProgLocation << "/*";
-		    if(debug()) fprintf(stdout, "clean localdir cmd:%s\n", rmCmd.str().c_str());
+		    m_Debug << "clean localdir cmd: " << rmCmd.str().c_str() << CUtil::CLog::endl;
 		    system(rmCmd.str().c_str());
-		    if(debug()) fprintf(stdout, "clean localdir done\n");
+		    m_Debug << "clean localdir done." << CUtil::CLog::endl;
 		}
 	}
 
@@ -1960,13 +1952,13 @@ load program
 ---------------------------------------------------------------------------------*/
 bool CuserEvxaInterface::loadProgram(const std::string &szProgFullPath)
 {
- 	if (debug()) std::cout << "[DEBUG] Executing CuserEvxaInterface::loadProgram()" << std::endl;
+ 	m_Debug << "[DEBUG] Executing CuserEvxaInterface::loadProgram()" << CUtil::CLog::endl;
+	if (!PgmCtrl()){ m_Log << "No ProgramControl at CuserEvxaInterface::loadProgram." << CUtil::CLog::endl; return false; }
 
 	EVXAStatus status = EVXA::OK;
-     	if (!PgmCtrl()){ std::cout << "[ERROR] Failed to access ProgramControl object." << std::endl; return false;}
-
+ 
 	// load our program from XTRF
-	if(debug()) std::cout << "[DEBUG] loading test program " <<  szProgFullPath << "..." << std::endl;
+	m_Debug << "[DEBUG] loading test program " <<  szProgFullPath << "..." << CUtil::CLog::endl;
 	EVX_PROGRAM_STATE states[] = { EVX_PROGRAM_LOADED, EVX_PROGRAM_LOAD_FAILED, EVX_PROGRAM_UNLOADED, MAX_EVX_PROGRAM_STATE };
 	setupProgramNotification(states);
 	status = PgmCtrl()->load(szProgFullPath.c_str(), EVXA::NO_WAIT, EVXA::DISPLAY);
@@ -1974,11 +1966,11 @@ bool CuserEvxaInterface::loadProgram(const std::string &szProgFullPath)
 	if (EVXA::OK == status)
 	{ 
 		waitForNotification(); 
-		std::cout << "[OK] test program " <<  szProgFullPath << " successfully loaded." << std::endl;
+		m_Log << "[OK] test program " <<  szProgFullPath << " successfully loaded." << CUtil::CLog::endl;
 	}
 	else 
 	{
-	    std::cout << "[ERROR] Something went wrong in loading test program " << szProgFullPath.c_str() << ": " << PgmCtrl()->getStatusBuffer() << std::endl;
+	    m_Log << "[ERROR] Something went wrong in loading test program " << szProgFullPath.c_str() << ": " << PgmCtrl()->getStatusBuffer() << CUtil::CLog::endl;
 	    return false;
 	}
 		
@@ -1990,29 +1982,29 @@ unload program
 ---------------------------------------------------------------------------------*/
 bool CuserEvxaInterface::unloadProgram(const std::string &szProgFullPath, bool notify)
 {
- 	if (debug()) std::cout << "[DEBUG] Executing CuserEvxaInterface::unloadProgram()" << std::endl;
+ 	m_Debug << "[DEBUG] Executing CuserEvxaInterface::unloadProgram()" << CUtil::CLog::endl;
 
 	EVXAStatus status = EVXA::OK;
-     	if (!PgmCtrl()){ std::cout << "[ERROR] Failed to access ProgramControl object." << std::endl; return false;}
+     	if (!PgmCtrl()){ m_Debug << "[ERROR] Failed to access ProgramControl object." << CUtil::CLog::endl; return false; }
 	
 	// If there's a program loaded then unload it.
 	if (!szProgFullPath.empty()) 
 	{
-		if (debug()) std::cout << "[DEBUG] unloading test program " <<  szProgFullPath << "..." << std::endl;
+		m_Debug << "[DEBUG] unloading test program " <<  szProgFullPath << "..." << CUtil::CLog::endl;
 	    	EVX_PROGRAM_STATE states[] = { EVX_PROGRAM_UNLOADED, MAX_EVX_PROGRAM_STATE };
 	    	if (notify) setupProgramNotification(states);
 	    	status = PgmCtrl()->unload(EVXA::NO_WAIT);  
-		if (debug()) std::cout << "[DEBUG] Done unloading test program " <<  szProgFullPath << "..." << std::endl;		
+		m_Debug << "[DEBUG] Done unloading test program " <<  szProgFullPath << "..." << CUtil::CLog::endl;		
 	    	if (EVXA::OK != status) 
 		{
-	    		std::cout << "[ERROR] Something went wrong in unloading test program: " << PgmCtrl()->getStatusBuffer() << std::endl;
+	    		m_Log << "[ERROR] Something went wrong in unloading test program: " << PgmCtrl()->getStatusBuffer() << CUtil::CLog::endl;
 			return false;
 	    	}
-		if (debug()) std::cout << "[DEBUG] Done unloading test program " <<  szProgFullPath << "..." << std::endl;		
+		m_Debug << "[DEBUG] Done unloading test program " <<  szProgFullPath << "..." << CUtil::CLog::endl;		
 	    	if (notify) waitForNotification();
-		if (debug()) std::cout << "[DEBUG] Done unloading test program " <<  szProgFullPath << "..." << std::endl;		
+		m_Debug << "[DEBUG] Done unloading test program " <<  szProgFullPath << "..." << CUtil::CLog::endl;		
 	    	if (!m_recipeParseResult){return m_recipeParseResult;}
-		if (debug()) std::cout << "[DEBUG] Done unloading test program " <<  szProgFullPath << "..." << std::endl;		
+		m_Debug << "[DEBUG] Done unloading test program " <<  szProgFullPath << "..." << CUtil::CLog::endl;		
 	}	
 	return true;
 }
@@ -2023,9 +2015,9 @@ check if file exist
 bool CuserEvxaInterface::isFileExist(const std::string& szFile)
 {
 	// check if the program is available remotely
-	if (debug()) std::cout << "[DEBUG] Checking if " << szFile << " exists..." << std::endl;
-     	if (access(szFile.c_str(), F_OK) > -1) { if (debug()) std::cout << "[OK] " << szFile << " exist." << std::endl; return true; }
-   	else { std::cout << "[WARNING] Cannot access " << szFile << ". It does not exist." << std::endl; return false; }
+	m_Debug << "[DEBUG] Checking if " << szFile << " exists..." << CUtil::CLog::endl;
+     	if (access(szFile.c_str(), F_OK) > -1) { m_Debug << "[DEBUG] " << szFile << " exist." << CUtil::CLog::endl; return true; }
+   	else { m_Log << "[WARNING] Cannot access " << szFile << ". It does not exist." << CUtil::CLog::endl; return false; }
 } 
 
 /*-----------------------------------------------------------------------------------------
@@ -2041,12 +2033,12 @@ bool CuserEvxaInterface::isProgramToLoadAlreadyLoaded()
 	if (fullProgName.str().compare(m_TPArgs.CurrentProgName) == 0)
 	{
 		m_TPArgs.FullTPName = fullProgName.str();
-		if (debug()) std::cout << "[OK] Test program <" << fullProgName.str() << "> is already loaded." << std::endl;
+		m_Debug << "[DEBUG] Test program <" << fullProgName.str() << "> is already loaded." << CUtil::CLog::endl;
 		return true;
 	}
 	else
 	{
-		std::cout << "[ERROR] Test program to load is <" << fullProgName.str() << ">. But current Program loaded is <" << m_TPArgs.CurrentProgName << ">" << std::endl;
+		m_Log << "[WARNING] Test program to load is <" << fullProgName.str() << ">. But current Program loaded is <" << m_TPArgs.CurrentProgName << ">" << CUtil::CLog::endl;
 		return false;
 	}
 }
@@ -2060,9 +2052,9 @@ void CuserEvxaInterface::copyFile(const std::string& from, const std::string& to
 {
 	std::stringstream cpCmd; 
 	cpCmd << "/bin/cp -rf " << from << " " << to << "/.";
-	if(debug()) std::cout << "[DEBUG] copying " <<  from << " to " << to << "..." << std::endl;
+	m_Debug << "[DEBUG] copying " <<  from << " to " << to << "..." << CUtil::CLog::endl;
 	system(cpCmd.str().c_str());
-	if(debug()) std::cout << "[DEBUG] Done copying. " << std::endl;	
+	m_Debug << "[DEBUG] Done copying. " << CUtil::CLog::endl;	
 }
 
 /*---------------------------------------------------------------------------------
@@ -2070,16 +2062,16 @@ download program
 ---------------------------------------------------------------------------------*/
 bool CuserEvxaInterface::downloadProgramFromServerToLocal()
 {
-  	if (debug()) std::cout << "[DEBUG] Executing CuserEvxaInterface::downloadProgramFromServerToLocal()" << std::endl;
+  	m_Debug << "[DEBUG] Executing CuserEvxaInterface::downloadProgramFromServerToLocal()" << CUtil::CLog::endl;
  
 	//get the full path-filename-extension of the TP file from remote folder
    	std::stringstream fullRemoteProgPath;
     	if (!m_TPArgs.TPPath.empty())
 	{ 
 		fullRemoteProgPath << m_ConfigArgs.RemoteLocation << "/" << m_TPArgs.TPPath << "." << m_ConfigArgs.PackageType; 
-		std::cout << "[OK] Downloading " << fullRemoteProgPath.str() << "..." << std::endl;
+		m_Log << "[OK] Downloading " << fullRemoteProgPath.str() << "..." << CUtil::CLog::endl;
 	}
-	else { std::cout << "[ERROR] test program file name to download is invalid." << std::endl; return false; }
+	else { m_Log << "[ERROR] test program file name to download is invalid." << CUtil::CLog::endl; return false; }
  
 	// check if TP file exist in remote folder. return false if not
 	if (!isFileExist(fullRemoteProgPath.str())) return false;
@@ -2098,7 +2090,7 @@ unpack TP file from local folder to test folder
 ---------------------------------------------------------------------------------*/
 bool CuserEvxaInterface::unpackProgramFromLocalToTest()
 {
-  	if (debug()) std::cout << "[DEBUG] Executing CuserEvxaInterface::unpackProgramFromLocalToTest()" << std::endl;
+  	m_Debug << "[DEBUG] Executing CuserEvxaInterface::unpackProgramFromLocalToTest()" << CUtil::CLog::endl;
 
 	// get full path-filename-extension of TP file to local folder
 	std::stringstream fullLocalProgPath;
@@ -2110,16 +2102,16 @@ bool CuserEvxaInterface::unpackProgramFromLocalToTest()
 	// chmod the TP file on local folder so we can unpack it
 	std::stringstream chmodCmd;
 	chmodCmd << "/bin/chmod +x " << fullLocalProgPath.str();
-	if(debug()) std::cout << "chmod cmd: " << chmodCmd.str().c_str() << std::endl;
+	m_Debug << "[DEBUG] chmod cmd: " << chmodCmd.str().c_str() << CUtil::CLog::endl;
 	system(chmodCmd.str().c_str());
-	if(debug()) std::cout << "chmod done." << std::endl;
+	m_Debug << "[DEBUG] chmod done." << CUtil::CLog::endl;
  
 	// unpack to TP file from local folder into program folder
 	std::stringstream tarCmd;
 	tarCmd << "/bin/tar -C " << m_ConfigArgs.ProgLocation << " -xvf " << fullLocalProgPath.str();
-	if(debug()) std::cout << "[DEBUG] unpacking with cmd: " << tarCmd.str() << std::endl;
+	m_Debug << "[DEBUG] unpacking with cmd: " << tarCmd.str() << CUtil::CLog::endl;
 	system(tarCmd.str().c_str());
-	if(debug()) std::cout << "[DEBUG] unpackdone. " << std::endl;
+	m_Debug << "[DEBUG] unpackdone. " << CUtil::CLog::endl;
  
 	// check if TP program exists in program folder
     	std::stringstream fullProgName;
@@ -2140,20 +2132,20 @@ reload strategy: don't care
 ---------------------------------------------------------------------------------*/
 bool CuserEvxaInterface::forceDownloadAndLoad()
 {
- 	if (debug()) std::cout << "[DEBUG] Executing CuserEvxaInterface::forceDownloadAndLoad()" << std::endl;
+ 	m_Debug << "[DEBUG] Executing CuserEvxaInterface::forceDownloadAndLoad()" << CUtil::CLog::endl;
   
     	// check if program is available remotely
     	if (downloadProgramFromServerToLocal())	
 	{
 		// If there's a program loaded then unload it.
-		if (! unloadProgram(m_TPArgs.CurrentProgName)) return false;
+		if (!unloadProgram(m_TPArgs.CurrentProgName)) return false;
 
 		// load our program from XTRF
 		if (!loadProgram(m_TPArgs.FullTPName)) return false;
 	}	
     	else 
 	{ 
-		fprintf(stdout, "[ERROR] Failed to force download program\n");
+		m_Log <<  "[ERROR] Failed to force download program." << CUtil::CLog::endl;
 		return false;
     	}    
 	return true;
@@ -2169,7 +2161,7 @@ reload strategy: force
 ---------------------------------------------------------------------------------*/
 bool CuserEvxaInterface::neverDownloadForceLoad()
 {
-	if (debug()) std::cout << "[DEBUG] Executing CuserEvxaInterface::neverDownloadForceLoad()" << std::endl;
+	m_Debug << "[DEBUG] Executing CuserEvxaInterface::neverDownloadForceLoad()" << CUtil::CLog::endl;
  
 	// try unpacking TP file from local folder to test folder
 	if (!unpackProgramFromLocalToTest())
@@ -2178,7 +2170,7 @@ bool CuserEvxaInterface::neverDownloadForceLoad()
 		// this also unpack TP file from local folder to test folder
 		if (!downloadProgramFromServerToLocal())	
 		{
-			std::cout << "[ERROR] Failed to download program." << std::endl;
+			m_Log << "[ERROR] Failed to download program." << CUtil::CLog::endl;
 			return false;	
 		}
 	}
@@ -2202,7 +2194,7 @@ reload strategy: attempt
 ---------------------------------------------------------------------------------*/
 bool CuserEvxaInterface::neverDownloadAttemptLoad()
 {
-	if (debug()) std::cout << "[DEBUG] Executing CuserEvxaInterface::neverDownloadForceLoad()" << std::endl;
+	m_Debug << "[DEBUG] Executing CuserEvxaInterface::neverDownloadForceLoad()" << CUtil::CLog::endl;
  
 	// try unpacking TP file from local folder to test folder
 	if (!unpackProgramFromLocalToTest())
@@ -2211,7 +2203,7 @@ bool CuserEvxaInterface::neverDownloadAttemptLoad()
 		// this also unpack TP file from local folder to test folder
 		if (!downloadProgramFromServerToLocal())	
 		{
-			std::cout << "[ERROR] Failed to download program." << std::endl;
+			m_Log << "[ERROR] Failed to download program." << CUtil::CLog::endl;
 
 			if (isProgramToLoadAlreadyLoaded()) return true;
 			else return false;
@@ -2236,7 +2228,7 @@ reload strategy: never
 ---------------------------------------------------------------------------------*/
 bool CuserEvxaInterface::neverDownloadNeverLoad()
 {
-	if (debug()) std::cout << "[DEBUG] Executing CuserEvxaInterface::neverDownloadNeverLoad()" << std::endl;
+	m_Debug << "[DEBUG] Executing CuserEvxaInterface::neverDownloadNeverLoad()" << CUtil::CLog::endl;
  
 	// check if test program we are trying to load is already loaded
 	if (isProgramToLoadAlreadyLoaded()) return true;
@@ -2269,7 +2261,7 @@ reload strategy: force
 ---------------------------------------------------------------------------------*/
 bool CuserEvxaInterface::attemptDownloadForceLoad()
 {
-	if (debug()) std::cout << "[DEBUG] Executing CuserEvxaInterface::attemptDownloadForceLoad()" << std::endl;
+	m_Debug << "[DEBUG] Executing CuserEvxaInterface::attemptDownloadForceLoad()" << CUtil::CLog::endl;
 
 	// try downloading program from remote folder
 	if (!downloadProgramFromServerToLocal())
@@ -2295,7 +2287,7 @@ reload strategy: force
 ---------------------------------------------------------------------------------*/
 bool CuserEvxaInterface::attemptDownloadAttemptLoad()
 {
-	if (debug()) std::cout << "[DEBUG] Executing CuserEvxaInterface::attemptDownloadAttemptLoad()" << std::endl;
+	m_Debug << "[DEBUG] Executing CuserEvxaInterface::attemptDownloadAttemptLoad()" << CUtil::CLog::endl;
 
 	// try downloading program from remote folder
 	if (!downloadProgramFromServerToLocal())
@@ -2323,13 +2315,13 @@ be the last thing sent to cgem.
 */ 
 void CuserEvxaInterface::setupWaitForNotification(FA_ULONG wait_state, FA_ULONG wait_minor_state)
 {
-    // initialize the condition we are waiting for
-    m_currentState = wait_state;
-    m_currentMinorState = wait_minor_state;
-    m_taskComplete = false;
-    m_goAway = false;
-    pthread_cond_init(&m_wakeUp, 0);
-    pthread_mutex_init(&m_condMutex, 0);
+	// initialize the condition we are waiting for
+	m_currentState = wait_state;
+	m_currentMinorState = wait_minor_state;
+	m_taskComplete = false;
+	m_goAway = false;
+	pthread_cond_init(&m_wakeUp, 0);
+	pthread_mutex_init(&m_condMutex, 0);
 }
 
 /* setupProgramNotification will setup a condition variable
@@ -2340,17 +2332,18 @@ The array must end with MAX_EVX_PROGRAM_STATE
 */ 
 void CuserEvxaInterface::setupProgramNotification(EVX_PROGRAM_STATE *wait_program_states)
 {
-    if (wait_program_states == NULL) return;
+	if (wait_program_states == NULL) return;
 
-    m_currentProgramStateArray.clear();
-    for (int ii = 0; (wait_program_states[ii] != MAX_EVX_PROGRAM_STATE); ii++) {
-	m_currentProgramStateArray.push_back(wait_program_states[ii]);
-    }
-    m_currentState = EVX_PROGRAM_CHANGE;
-    m_taskComplete = false;
-    m_goAway = false;
-    pthread_cond_init(&m_wakeUp, 0);
-    pthread_mutex_init(&m_condMutex, 0);
+	m_currentProgramStateArray.clear();
+	for (int ii = 0; (wait_program_states[ii] != MAX_EVX_PROGRAM_STATE); ii++) 
+	{
+		m_currentProgramStateArray.push_back(wait_program_states[ii]);
+	}
+	m_currentState = EVX_PROGRAM_CHANGE;
+	m_taskComplete = false;
+	m_goAway = false;
+	pthread_cond_init(&m_wakeUp, 0);
+	pthread_mutex_init(&m_condMutex, 0);
 }
 
 //--------------------------------------------------------------------
@@ -2359,19 +2352,20 @@ from the StateNotification.
 */ 
 void CuserEvxaInterface::waitForNotification()
 {
-    // lock the block and wait for the signal from the other thread.
-    CMutexLock mtx(m_condMutex);
-    
-    // We need a while loop just in case the wait has a spurrious
-    // return (which may occur according to the manual).
-    while (m_taskComplete == false) {
-	// Are we done yet?
-	if (m_goAway)
-	    return;  // get out of here is shutting down.
+	// lock the block and wait for the signal from the other thread.
+	CMutexLock mtx(m_condMutex);
 
-	// Wait for something to happen.
-	pthread_cond_wait(&m_wakeUp, &m_condMutex);
-    }
+	// We need a while loop just in case the wait has a spurrious
+	// return (which may occur according to the manual).
+	while (m_taskComplete == false) 
+	{
+		// Are we done yet?
+		if (m_goAway)
+		return;  // get out of here is shutting down.
+
+		// Wait for something to happen.
+		pthread_cond_wait(&m_wakeUp, &m_condMutex);
+	}
 }
 
 //--------------------------------------------------------------------
@@ -2416,17 +2410,12 @@ void CuserEvxaInterface::sendNotificationComplete(FA_ULONG wait_state, FA_ULONG 
 }
 
 
-// PARSE THE RECIPEHANDLER_CONFIG.XML FILE
-///////////////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////////////
-
-//--------------------------------------------------------------------
-/* This function parses the recipeHandler_cnfig.xml file
-and stores the contents in variables.
-*/
+/*---------------------------------------------------------------------------------
+PARSE THE RECIPEHANDLER_CONFIG.XML FILE
+---------------------------------------------------------------------------------*/
 bool CuserEvxaInterface::parseRecipeHandlerConfigurationFile(const std::string& recipeFilePath)
 {
-   	if (debug()) fprintf(stdout, "[DEBUG] Executing CuserEvxaInterface::parseRecipeHandlerConfigurationFile() with %s as parameter\n", recipeFilePath.c_str());
+   	m_Debug << "[DEBUG] Executing CuserEvxaInterface::parseRecipeHandlerConfigurationFile() with " << recipeFilePath << " as parameter" << CUtil::CLog::endl;
     	bool result = true;
 
     	// clear all parameters that will come from recipehandler_config.xml
@@ -2437,12 +2426,18 @@ bool CuserEvxaInterface::parseRecipeHandlerConfigurationFile(const std::string& 
     	if (rootNode) 
 	{
 		std::string ptag = rootNode->fetchTag();
-		if (debug()) fprintf(stdout, "rootNode tag: %s\n", ptag.c_str());
+		m_Debug << "[DEBUG] 	Root Tag: " << ptag << CUtil::CLog::endl;
 
-		// Add else-if statements for other rootNodes that need parsing
-		// Then add a function to parse that rootNode.
-		if (ptag.compare("RECIPEHANDLER_CONF") == 0){ result = parseRecipeHandlerConfiguration(rootNode);}
-		else{fprintf(stdout, "rootNode unkown: %s, Not Parsed\n", ptag.c_str());}
+		// process <RECIPEHANDLER_CONF> tag
+		if (ptag.compare("RECIPEHANDLER_CONF") == 0)
+		{ 
+			result = parseRecipeHandlerConfiguration(rootNode);
+		}
+		else
+		{
+			m_Debug << "[DEBUG] 	unknown root tag " << ptag << " found." << CUtil::CLog::endl;
+			SendMessageToHost(false, "011", "Config unknown tag");
+		}
     	}
 
     	// delete XML_Node
@@ -2454,116 +2449,110 @@ bool CuserEvxaInterface::parseRecipeHandlerConfigurationFile(const std::string& 
     	return result;
 }
 
+/*---------------------------------------------------------------------------------
+parse the child tags of <RECIPEHANDLER_CONF> tag
+must contain <CurrentSiteConfiguration> which specifies the
+active <SiteConfiguration>, so we find that first.
+---------------------------------------------------------------------------------*/
 bool CuserEvxaInterface::parseRecipeHandlerConfiguration(XML_Node *recipeConfig)
 {
-   	if (debug()) fprintf(stdout, "[DEBUG] Executing CuserEvxaInterface::parseRecipeHandlerConfiguration()\n");
+   	m_Debug << "[DEBUG] Executing CuserEvxaInterface::parseRecipeHandlerConfiguration()" << CUtil::CLog::endl;
 	bool result = true;
     
-    	int numChildren = recipeConfig->numChildren();
-    	if (debug()) fprintf(stdout, "recipeConfig numChildren: %d\n", numChildren);
+	m_Debug << "[DEBUG] <" << recipeConfig->fetchTag() << "> has " << recipeConfig->numChildren() << " child tags." << CUtil::CLog::endl;
 
-    // Need to know what Recipe Config Children you want to parse.
-    // Check for the ones we care about. 
-    std::string configName("");
-    for(int ii=0; ii<numChildren; ii++) {
-	XML_Node *childNode = recipeConfig->fetchChild(ii);
-	if (childNode) {
-	    std::string ptag = childNode->fetchTag();
-	    if (debug()) fprintf(stdout, "recipeConfig childNode tag: %s\n", ptag.c_str());
+	// find the active config and process that
+	std::string configName("");
+	for(int ii = 0; ii < recipeConfig->numChildren(); ii++) 
+	{
+		XML_Node *childNode = recipeConfig->fetchChild(ii);
+		if (childNode) 
+		{
+			std::string ptag = childNode->fetchTag();
+			m_Debug << "[DEBUG] 	Child Tag: " << ptag << CUtil::CLog::endl;
 
-	    // Add else-if statements for other children that need parsing
-	    // Then add a function to parse that child.
-	    if (ptag.compare("CurrentSiteConfiguration") == 0) 
-	    {
-		 
-		for (int ii=0; ii<childNode->numAttr(); ii++) {
-		    if (debug()) {
-			fprintf(stdout, "CurrentSiteConfiguration Attr %s: %s\n", 
-				childNode->fetchAttr(ii).c_str(), childNode->fetchVal(ii).c_str());
-		    }
-		    if (childNode->fetchAttr(ii).compare("ConfigurationName") == 0) {
-			configName = childNode->fetchVal(ii);
-
-			m_ConfigArgs.ConfigurationName = configName;
-			fprintf(stdout, "ConfigurationName: %s\n", m_ConfigArgs.ConfigurationName.c_str());
-		    }
-		}
-	    }
-	    else if(ptag.compare("SiteConfiguration") == 0) {
-		for (int ii=0; ii<childNode->numAttr(); ii++) {
-		    if (debug()) {
-			fprintf(stdout, "Configuration Attr %s: %s\n", 
-				childNode->fetchAttr(ii).c_str(), childNode->fetchVal(ii).c_str());
-		    }
-		    if (childNode->fetchAttr(ii).compare("ConfigurationName") == 0) {
-		        if(childNode->fetchVal(ii).compare(configName) == 0) {
-			    parseSiteConfiguration(childNode);
-			    break; // break from for loop
+			// <CurrentSiteConfiguration> specifies that active configuration 
+			if (ptag.compare("CurrentSiteConfiguration") == 0) 
+			{
+				for (int ii = 0; ii< childNode->numAttr(); ii++) 
+				{
+					m_Debug << "[DEBUG] CurrentSiteConfiguration Attr " << childNode->fetchAttr(ii) << " : " << childNode->fetchVal(ii) << CUtil::CLog::endl; 
+					if (childNode->fetchAttr(ii).compare("ConfigurationName") == 0) 
+					{
+						configName = childNode->fetchVal(ii);
+						m_ConfigArgs.ConfigurationName = configName;
+						m_Log << "Active <ConfigurationName> is " << m_ConfigArgs.ConfigurationName << CUtil::CLog::endl;
+					}
+				}
 			}
-		    }
-		}	    
-	    }
-	    else {
-		fprintf(stdout, "recipeConfig unkown child: %s, Not Parsed\n", ptag.c_str());
-	    }
+			// or is this one of the <SiteConfiguration> in the list?
+			else if (ptag.compare("SiteConfiguration") == 0) 
+			{
+				for (int ii = 0; ii < childNode->numAttr(); ii++) 
+				{
+					m_Debug << "[DEBUG] Configuration Attr " << childNode->fetchAttr(ii) << " : " << childNode->fetchVal(ii) << CUtil::CLog::endl;
+					if (childNode->fetchAttr(ii).compare("ConfigurationName") == 0) 
+					{
+						if(childNode->fetchVal(ii).compare(configName) == 0) 
+						{
+							parseSiteConfiguration(childNode);
+							break; // break from for loop
+						}
+					}
+				}	    
+			}
+			else 
+			{
+				m_Debug << "[DEBUG] 	unknown child tag " << ptag << " found." << CUtil::CLog::endl;
+				SendMessageToHost(false, "011", "Config unknown tag");
+			}
+		}
+		else m_Debug << "[DEBUG]	empty child tag found. " << CUtil::CLog::endl;
 	}
-	else
-	    fprintf(stdout, "recipeConfig: childNode is NULL\n");
-    }
-    return result;
+	return result;
 }
 
+/*---------------------------------------------------------------------------------
+parse the child tags of <SiteConfiguration> tag
+---------------------------------------------------------------------------------*/
 bool CuserEvxaInterface::parseSiteConfiguration(XML_Node *siteConfig)
 {
-    if (debug()) fprintf(stdout, "parseSiteConfiguration\n");
-    bool result = true;
+   	m_Debug << "[DEBUG] Executing CuserEvxaInterface::parseSiteConfiguration()" << CUtil::CLog::endl;
+    	bool result = true;
     
-    int numChildren = siteConfig->numChildren();
-    if (debug()) fprintf(stdout, "siteConfig numChildren: %d\n", numChildren);
+ 	m_Debug << "[DEBUG] <" << siteConfig->fetchTag() << "> has " << siteConfig->numChildren() << " child tags." << CUtil::CLog::endl;
 
-    // Need to know what Recipe Children you want to parse.
-    // Check for the ones we care about.  
-    for(int ii=0; ii<numChildren; ii++) {
-	XML_Node *childNode = siteConfig->fetchChild(ii);
-	if (childNode) {
-	    std::string ptag = childNode->fetchTag();
-	    if (debug()) fprintf(stdout, "siteConfig childNode tag: %s\n", ptag.c_str());
+    	for(int ii = 0; ii < siteConfig->numChildren(); ii++) 
+	{
+		XML_Node *childNode = siteConfig->fetchChild(ii);
+		if (childNode) 
+		{
+	    		std::string ptag = childNode->fetchTag();
+			m_Debug << "[DEBUG] 	Child Tag: " << ptag << CUtil::CLog::endl;
 
-	    // Add else-if statements for other children that need parsing
-	    // Then add a function to parse that child.
-	    if (ptag.compare("argParameter") == 0) {
-		for (int ii=0; ii<childNode->numAttr(); ii++) {
-		    if (debug()) {
-			fprintf(stdout, "argParameter Attr %s: %s\n", 
-				childNode->fetchAttr(ii).c_str(), childNode->fetchVal(ii).c_str());
-		    }
-		    if (childNode->fetchAttr(ii).compare("RemoteLocation") == 0) {
-			m_ConfigArgs.RemoteLocation = childNode->fetchVal(ii);
-		    }
-		    else if (childNode->fetchAttr(ii).compare("LocalLocation") == 0) {
-			m_ConfigArgs.LocalLocation = childNode->fetchVal(ii);
-		    }
-		    else if (childNode->fetchAttr(ii).compare("ProgLocation") == 0) {
-			m_ConfigArgs.ProgLocation = childNode->fetchVal(ii);
-		    }
-		    else if (childNode->fetchAttr(ii).compare("PackageType") == 0) {
-			m_ConfigArgs.PackageType = childNode->fetchVal(ii);
-		    }
-		    else if (childNode->fetchAttr(ii).compare("S10F1") == 0) {
-			m_ConfigArgs.S10F1 = childNode->fetchVal(ii);
-		    }
-		    else
-			fprintf(stdout, "Unknown SiteConfig Parameter: %s: %s\n", childNode->fetchAttr(ii).c_str(), childNode->fetchVal(ii).c_str());
+	    		if (ptag.compare("argParameter") == 0) 
+			{
+				for (int ii = 0; ii < childNode->numAttr(); ii++) 
+				{
+		    			m_Debug << "argParameter Attr " << childNode->fetchAttr(ii) << " : " << childNode->fetchVal(ii) << CUtil::CLog::endl;
+		    
+					if (childNode->fetchAttr(ii).compare("RemoteLocation") == 0){ m_ConfigArgs.RemoteLocation = childNode->fetchVal(ii); }
+				    	else if (childNode->fetchAttr(ii).compare("LocalLocation") == 0){ m_ConfigArgs.LocalLocation = childNode->fetchVal(ii); }
+		    			else if (childNode->fetchAttr(ii).compare("ProgLocation") == 0){ m_ConfigArgs.ProgLocation = childNode->fetchVal(ii); }
+		    			else if (childNode->fetchAttr(ii).compare("PackageType") == 0){ m_ConfigArgs.PackageType = childNode->fetchVal(ii); }
+		    			else if (childNode->fetchAttr(ii).compare("S10F1") == 0){ m_ConfigArgs.S10F1 = childNode->fetchVal(ii); }
+		    			else m_Log << "[ERROR] Unknown SiteConfig Parameter: " << childNode->fetchAttr(ii) << " : " << childNode->fetchVal(ii) <<CUtil::CLog::endl;
+				}
+	    		}
+	    		else 
+			{
+				m_Debug << "[DEBUG] 	unknown child tag " << ptag << " found." << CUtil::CLog::endl;
+				SendMessageToHost(false, "011", "Config unknown tag");
+			}
 		}
-	    }
-	    else {
-		fprintf(stdout, "siteConfig unkown child: %s, Not Parsed\n", ptag.c_str());
-	    }
-	}
-	else
-	    fprintf(stdout, "siteConfig: childNode is NULL\n");
-    }
-    return result;
+		else m_Debug << "[DEBUG]	empty child tag found. " << CUtil::CLog::endl;
+    	}
+    	return result;
 }
 
 // print the results of parsing the configuration file.

@@ -24,6 +24,7 @@ public:
             addArg("r", "recipe", "Program recipe to load", true, "recipe");
             addArg("h", "help", "Print these messages");
             addArg("conf", "config", "config file and path", true, "config");
+            addArg("s10f1", "send S10F1", "enable sending S10F1 event and error reporting", true, "s10f1");
             return true;
 	}
 
@@ -43,6 +44,7 @@ public:
 	bool debug(bool b) { return setArg("debug"); }
 	bool showVersion(void) { return isSet("version"); }
 	bool showVersion(bool b) { return setArg("version"); }
+	bool s10f1() { return isSet("s10f1"); }
 
 
 };
