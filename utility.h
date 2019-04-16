@@ -101,13 +101,13 @@ namespace CUtil
 		std::string m_file;
 
 	public:
-		CLog()  // private so we can't instantiate
+		CLog()  
 		{
 			immediate = true;
 			enable = true;
 			silent = false;
 		}
-		virtual ~CLog(){} // private so we can't destroy
+		virtual ~CLog(){} 
 
 	public:
 		// properties

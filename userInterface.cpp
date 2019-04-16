@@ -208,7 +208,8 @@ bool CuserEvxaInterface::getTesterDirectories(std::string& mainTesterDir, std::s
 void CuserEvxaInterface::commonInit() 
 {
 	m_Debug.enable = args().debug();
-	m_Debug << "[DEBUG] Running in DEBUG mode..." << CUtil::CLog::endl;
+	m_Log << "Debug Mode is " << (m_args.debug()? "ENABLED" : "DISABLED") << "." << CUtil::CLog::endl;
+	m_Log << "S10F1 Messaging is " << (m_args.s10f1()? "ENABLED" : "DISABLED") << "." << CUtil::CLog::endl;
 	m_Log.enable = true;
 	m_bDisableRobot = false;
         m_tester = NULL;
@@ -853,13 +854,14 @@ bool CuserEvxaInterface::parseSTDFRecord(XML_Node *STDFRecord)
     	for (int ii = 0; ii < STDFRecord->numAttr(); ii++) 
 	{
 		if (STDFRecord->fetchAttr(ii).compare("recordName") == 0) rname = STDFRecord->fetchVal(ii); 
+		if (STDFRecord->fetchAttr(ii).compare("customName") == 0){} // do nothing 
 		else 
 		{
 			m_Debug << "[DEBUG] 	unknown attribute found in <" << STDFRecord->fetchTag() << ">: " << STDFRecord->fetchAttr(ii) << CUtil::CLog::endl;
 			SendMessageToHost(false, "009", "XTRF unknown attribute");		
 		}    	
 	}
-    	m_Debug << "Record Name: " << rname << CUtil::CLog::endl;
+    	m_Debug << "[DEBUG] Record Name: " << rname << CUtil::CLog::endl;
 
     	if (rname.compare("MIR") == 0){ result = parseMIR(STDFRecord); }
     	else if (rname.compare("SDR") == 0){ result = parseSDR(STDFRecord); }
@@ -2528,13 +2530,13 @@ bool CuserEvxaInterface::parseSiteConfiguration(XML_Node *siteConfig)
 		if (childNode) 
 		{
 	    		std::string ptag = childNode->fetchTag();
-			m_Debug << "[DEBUG] 	Child Tag: " << ptag << CUtil::CLog::endl;
+			//m_Debug << "[DEBUG] 	Child Tag: " << ptag << CUtil::CLog::endl;
 
 	    		if (ptag.compare("argParameter") == 0) 
 			{
 				for (int ii = 0; ii < childNode->numAttr(); ii++) 
 				{
-		    			m_Debug << "argParameter Attr " << childNode->fetchAttr(ii) << " : " << childNode->fetchVal(ii) << CUtil::CLog::endl;
+		    			m_Debug << "[DEBUG] argParameter Attr " << childNode->fetchAttr(ii) << " : " << childNode->fetchVal(ii) << CUtil::CLog::endl;
 		    
 					if (childNode->fetchAttr(ii).compare("RemoteLocation") == 0){ m_ConfigArgs.RemoteLocation = childNode->fetchVal(ii); }
 				    	else if (childNode->fetchAttr(ii).compare("LocalLocation") == 0){ m_ConfigArgs.LocalLocation = childNode->fetchVal(ii); }
@@ -2547,7 +2549,7 @@ bool CuserEvxaInterface::parseSiteConfiguration(XML_Node *siteConfig)
 	    		else 
 			{
 				m_Debug << "[DEBUG] 	unknown child tag " << ptag << " found." << CUtil::CLog::endl;
-				SendMessageToHost(false, "011", "Config unknown tag");
+				//SendMessageToHost(false, "011", "Config unknown tag"); // no point doing this, we arent connected to testr yet
 			}
 		}
 		else m_Debug << "[DEBUG]	empty child tag found. " << CUtil::CLog::endl;

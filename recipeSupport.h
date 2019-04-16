@@ -4,9 +4,12 @@
 #include <string>
 #include <iostream>
 #include <vector>
+#include <utility.h>
 
 class CRecipeConfig
 { 
+private:
+	CUtil::CLog m_Log;
  public:
     CRecipeConfig();
     CRecipeConfig(const CRecipeConfig& ot);

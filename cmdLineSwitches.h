@@ -24,7 +24,7 @@ public:
             addArg("r", "recipe", "Program recipe to load", true, "recipe");
             addArg("h", "help", "Print these messages");
             addArg("conf", "config", "config file and path", true, "config");
-            addArg("s10f1", "send S10F1", "enable sending S10F1 event and error reporting", true, "s10f1");
+            addArg("s10f1", "s10f1", "enable sending S10F1 event and error reporting", false, "s10f1");
             return true;
 	}
 

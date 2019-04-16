@@ -18,7 +18,8 @@
         <argParameter LocalLocation="/tmp/local"/>
         <argParameter ProgLocation="/tmp/prog"/>
        <argParameter PackageType="tar"/>
-       <argParameter S10F1="true"/>
+       <argParameter S10F1="false"/>
+       <argParameter unknown="false"/>
     </SiteConfiguration>
 
     <SiteConfiguration ConfigurationName="localuser">

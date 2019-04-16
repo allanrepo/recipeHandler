@@ -76,12 +76,12 @@ bool CRecipeConfig::checkConfigParams()
 
 bool CRecipeConfig::printConfigParams()
 {
-    std::cout << "Printing active RecipeHandler Configuration [" << ConfigurationName << "]..." << std::endl;
-    std::cout << "[RemoteLocation]: " << RemoteLocation << std::endl;
-    std::cout << "[LocalLocation]: " << LocalLocation << std::endl;
-    std::cout << "[ProgLocation]: " << ProgLocation << std::endl;
-    std::cout << "[PackageType]: " << PackageType << std::endl;
-    std::cout << "[S10F1]: " << S10F1 << std::endl;
+    m_Log << "Printing active RecipeHandler Configuration [" << ConfigurationName << "]..." << CUtil::CLog::endl;
+    m_Log << "Remote Location to download test program package from [RemoteLocation]: " << RemoteLocation << CUtil::CLog::endl;
+    m_Log << "Location in Tester PC to download test program file package [LocalLocation]: " << LocalLocation << CUtil::CLog::endl;
+    m_Log << "Location in tester PC to unpack/install test program [ProgLocation]: " << ProgLocation << CUtil::CLog::endl;
+    m_Log << "Expected test program package file type [PackageType]: " << PackageType << CUtil::CLog::endl;
+    m_Log << "Enable S10F1 event/error messaging to host [S10F1]: " << S10F1 << CUtil::CLog::endl;
     return true;
 }
 
