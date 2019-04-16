@@ -854,7 +854,7 @@ bool CuserEvxaInterface::parseSTDFRecord(XML_Node *STDFRecord)
     	for (int ii = 0; ii < STDFRecord->numAttr(); ii++) 
 	{
 		if (STDFRecord->fetchAttr(ii).compare("recordName") == 0) rname = STDFRecord->fetchVal(ii); 
-		if (STDFRecord->fetchAttr(ii).compare("customName") == 0){} // do nothing 
+		else if (STDFRecord->fetchAttr(ii).compare("customName") == 0){} // do nothing 
 		else 
 		{
 			m_Debug << "[DEBUG] 	unknown attribute found in <" << STDFRecord->fetchTag() << ">: " << STDFRecord->fetchAttr(ii) << CUtil::CLog::endl;
@@ -1972,8 +1972,9 @@ bool CuserEvxaInterface::loadProgram(const std::string &szProgFullPath)
 	}
 	else 
 	{
-	    m_Log << "[ERROR] Something went wrong in loading test program " << szProgFullPath.c_str() << ": " << PgmCtrl()->getStatusBuffer() << CUtil::CLog::endl;
-	    return false;
+		m_Log << "[ERROR] Something went wrong in loading test program " << szProgFullPath.c_str() << ": " << PgmCtrl()->getStatusBuffer() << CUtil::CLog::endl;
+		SendMessageToHost(false, "005", "load failed");
+	    	return false;
 	}
 		
 	return true;
@@ -2076,7 +2077,11 @@ bool CuserEvxaInterface::downloadProgramFromServerToLocal()
 	else { m_Log << "[ERROR] test program file name to download is invalid." << CUtil::CLog::endl; return false; }
  
 	// check if TP file exist in remote folder. return false if not
-	if (!isFileExist(fullRemoteProgPath.str())) return false;
+	if (!isFileExist(fullRemoteProgPath.str())) 
+	{
+		SendMessageToHost(false, "011", "download program failed");
+		return false;
+	}
 
 	// copy TP file from remote folder to local folder. no checking
 	copyFile(fullRemoteProgPath.str(), m_ConfigArgs.LocalLocation );
@@ -2099,7 +2104,11 @@ bool CuserEvxaInterface::unpackProgramFromLocalToTest()
 	fullLocalProgPath << m_ConfigArgs.LocalLocation << "/" << m_TPArgs.TPPath << "." << m_ConfigArgs.PackageType; 
 
 	// check if TP file exist in local folder
-	if (!isFileExist(fullLocalProgPath.str())) return false;
+	if (!isFileExist(fullLocalProgPath.str())) 
+	{
+		SendMessageToHost(false, "012", "program unpack failed");	
+		return false;
+	}
 
 	// chmod the TP file on local folder so we can unpack it
 	std::stringstream chmodCmd;
@@ -2118,7 +2127,11 @@ bool CuserEvxaInterface::unpackProgramFromLocalToTest()
 	// check if TP program exists in program folder
     	std::stringstream fullProgName;
 	fullProgName << m_ConfigArgs.ProgLocation << "/" << m_TPArgs.TPName;
-	if (!isFileExist(fullProgName.str())) return false;
+	if (!isFileExist(fullProgName.str())) 
+	{
+		SendMessageToHost(false, "012", "program unpack failed");
+		return false;
+	}
 
 	// finally let's store the test program name to load
 	m_TPArgs.FullTPName = fullProgName.str();
@@ -2438,7 +2451,7 @@ bool CuserEvxaInterface::parseRecipeHandlerConfigurationFile(const std::string& 
 		else
 		{
 			m_Debug << "[DEBUG] 	unknown root tag " << ptag << " found." << CUtil::CLog::endl;
-			SendMessageToHost(false, "011", "Config unknown tag");
+			//SendMessageToHost(false, "011", "Config unknown tag");
 		}
     	}
 
@@ -2506,7 +2519,7 @@ bool CuserEvxaInterface::parseRecipeHandlerConfiguration(XML_Node *recipeConfig)
 			else 
 			{
 				m_Debug << "[DEBUG] 	unknown child tag " << ptag << " found." << CUtil::CLog::endl;
-				SendMessageToHost(false, "011", "Config unknown tag");
+				//SendMessageToHost(false, "011", "Config unknown tag");
 			}
 		}
 		else m_Debug << "[DEBUG]	empty child tag found. " << CUtil::CLog::endl;
