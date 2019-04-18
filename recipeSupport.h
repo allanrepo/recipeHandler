@@ -25,7 +25,12 @@ private:
     std::string ProgLocation;   // Local Location of test program be downloaded extracted to.
     std::string PackageType;     // package type of download.  Supported values: tar.
     std::string ConfigurationName;
-    std::string S10F1;
+    std::string EVID001;
+    std::string EVID002;
+    std::string EVID003;
+    std::string EVID004;
+    std::string EVID005;
+    std::string ERIDXXX;
 
 	bool checkProgLocation()
 	{ 

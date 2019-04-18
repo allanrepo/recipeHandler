@@ -209,7 +209,6 @@ void CuserEvxaInterface::commonInit()
 {
 	m_Debug.enable = args().debug();
 	m_Log << "Debug Mode is " << (m_args.debug()? "ENABLED" : "DISABLED") << "." << CUtil::CLog::endl;
-	m_Log << "S10F1 Messaging is " << (m_args.s10f1()? "ENABLED" : "DISABLED") << "." << CUtil::CLog::endl;
 	m_Log.enable = true;
 	m_bDisableRobot = false;
         m_tester = NULL;
@@ -261,12 +260,12 @@ void CuserEvxaInterface::programChange(const EVX_PROGRAM_STATE state, const char
 			break;
 		case EVX_PROGRAM_LOAD_FAILED:
 			m_Debug << "programChange: EVX_PROGRAM_LOAD_FAILED" << CUtil::CLog::endl;
-			SendMessageToHost(false, "005", "load failed");
+			SendMessageToHost(false, true, "006", "load failed", "");
 		    	m_recipeParseResult = false;
 			break;
 		case EVX_PROGRAM_LOADED:
 		    	m_Debug << "programChange: EVX_PROGRAM_LOADED" << CUtil::CLog::endl;
-			SendMessageToHost(true, "003", "loaded");
+			SendMessageToHost(true, true, "003", "loaded", "");
 			updateSTDFAfterProgLoad();
 			break;
 		case EVX_PROGRAM_START: 
@@ -279,7 +278,7 @@ void CuserEvxaInterface::programChange(const EVX_PROGRAM_STATE state, const char
 			m_Debug << "programChange: EVX_PROGRAM_UNLOADING" << CUtil::CLog::endl;
 			break;
 		case EVX_PROGRAM_UNLOADED: 
-			SendMessageToHost(true, "004", "unloaded");
+			SendMessageToHost(true, true, "004", "unloaded", "");
 			m_Debug << "programChange: EVX_PROGRAM_UNLOADED" << CUtil::CLog::endl;
 			// If the program was unloaded and not by xtrf then unblock the robots.
 			if (m_recipeParse == false) 
@@ -291,7 +290,7 @@ void CuserEvxaInterface::programChange(const EVX_PROGRAM_STATE state, const char
 			break;
 		case EVX_PROGRAM_ABORT_LOAD:
 			m_Debug << "programChange: EVX_PROGRAM_ABORT_LOAD" << CUtil::CLog::endl;
-			SendMessageToHost(true, "006", "load abort");
+			SendMessageToHost(true, true, "005", "load abort", "");
 		    	m_recipeParseStatus = EVX_RECIPE_PARSE_ABORT;
 		    	m_recipeParseResult = false;
 			break;
@@ -414,6 +413,7 @@ void CuserEvxaInterface::RecipeDecode(const char *recipe_text)
  
     	// parse the xml file.  parseXML opens up a file.
     	bool result = parseXML(recipe_text); 
+	SendMessageToHost(true, false, "001", "XTRF analysed: ", result? "successfully":"failed");
 
     	// execute load based on reload strategy.
     	if (result) result = updateProgramLoad();
@@ -432,12 +432,29 @@ void CuserEvxaInterface::RecipeDecode(const char *recipe_text)
 /* ------------------------------------------------------------------------------------------------------
 send S10F1 to host
 ------------------------------------------------------------------------------------------------------ */
-bool CuserEvxaInterface::SendMessageToHost( bool bEvent, const std::string& id, const std::string& msg )
+bool CuserEvxaInterface::SendMessageToHost( bool bEvent, bool bTP, const std::string& id, const std::string& msg, const std::string& val )
 {
-	if ( !m_args.s10f1() && m_ConfigArgs.S10F1.compare("true") ) return true;
+	if ( id.compare("001") == 0 && m_ConfigArgs.EVID001.compare("true") != 0 && bEvent) return true;
+	if ( id.compare("002") == 0 && m_ConfigArgs.EVID002.compare("true") != 0 ) return true;
+	if ( id.compare("003") == 0 && m_ConfigArgs.EVID003.compare("true") != 0 ) return true;
+	if ( id.compare("004") == 0 && m_ConfigArgs.EVID004.compare("true") != 0 ) return true;
+	if ( id.compare("005") == 0 && m_ConfigArgs.EVID005.compare("true") != 0 ) return true;
+	if ( id.compare("001") == 0 && m_ConfigArgs.ERIDXXX.compare("true") != 0 && !bEvent) return true;
+
+	// get TP name if needed
+	std::string szTestProgramName = m_TPArgs.TPName;
+	if (bTP)
+	{
+		// find the last '/' in the file name so we can remove it's folder path
+		unsigned found = m_TPArgs.TPName.find_last_of("/");
+		
+		// if found '/', let's snap the folder path out
+		std::string s = m_TPArgs.TPName.substr(found+1);
+		if (!s.empty()) szTestProgramName = m_TPArgs.TPName.substr(found+1);		
+	}
 
 	std::stringstream ss;
-	ss << "EQ_RH_" << (bEvent? "EV":"ER") << "ID<" << id << ">: TP <" << PgmCtrl()->getProgramName() << "> " << msg;
+	ss << "EQ_RH_" << (bEvent? "EV":"ER") << "ID_" << id << ":" << (bTP? " TP ":"") << (bTP? szTestProgramName:"") << " " << msg << " " << val;
 	return PgmCtrl()? (PgmCtrl()->gemSendMsgToHost(ss.str()) == EVX_GEM_GOOD? true : false) : false;
 }
 
@@ -458,14 +475,14 @@ bool CuserEvxaInterface::parseXML(const char*recipe_text)
 	if (!recipe_text)
 	{
 		m_Log << "ERROR: recipe_text is NULL!!" << CUtil::CLog::endl;
-		SendMessageToHost(false, "007", "recipe empty"); 
+		SendMessageToHost(false, false, "007", "recipe empty", ""); 
 		return false;
 	}
 
 	if (!strlen(recipe_text))
 	{
 		m_Log << "ERROR: recipe_text length is 0!!" << CUtil::CLog::endl;
-		SendMessageToHost(false, "007", "recipe empty"); 
+		SendMessageToHost(false, false, "007", "recipe empty", ""); 
 		return false;
 	}
 
@@ -498,7 +515,7 @@ bool CuserEvxaInterface::parseXML(const char*recipe_text)
 		else 
 		{
 		    	m_Log << "ERROR: unknown root tag '" << ptag << "' found in XTRF. not parsing." << CUtil::CLog::endl;
-			SendMessageToHost(false, "008", "XTRF unknown tag");
+			SendMessageToHost(false, false, "008", "XTRF unknown tag: ", ptag);
 		    	result = false;
 		}
 	}
@@ -544,7 +561,7 @@ bool CuserEvxaInterface::parseSTDFandContextUpdate(XML_Node *parseSTDFUpdate)
 			else 
 			{
 				m_Debug << "[DEBUG] 	unknown child tag " << ptag << " found." << CUtil::CLog::endl;
-				SendMessageToHost(false, "008", "XTRF unknown tag");
+				SendMessageToHost(false, false, "008", "XTRF unknown tag: ", ptag);
 			}
 		}
 		// we ignore empty child tags
@@ -587,7 +604,7 @@ bool CuserEvxaInterface::parseTesterRecipe(XML_Node *testerRecipe)
 			else  
 			{
 				m_Debug << "[DEBUG] 	unknown child tag " << ptag << " found." << CUtil::CLog::endl;
-				SendMessageToHost(false, "008", "XTRF unknown tag");
+				SendMessageToHost(false, false, "008", "XTRF unknown tag: ", ptag);
 			}
 		}
 		// we ignore empty child tags
@@ -622,7 +639,7 @@ bool CuserEvxaInterface::parseTestPrgmIdentifier(XML_Node *testPrgmIdentifier)
 	    		else 
 			{
 				m_Debug << "[DEBUG] 	unknown child tag " << ptag << " found." << CUtil::CLog::endl;
-				SendMessageToHost(false, "008", "XTRF unknown tag");
+				SendMessageToHost(false, false, "008", "XTRF unknown tag: ", ptag);
 			}
 		}
 		else m_Debug << "[DEBUG]	empty child tag found. " << CUtil::CLog::endl;
@@ -662,7 +679,7 @@ bool CuserEvxaInterface::parseTestPrgm(XML_Node *testPrgm)
 	    		else 
 			{
 				m_Debug << "[DEBUG] 	unknown child tag " << ptag << " found." << CUtil::CLog::endl;
-				SendMessageToHost(false, "008", "XTRF unknown tag");		
+				SendMessageToHost(false, false, "008", "XTRF unknown tag: ", ptag);		
 			}
 		}
 		else m_Debug << "[DEBUG]	empty child tag found. " << CUtil::CLog::endl;
@@ -710,7 +727,7 @@ bool CuserEvxaInterface::parseTestPrgmLoader(XML_Node *testPrgmLoader)
 
 		// if you reach this point, then it's an unknown attribute. we're not going to stop the application ut we'll let host know
 		m_Debug << "[DEBUG] 	unknown attribute found in <" << testPrgmLoader->fetchTag() << ">: " << testPrgmLoader->fetchAttr(ii) << CUtil::CLog::endl;
-		SendMessageToHost(false, "009", "XTRF unknown attribute");		
+		SendMessageToHost(false, false, "009", "XTRF unknown attribute: ", testPrgmLoader->fetchAttr(ii));		
     	}
 
     	return result;
@@ -744,8 +761,8 @@ bool CuserEvxaInterface::parseTestPrgmCopierLoaderScript(XML_Node *testPrgmCopie
 		if (testPrgmCopierLoaderScript->fetchAttr(ii).compare("downloadStrategy") == 0){ m_TPArgs.DownloadStrategy = testPrgmCopierLoaderScript->fetchVal(ii); continue; }
 
 		// if you reach this point, then it's an unknown attribute. we're not going to stop the application ut we'll let host know
-		m_Debug << "[DEBUG] 	unknown attribute found in <" << testPrgmCopierLoaderScript->fetchTag() << ">: " << testPrgmCopierLoaderScript->fetchAttr(ii) << CUtil::CLog::endl;
-		SendMessageToHost(false, "009", "XTRF unknown attribute");		
+		m_Debug << "[DEBUG] 	unknown attribute found in <" << testPrgmCopierLoaderScript->fetchTag() << ">: " << testPrgmCopierLoaderScript->fetchAttr(ii) << CUtil::CLog::endl;	
+		SendMessageToHost(false, false, "009", "XTRF unknown attribute: ", testPrgmCopierLoaderScript->fetchAttr(ii));
     	}
 
 	// read the child tags of <testPrgmCopierLoaderScript>
@@ -830,7 +847,7 @@ bool CuserEvxaInterface::parseSTDF(XML_Node *stdf)
 		    	else 
 			{
 				m_Debug << "[DEBUG] 	unknown child tag " << ptag << " found." << CUtil::CLog::endl;
-				SendMessageToHost(false, "008", "XTRF unknown tag");	
+				SendMessageToHost(false, false, "008", "XTRF unknown tag: ", ptag);	
 		   	}	      
 		}
 		else m_Debug << "[DEBUG]	empty child tag found. " << CUtil::CLog::endl;
@@ -858,7 +875,7 @@ bool CuserEvxaInterface::parseSTDFRecord(XML_Node *STDFRecord)
 		else 
 		{
 			m_Debug << "[DEBUG] 	unknown attribute found in <" << STDFRecord->fetchTag() << ">: " << STDFRecord->fetchAttr(ii) << CUtil::CLog::endl;
-			SendMessageToHost(false, "009", "XTRF unknown attribute");		
+			SendMessageToHost(false, false, "009", "XTRF unknown attribute: ", STDFRecord->fetchAttr(ii));				
 		}    	
 	}
     	m_Debug << "[DEBUG] Record Name: " << rname << CUtil::CLog::endl;
@@ -869,7 +886,7 @@ bool CuserEvxaInterface::parseSTDFRecord(XML_Node *STDFRecord)
     	else 
 	{ 	
 		m_Log << "[ERROR] parseSTDFRecord unknown recordName: " << rname << CUtil::CLog::endl;
-		SendMessageToHost(false, "010", "XTRF unknown attribute value");		
+		SendMessageToHost(false, false, "010", "XTRF unknown attribute value: ", rname);		
 	}
 
     	return result;
@@ -1240,7 +1257,7 @@ bool CuserEvxaInterface::parseMIR(XML_Node *MIRRecord)
 	    		else 
 			{
 				m_Log << "[ERROR] parseMIR unknown field: " << fieldname << CUtil::CLog::endl;
-				SendMessageToHost(false, "009", "XTRF unknown attribute");		
+				SendMessageToHost(false, false, "009", "XTRF unknown attribute", fieldname);		
 			}
 		}
     	}			    
@@ -1296,7 +1313,7 @@ bool CuserEvxaInterface::parseSDR(XML_Node *SDRRecord)
 	    		else 
 			{
 				m_Log << "[ERROR] parseSDR unknown field: " << fieldname << CUtil::CLog::endl;
-				SendMessageToHost(false, "009", "XTRF unknown attribute");		
+				SendMessageToHost(false, false, "009", "XTRF unknown attribute", fieldname);		
 			}
 		}
     	}			    
@@ -1704,7 +1721,11 @@ bool CuserEvxaInterface::updateProgramLoad()
 		m_Debug << "[DEBUG] Test Program to be loaded: " << m_TPArgs.TPName.c_str() << CUtil::CLog::endl;
 		if (result == true) result = executeRecipeReload();
     	}
-	else{ m_Log << "No test program name to load." << CUtil::CLog::endl;}
+	else
+	{ 
+		m_Log << "No test program name to load." << CUtil::CLog::endl;
+		SendMessageToHost(false, false, "013", "empty program name and path: ", "");
+	}
 
     	return result;
 }
@@ -1855,10 +1876,17 @@ bool CuserEvxaInterface::executeRecipeReload()
 		std::string temp = PgmCtrl()->getProgramPath();
 		m_Log << "[OK] A test program is already loaded with full path name: " << temp << CUtil::CLog::endl;
 		m_TPArgs.CurrentProgName = temp;
-		//unsigned found = temp.find_last_of("/");
-		//if (found != std::string::npos) m_TPArgs.CurrentProgName = temp.substr(found+1);
-		//else m_TPArgs.CurrentProgName = temp;
-		//fprintf(stdout, "Test Program already loaded with Name: %s\n", m_TPArgs.CurrentProgName.c_str());
+
+		// set the full path/name of test program that XTRF wants to load
+		std::stringstream szFullProgNameFromXTRF;
+		szFullProgNameFromXTRF << m_ConfigArgs.ProgLocation << "/" << m_TPArgs.TPName;
+
+		// compare this XTRF full path/name test program with currently loaded full path/name test program
+		if (szFullProgNameFromXTRF.str().compare( PgmCtrl()->getProgramPath() ) == 0) 
+		{
+			m_Debug << "[DEBUG] test program XTRF wants to load <" <<  szFullProgNameFromXTRF << "> is same as the one currently loaded." << CUtil::CLog::endl;
+		}
+		SendMessageToHost(true, true, "002", "requested compared with loaded one:", szFullProgNameFromXTRF.str().compare( PgmCtrl()->getProgramPath() ) == 0? "equal" : "different");
     	}
 
 	std::string dload(m_TPArgs.DownloadStrategy);
@@ -1973,7 +2001,7 @@ bool CuserEvxaInterface::loadProgram(const std::string &szProgFullPath)
 	else 
 	{
 		m_Log << "[ERROR] Something went wrong in loading test program " << szProgFullPath.c_str() << ": " << PgmCtrl()->getStatusBuffer() << CUtil::CLog::endl;
-		SendMessageToHost(false, "005", "load failed");
+		SendMessageToHost(false, true, "006", "load failed", "");
 	    	return false;
 	}
 		
@@ -2079,7 +2107,7 @@ bool CuserEvxaInterface::downloadProgramFromServerToLocal()
 	// check if TP file exist in remote folder. return false if not
 	if (!isFileExist(fullRemoteProgPath.str())) 
 	{
-		SendMessageToHost(false, "011", "download program failed");
+		SendMessageToHost(false, true, "011", "download program failed", "");
 		return false;
 	}
 
@@ -2106,7 +2134,7 @@ bool CuserEvxaInterface::unpackProgramFromLocalToTest()
 	// check if TP file exist in local folder
 	if (!isFileExist(fullLocalProgPath.str())) 
 	{
-		SendMessageToHost(false, "012", "program unpack failed");	
+		SendMessageToHost(false, true, "012", "program unpack failed", "");	
 		return false;
 	}
 
@@ -2129,7 +2157,7 @@ bool CuserEvxaInterface::unpackProgramFromLocalToTest()
 	fullProgName << m_ConfigArgs.ProgLocation << "/" << m_TPArgs.TPName;
 	if (!isFileExist(fullProgName.str())) 
 	{
-		SendMessageToHost(false, "012", "program unpack failed");
+		SendMessageToHost(false, true, "012", "program unpack failed", "");
 		return false;
 	}
 
@@ -2455,6 +2483,9 @@ bool CuserEvxaInterface::parseRecipeHandlerConfigurationFile(const std::string& 
 		}
     	}
 
+	// let's print out the config file 
+	if (debug()) 
+
     	// delete XML_Node
     	if (rootNode) 
 	{
@@ -2524,6 +2555,7 @@ bool CuserEvxaInterface::parseRecipeHandlerConfiguration(XML_Node *recipeConfig)
 		}
 		else m_Debug << "[DEBUG]	empty child tag found. " << CUtil::CLog::endl;
 	}
+
 	return result;
 }
 
@@ -2555,7 +2587,12 @@ bool CuserEvxaInterface::parseSiteConfiguration(XML_Node *siteConfig)
 				    	else if (childNode->fetchAttr(ii).compare("LocalLocation") == 0){ m_ConfigArgs.LocalLocation = childNode->fetchVal(ii); }
 		    			else if (childNode->fetchAttr(ii).compare("ProgLocation") == 0){ m_ConfigArgs.ProgLocation = childNode->fetchVal(ii); }
 		    			else if (childNode->fetchAttr(ii).compare("PackageType") == 0){ m_ConfigArgs.PackageType = childNode->fetchVal(ii); }
-		    			else if (childNode->fetchAttr(ii).compare("S10F1") == 0){ m_ConfigArgs.S10F1 = childNode->fetchVal(ii); }
+		    			else if (childNode->fetchAttr(ii).compare("EVID001") == 0){ m_ConfigArgs.EVID001 = childNode->fetchVal(ii); }
+		    			else if (childNode->fetchAttr(ii).compare("EVID002") == 0){ m_ConfigArgs.EVID002 = childNode->fetchVal(ii); }
+		    			else if (childNode->fetchAttr(ii).compare("EVID003") == 0){ m_ConfigArgs.EVID003 = childNode->fetchVal(ii); }
+		    			else if (childNode->fetchAttr(ii).compare("EVID004") == 0){ m_ConfigArgs.EVID004 = childNode->fetchVal(ii); }
+		    			else if (childNode->fetchAttr(ii).compare("EVID005") == 0){ m_ConfigArgs.EVID005 = childNode->fetchVal(ii); }
+		    			else if (childNode->fetchAttr(ii).compare("ERIDXXX") == 0){ m_ConfigArgs.ERIDXXX = childNode->fetchVal(ii); }
 		    			else m_Log << "[ERROR] Unknown SiteConfig Parameter: " << childNode->fetchAttr(ii) << " : " << childNode->fetchVal(ii) <<CUtil::CLog::endl;
 				}
 	    		}

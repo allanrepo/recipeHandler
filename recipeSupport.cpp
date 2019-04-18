@@ -4,7 +4,7 @@
 ///////////////////////////////////////////////////////
 // recipeConfig
 
-CRecipeConfig::CRecipeConfig(): RemoteLocation(), LocalLocation(), ProgLocation(), PackageType(), ConfigurationName(), S10F1()
+CRecipeConfig::CRecipeConfig(): RemoteLocation(), LocalLocation(), ProgLocation(), PackageType(), ConfigurationName(), EVID001(),  EVID002(),  EVID003(), EVID004(), EVID005(), ERIDXXX()
 {
 }
 
@@ -13,7 +13,12 @@ CRecipeConfig::CRecipeConfig(const CRecipeConfig& ot): RemoteLocation(ot. Remote
 						       ProgLocation(ot.ProgLocation), 
 						       PackageType(ot.PackageType),
 						       ConfigurationName(ot.ConfigurationName),
-							S10F1(ot.S10F1)
+							EVID001(ot.EVID001),
+							EVID002(ot.EVID002),
+							EVID003(ot.EVID003),
+							EVID004(ot.EVID004),
+							EVID005(ot.EVID005),
+							ERIDXXX(ot.ERIDXXX)
 {
 }
 
@@ -24,7 +29,12 @@ CRecipeConfig& CRecipeConfig::operator=(const CRecipeConfig& ot)
     ProgLocation = ot.ProgLocation;
     PackageType = ot.ProgLocation;
     ConfigurationName = ot.ConfigurationName;
-    S10F1 = ot.S10F1;
+    EVID001 = ot.EVID001;
+    EVID002 = ot.EVID002;
+    EVID003 = ot.EVID003;
+    EVID004 = ot.EVID004;
+    EVID005 = ot.EVID005;
+    ERIDXXX = ot.ERIDXXX;
     return *this;
 }
 
@@ -39,7 +49,12 @@ bool CRecipeConfig::clearConfigParams()
 	ProgLocation.clear();
 	PackageType.clear();
 	ConfigurationName.clear();
-	S10F1.clear();
+	EVID001.clear();
+	EVID002.clear();
+	EVID003.clear();
+	EVID004.clear();
+	EVID005.clear();
+	ERIDXXX.clear();
 	return true;   
 }
 
@@ -66,8 +81,28 @@ bool CRecipeConfig::checkConfigParams()
 	std::cout << "[ERROR] ConfigurationName is empty, correct configuration file." << std::endl;
 	result = false;
     }
-    if (S10F1.empty() == true) {
-	std::cout << "[ERROR] S10F1 is empty, correct configuration file." << std::endl;
+    if (EVID001.empty() == true) {
+	std::cout << "[ERROR] EVID001 is empty, correct configuration file." << std::endl;
+	result = false;
+    }
+    if (EVID002.empty() == true) {
+	std::cout << "[ERROR] EVID002 is empty, correct configuration file." << std::endl;
+	result = false;
+    }
+    if (EVID003.empty() == true) {
+	std::cout << "[ERROR] EVID003 is empty, correct configuration file." << std::endl;
+	result = false;
+    }
+    if (EVID004.empty() == true) {
+	std::cout << "[ERROR] EVID004 is empty, correct configuration file." << std::endl;
+	result = false;
+    }
+    if (EVID005.empty() == true) {
+	std::cout << "[ERROR] EVID005 is empty, correct configuration file." << std::endl;
+	result = false;
+    }
+    if (ERIDXXX.empty() == true) {
+	std::cout << "[ERROR] ERIDXXX is empty, correct configuration file." << std::endl;
 	result = false;
     }
 
@@ -81,7 +116,12 @@ bool CRecipeConfig::printConfigParams()
     m_Log << "Location in Tester PC to download test program file package [LocalLocation]: " << LocalLocation << CUtil::CLog::endl;
     m_Log << "Location in tester PC to unpack/install test program [ProgLocation]: " << ProgLocation << CUtil::CLog::endl;
     m_Log << "Expected test program package file type [PackageType]: " << PackageType << CUtil::CLog::endl;
-    m_Log << "Enable S10F1 event/error messaging to host [S10F1]: " << S10F1 << CUtil::CLog::endl;
+    m_Log << "Enable EQ_RH_EVID_001 EQ-XTRF-ANALYZED messaging to host: " << EVID001 << CUtil::CLog::endl;
+    m_Log << "Enable EQ-TP-COMPARED messaging to host: " << EVID002 << CUtil::CLog::endl;
+    m_Log << "Enable TP-LOADED messaging to host: " << EVID003 << CUtil::CLog::endl;
+    m_Log << "Enable TP-UNLOADED messaging to host: " << EVID004 << CUtil::CLog::endl;
+    m_Log << "Enable TP LOAD - ABORTED messaging to host: " << EVID005 << CUtil::CLog::endl;
+    m_Log << "Enable ERROR messaging to host: " << ERIDXXX << CUtil::CLog::endl;
     return true;
 }
 

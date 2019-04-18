@@ -18,8 +18,12 @@
         <argParameter LocalLocation="/tmp/local"/>
         <argParameter ProgLocation="/tmp/prog"/>
        <argParameter PackageType="tar"/>
-       <argParameter S10F1="false"/>
-       <argParameter unknown="false"/>
+       <argParameter EVID001="true"/>
+       <argParameter EVID002="true"/>
+       <argParameter EVID003="true"/>
+       <argParameter EVID004="true"/>
+       <argParameter EVID005="true"/>
+       <argParameter ERIDXXX="true"/>
     </SiteConfiguration>
 
     <SiteConfiguration ConfigurationName="localuser">

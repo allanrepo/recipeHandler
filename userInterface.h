@@ -248,9 +248,10 @@ public:
 
 	bool getUnisonVersion();
 
-	bool SendMessageToHost( bool bEvent, const std::string& id, const std::string& msg );
+	bool SendMessageToHost( bool bEvent, bool bTestProgram, const std::string& id, const std::string& msg, const std::string& val );
 
 };
+
 
 #define _CGEM_EVXA_HEADER_INCLUDED_
 #endif // _CGEM_EVXA_HEADER_INCLUDED_
