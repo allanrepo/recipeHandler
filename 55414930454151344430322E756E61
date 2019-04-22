@@ -3,7 +3,7 @@
 <!-- Test program section -->
 <testPrgmIdentifier>
 <testPrgm idx="0">
-<testPrgmLoader testPrgmURI="UAI0_R10P11/UAI0EAQ4D02.una" downloadStrategy="attempt" reloadStrategy="attempt" backToIdleStrategy="unload" />
+<testPrgmLoader testPrgmURI="BinChecker_R01P02/Program/BinChecker.una" downloadStrategy="attempt" reloadStrategy="attempt" back2dleStrategy="unload" />
 </testPrgm>
 </testPrgmIdentifier>
 <!-- STDF section -->

@@ -512,14 +512,14 @@ bool CuserEvxaInterface::parseXML(const char*recipe_text)
 	if (!recipe_text)
 	{
 		m_Log << "ERROR: recipe_text is NULL!!" << CUtil::CLog::endl;
-		SendMessageToHost(false, false, "007", "recipe empty", ""); 
+		SendMessageToHost(false, false, "007", "XTRF recipe empty", ""); 
 		return false;
 	}
 
 	if (!strlen(recipe_text))
 	{
 		m_Log << "ERROR: recipe_text length is 0!!" << CUtil::CLog::endl;
-		SendMessageToHost(false, false, "007", "recipe empty", ""); 
+		SendMessageToHost(false, false, "007", "XTRF recipe empty", ""); 
 		return false;
 	}
 
@@ -1294,7 +1294,7 @@ bool CuserEvxaInterface::parseMIR(XML_Node *MIRRecord)
 	    		else 
 			{
 				m_Log << "[ERROR] parseMIR unknown field: " << fieldname << CUtil::CLog::endl;
-				SendMessageToHost(false, false, "009", "XTRF unknown attribute", fieldname);		
+				SendMessageToHost(false, false, "010", "XTRF unknown attribute value: ", fieldname);				
 			}
 		}
     	}			    
@@ -2144,7 +2144,7 @@ bool CuserEvxaInterface::downloadProgramFromServerToLocal()
 	// check if TP file exist in remote folder. return false if not
 	if (!isFileExist(fullRemoteProgPath.str())) 
 	{
-		SendMessageToHost(false, true, "011", "download program failed", "");
+		SendMessageToHost(false, true, "011", "download program failed", fullRemoteProgPath.str());
 		return false;
 	}
 
@@ -2171,7 +2171,7 @@ bool CuserEvxaInterface::unpackProgramFromLocalToTest()
 	// check if TP file exist in local folder
 	if (!isFileExist(fullLocalProgPath.str())) 
 	{
-		SendMessageToHost(false, true, "012", "program unpack failed", "");	
+		SendMessageToHost(false, true, "012", "program unpack failed: ", fullLocalProgPath.str());	
 		return false;
 	}
 
@@ -2194,7 +2194,7 @@ bool CuserEvxaInterface::unpackProgramFromLocalToTest()
 	fullProgName << m_ConfigArgs.ProgLocation << "/" << m_TPArgs.TPName;
 	if (!isFileExist(fullProgName.str())) 
 	{
-		SendMessageToHost(false, true, "012", "program unpack failed", "");
+		SendMessageToHost(false, true, "012", "program unpack failed", fullLocalProgPath.str());
 		return false;
 	}
 
@@ -2516,7 +2516,6 @@ bool CuserEvxaInterface::parseRecipeHandlerConfigurationFile(const std::string& 
 		else
 		{
 			m_Debug << "[DEBUG] 	unknown root tag " << ptag << " found." << CUtil::CLog::endl;
-			//SendMessageToHost(false, "011", "Config unknown tag");
 		}
     	}
 
@@ -2587,7 +2586,6 @@ bool CuserEvxaInterface::parseRecipeHandlerConfiguration(XML_Node *recipeConfig)
 			else 
 			{
 				m_Debug << "[DEBUG] 	unknown child tag " << ptag << " found." << CUtil::CLog::endl;
-				//SendMessageToHost(false, "011", "Config unknown tag");
 			}
 		}
 		else m_Debug << "[DEBUG]	empty child tag found. " << CUtil::CLog::endl;
@@ -2636,7 +2634,6 @@ bool CuserEvxaInterface::parseSiteConfiguration(XML_Node *siteConfig)
 	    		else 
 			{
 				m_Debug << "[DEBUG] 	unknown child tag " << ptag << " found." << CUtil::CLog::endl;
-				//SendMessageToHost(false, "011", "Config unknown tag"); // no point doing this, we arent connected to testr yet
 			}
 		}
 		else m_Debug << "[DEBUG]	empty child tag found. " << CUtil::CLog::endl;
