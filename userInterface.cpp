@@ -265,7 +265,7 @@ void CuserEvxaInterface::programChange(const EVX_PROGRAM_STATE state, const char
 			break;
 		case EVX_PROGRAM_LOADED:
 		    	m_Debug << "programChange: EVX_PROGRAM_LOADED" << CUtil::CLog::endl;
-			SendMessageToHost(true, true, "003", "loaded", "");
+			onProgramLoadedEvent(true, "003", "loaded", "");
 			updateSTDFAfterProgLoad();
 			break;
 		case EVX_PROGRAM_START: 
@@ -278,7 +278,7 @@ void CuserEvxaInterface::programChange(const EVX_PROGRAM_STATE state, const char
 			m_Debug << "programChange: EVX_PROGRAM_UNLOADING" << CUtil::CLog::endl;
 			break;
 		case EVX_PROGRAM_UNLOADED: 
-			SendMessageToHost(true, true, "004", "unloaded", "");
+			onProgramUnloadedEvent(true, "004", "unloaded", "");
 			m_Debug << "programChange: EVX_PROGRAM_UNLOADED" << CUtil::CLog::endl;
 			// If the program was unloaded and not by xtrf then unblock the robots.
 			if (m_recipeParse == false) 
@@ -428,6 +428,43 @@ void CuserEvxaInterface::RecipeDecode(const char *recipe_text)
 	// not sure why, probably need to investigate this but low priority for now.
    	//sendRecipeResultStatus(result);  // parsing failed so just send the result back to cgem.
  }
+
+/* ------------------------------------------------------------------------------------------------------
+executed when EVXA receives EVX_PROGRAM_UNLOADED. this event handler also does the sending of 
+S10F1 message to host to ensure it does it with the right test program name
+------------------------------------------------------------------------------------------------------ */
+bool CuserEvxaInterface::onProgramUnloadedEvent(bool bEvent, const std::string& id, const std::string& msg, const std::string& val)
+{
+	// find the last '/' in the file name so we can remove it's folder path
+	unsigned found = m_strCurrProgramLoaded.find_last_of("/");
+
+	// if found '/', let's snap the folder path out
+	std::string szProgramName = m_strCurrProgramLoaded.substr(found+1);
+	if(szProgramName.empty()) szProgramName = m_strCurrProgramLoaded;
+
+	// reset the variable that holds the test program currently loaded since it's unloaded now
+	m_strCurrProgramLoaded = "";
+
+	// send S10F1 message to host with <test program> as program that was just unloaded
+	std::stringstream ss;
+	ss << "EQ_RH_" << (bEvent? "EV":"ER") << "ID_" << id << ":" << " TP " << szProgramName << " " << msg << " " << val;
+	return PgmCtrl()? (PgmCtrl()->gemSendMsgToHost(ss.str()) == EVX_GEM_GOOD? true : false) : false;
+}
+
+/* ------------------------------------------------------------------------------------------------------
+this event sets the test program loaded variable to test program path/name queried from unison. 
+sending S10F1 will use the default function. although the default function uses the recipe struct as 
+reference to test program name, it should be fine since it is expected to match the actual 
+loaded program
+------------------------------------------------------------------------------------------------------ */
+bool CuserEvxaInterface::onProgramLoadedEvent(bool bEvent, const std::string& id, const std::string& msg, const std::string& val)
+{
+	// get the full program path name loaded and store it in the variable
+	m_strCurrProgramLoaded = PgmCtrl()->getProgramPath();
+
+	// let's use the default function to send S10F1
+	return SendMessageToHost(bEvent, true, id, msg, val);
+}
 
 /* ------------------------------------------------------------------------------------------------------
 send S10F1 to host

@@ -164,6 +164,19 @@ private:
 
 	std::vector< customGDR > m_customGDRs;
 
+	// we're adding this member variable and function to support a feature where we'll remember the full name/path of program loaded into unison
+	// we need this so that when 'unload' event happens, we can send S10F1 message to GEM host with the test program name in it. without storing the 
+	// name of the loaded program, we'll never be able to do this because there's no way for unison to tell us the program because it's already unloaded.
+	std::string m_strCurrProgramLoaded;
+
+	// also, the above variable is only 'unset' and used during unload program event which is executed when EVXA receives EVX_PROGRAM_UNLOADED.
+	// this event handler also does the sending of S10F1 message to host to ensure it does it with the right test program name
+	bool onProgramUnloadedEvent(bool bEvent, const std::string& id, const std::string& msg, const std::string& val);
+	// this event sets the variable above to test program path/name queried from unison. sending S10F1 will use the default function. although
+	// the default function uses the recipe struct as reference to test program name, it should be fine since it is expected to match the 
+	// actual loaded program
+	bool onProgramLoadedEvent(bool bEvent, const std::string& id, const std::string& msg, const std::string& val);
+
 public:
 
     CuserEvxaInterface(void);
