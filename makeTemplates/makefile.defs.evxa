@@ -1,0 +1,32 @@
+ARCH_DEST?=/ltx
+
+ifeq ("$(TESTER_TYPE)", "unison")
+USE_STATIC_EVXA?=false
+USE_DYNAMIC_EVXA?=true
+endif
+
+ifeq ("$(TESTER_TYPE)", "enVision")
+USE_STATIC_EVXA?=true
+USE_DYNAMIC_EVXA?=false
+endif
+
+USE_STATIC_EVXA?=false
+USE_DYNAMIC_EVXA?=false
+
+EVXA_INCLUDES?=-I$(ARCH_DEST)/include
+
+ifeq ("$(USE_STATIC_EVXA)", "true")
+EVXA_STATIC_LIB?=$(ARCH_DEST)/lib/libevxa.a
+endif
+
+ifeq ("$(USE_DYNAMIC_EVXA)", "true")
+EVXA_DYNAMIC_LIB?=-levxa
+endif
+
+
+EVXA_STATIC_LIB?=
+EVXA_DYNAMIC_LIB?=
+
+EVXA_LIBRARIES+=-lcrypt -lnsl -lm -lrt
+
+EVXA_LINK_OPTIONS?=-Wl,-rpath,'$$ORIGIN'/../lib -Wl,-rpath,/ltx/lib -L$(ARCH_DEST)/lib -Wl,-rpath-link,$(ARCH_DEST)/lib

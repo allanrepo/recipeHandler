@@ -1,0 +1,1 @@
+/opt/ateTools/curi/unison/dev/makeTemplates/makefile.curi

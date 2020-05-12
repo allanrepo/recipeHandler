@@ -1,0 +1,136 @@
+ifeq ($(CFG), Debug)
+LGCC := $(GCC)
+CFLAGS += -g2 -Wall -DDEBUG -ggdb -m$(MBITS)
+LDFLAGS += -g2 -Wall -ggdb -m$(MBITS)
+endif
+
+ifeq ($(PURE), Yes)
+LGCC := $(GCC)
+GCC := purify $(GCC)
+endif
+
+ifeq ("$(CFG)", "Release")
+LGCC := $(GCC)
+INTDIR = Release
+CFLAGS +=  -Wall -m$(MBITS)
+LDFLAGS +=  -Wall -m$(MBITS)
+endif
+
+ifeq ("$(osMajVer)", "5")
+LDFLAGS +=-Wl,--hash-style=sysv
+endif
+
+ifneq ("$(NO_PTHREAD)", "true")
+	CFLAGS+=-pthread
+	LDFLAGS+=-pthread
+endif
+#--------
+# Set the default version if not set by VERSION or project.makefile
+
+ifndef TARGET_MAJOR_VERSION
+TARGET_MAJOR_VERSION=1
+endif
+
+CFLAGS += -I/usr/include/ -I$(TARGET_SRC_PATH) $(PROJECT_INCLUDE_PATHS)
+
+ifeq ("$(EVXA_TESTER)", "true")
+	ifeq ("$(EVXA_CLIENT)", "true")
+		CFLAGS += $(EVXA_INCLUDES)
+		LDFLAGS+=$(EVXA_LINK_OPTIONS)
+		PROJECT_LIBRARIES+=$(EVXA_DYNAMIC_LIB) $(EVXA_LIBRARIES)
+		STATIC_LIBS+=$(EVXA_STATIC_LIB)
+	endif
+endif
+
+# Rules for make
+
+# Clear out the default suffixes for this master, and build rules.
+.SUFFIXES:
+
+.SUFFIXES:.cpp
+
+# This rule is only used for non-modified srcs, not P_SRCS
+
+# .o.cpp:
+#	 $(GCC) -pipe -x c++ $(CFLAGS) -c -o $@ $<
+
+P_SRCS = $(PROJECT_SOURCES:%=$(TARGET_SRC_PATH)/%)
+P_HDRS = $(PROJECT_HEADERS:%=$(TARGET_SRC_PATH)/%)
+PD_HDRS = $(PROJECT_DIST_HDRS:%=$(TARGET_SRC_PATH)/%)
+PD_CONFIGS = $(PROJECT_DIST_CONFIG:%=$(TARGET_SRC_PATH)/%)
+
+FULL_TARGET = $(BIN_OUTDIR)/$(TOOL_TARGET)
+
+FULL_SO_TARGET = $(BIN_OUTDIR)/$(SO_TARGET).$(TARGET_MAJOR_VERSION).$(TARGET_MINOR_VERSION)
+
+$(TARGET_SRC_PATH)/$(CFG)/%.o: $(TARGET_SRC_PATH)/%.cpp
+	if [ ! -d $(CFG_DIR) ] ; then /bin/mkdir -p $(CFG_DIR) ; fi
+	$(GCC) -pipe -x c++ $(CFLAGS) -c -o $@ $<
+
+P_OBJS = $(P_SRCS:$(TARGET_SRC_PATH)/%.cpp=$(TARGET_SRC_PATH)/$(CFG)/%.o)
+_PD_HDRS_ = $(PD_HDRS:$(TARGET_SRC_PATH)/%=$(INC_OUTDIR)/%)
+
+CFG_DIR = $(TARGET_SRC_PATH)/$(CFG) 
+
+$(INC_OUTDIR)/%.h: $(TARGET_SRC_PATH)/%.h
+	/bin/cp -f $< $@
+
+$(CFG_DIR):
+	/bin/mkdir -p $@
+
+$(P_OBJS): $(P_HDRS)
+
+ifeq ("$(TESTER_TYPE)", "enVision")
+$(FULL_SO_TARGET): LDFLAGS += -Wl,-rpath,$(CURI)/lib -L$(LIB_OUTDIR) -lcuri
+endif
+
+
+$(FULL_SO_TARGET): LDFLAGS += -shared -fPIC
+$(FULL_SO_TARGET): CFLAGS += -fPIC
+
+ifeq ("$(NOPIE)", "")
+$(FULL_TARGET): LDFLAGS += -pie
+$(FULL_TARGET): CFLAGS += -fPIE
+endif
+
+$(SO_TARGET) : $(FULL_SO_TARGET) $(_PD_HDRS_)
+
+$(TOOL_TARGET) : $(FULL_TARGET) $(_PD_HDRS_)
+
+
+
+$(FULL_SO_TARGET) : $(P_OBJS)
+	$(LGCC) -pipe $(LDFLAGS) -Wl,-soname,$(SO_TARGET).$(TARGET_MAJOR_VERSION) -o $(FULL_SO_TARGET) $(P_OBJS) $(STATIC_LIBS) $(PROJECT_LIBRARIES)
+	cd $(BIN_OUTDIR) && ln -fs $(SO_TARGET).$(TARGET_MAJOR_VERSION).$(TARGET_MINOR_VERSION) $(SO_TARGET).$(TARGET_MAJOR_VERSION)
+	cd $(BIN_OUTDIR) && ln -fs $(SO_TARGET).$(TARGET_MAJOR_VERSION) $(SO_TARGET)
+
+$(FULL_TARGET) : $(P_OBJS)
+	$(GCC) -pipe $(LDFLAGS) -o $(FULL_TARGET) $(P_OBJS) $(STATIC_LIBS) $(PROJECT_LIBRARIES)
+
+# -----End  Rule definitions -----
+
+# Some standard targets to use
+
+.PHONY : clean $(TOOL_TARGET) $(SO_TARGET) distro
+
+# Clean the project
+clean:
+ifneq ("$(SO_TARGET)", "")
+	/bin/rm -f $(P_OBJS) $(FULL_SO_TARGET) $(_PD_HDRS_)
+else
+	/bin/rm -f $(P_OBJS) $(FULL_TARGET) $(_PD_HDRS_)
+endif
+
+
+clobber: clean
+ifneq ("$(SO_TARGET)", "")
+	/bin/rm -f $(BIN_OUTDIR)/$(SO_TARGET).$(TARGET_MAJOR_VERSION)
+	/bin/rm -f $(BIN_OUTDIR)/$(SO_TARGET)
+	/bin/rmdir --ignore-fail-on-non-empty $(CFG_DIR)
+else
+	/bin/rmdir --ignore-fail-on-non-empty $(CFG_DIR)
+endif
+
+rebuild: clean all
+
+# distro

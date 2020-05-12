@@ -1,0 +1,33 @@
+# For new drivers, link this to makefile in the main source directory and
+# create a project.makefile for the driver
+
+
+CURI?=/opt/ateTools/curi/unison
+TESTER_TYPE?=unison
+
+# Make this the first target, will be appended to later
+all: 
+
+include $(CURI)/dev/makeTemplates/makefile.defs
+
+#--------
+
+include $(TARGET_SRC_PATH)/project.makefile
+
+#--------
+
+# Append to the all target.
+
+ifdef SO_TARGET
+all: $(SO_TARGET)
+endif
+
+ifdef TOOL_TARGET
+all: $(TOOL_TARGET)
+endif
+
+PROJECT_INCLUDE_PATHS += -I$(INC_OUTDIR)
+
+#--------
+
+include ./makeTemplates/makefile.rules

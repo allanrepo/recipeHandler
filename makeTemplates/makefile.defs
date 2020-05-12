@@ -1,0 +1,100 @@
+#
+#
+
+# Make command to use for dependencies
+MAKE?=gmake
+
+# If no configuration is specified, "Debug" will be used
+CFG?=Release
+
+osType?=$(shell \
+if [ -f /etc/redhat-release ]; then \
+	if [ "`cat /etc/redhat-release | cut -d' ' -f1`" == "Red" ]; then \
+		echo "rhel"; \
+	elif [ "`cat /etc/redhat-release | cut -d' ' -f1`" == "CentOS" ]; then \
+		echo "cnt"; \
+	else echo "devel"; \
+	fi \
+else echo "devel"; \
+fi )
+
+osVer?=$(shell \
+	if [ $(osType) == "rhel" ]; then \
+		echo "`cat /etc/redhat-release | cut -d' ' -f7`"; \
+	elif [ $(osType) == "cnt" ]; then \
+		echo "`cat /etc/redhat-release | cut -d' ' -f3`"; \
+	else echo ""; \
+fi )
+
+osMajVer=$(shell echo "`echo $(osVer) | cut -d '.' -f1`"; )
+
+# If TESTER_TYPE is not set, it will be set to "unknown" so we can check this
+# condition next.
+
+ifeq ("$(TESTER_TYPE)", "unknown")
+ifeq ($(osType), "rhel")
+	TESTER_TYPE=Diamond
+else
+# Need to see if this is an enVision system
+	TESTER_TYPE=$(shell \
+		if [ -d /opt/ltx/ltx_os ]; then \
+			echo "enVision"; \
+		else echo "Diamond"; \
+		fi )
+endif
+endif
+
+# if gcc is not defined, default to g++
+
+ifeq ("$(TESTER_TYPE)", "enVision")
+	ifeq ("$(osMajVer)", "4")
+		GCC=/usr/bin/g++32
+	endif
+	EVXA_TESTER=true
+endif
+
+ifeq ("$(TESTER_TYPE)", "unison")
+	ifeq ("$(osMajVer)", "4")
+		GCC?=/usr/bin/g++4
+	endif
+	EVXA_TESTER=true
+endif
+
+GCC?=/usr/bin/g++
+
+ifndef TARGET_SRC_PATH
+TARGET_SRC_PATH:= $(shell pwd)
+endif
+
+ifndef TARGET_BASE_PATH
+TARGET_BASE_PATH= $(CURI)
+endif
+
+ifeq ($(CFG), Debug)
+INTDIR = Debug
+endif
+
+ifeq ("$(CFG)", "Release")
+INTDIR = Release
+endif
+
+ifneq ("$(VERSION)", "")
+TARGET_MAJOR_VERSION=$(VERSION)
+endif
+
+ifeq ("$(MBITS)", "64")
+BIT_SUFFIX=lib64
+else
+MBITS=32
+BIT_SUFFIX=lib
+endif
+
+BIN_OUTDIR = $(TARGET_SRC_PATH)/$(CFG)
+INC_OUTDIR = $(TARGET_BASE_PATH)/include
+LIB_OUTDIR = $(TARGET_BASE_PATH)/$(BIT_SUFFIX)
+
+
+ifeq ("$(EVXA_TESTER)", "true")
+-include $(CURI)/dev/makeTemplates/makefile.defs.evxa
+endif
+
